@@ -10,9 +10,13 @@
     - [ ] Array Info
         - [ ] Vector implementation
     - [ ] Hashing
-        - [ ] Contains Duplicate
-            - [ ] show description on left side
-            - [ ] show code on right side
-            - [ ] have testcases 
+        - [ ] 217 Contains Duplicate
+            - [X] show description on left side
+            - [X] show code on right side
+            - [X] have testcases 
             - [ ] Allow user to put their own testcase 
+            - [ ] run action code
+                - [ ] spawn variables
+                    - [ ] by value 
+                    - [ ] by ref
 
