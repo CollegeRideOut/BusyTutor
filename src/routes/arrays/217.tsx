@@ -1,114 +1,39 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useRef, useState } from 'react';
 import { ThemeContext } from '../__root';
 import { VscDebugStart } from "react-icons/vsc";
-import tutor from '../../assets/tutor_idle_0.png'
+import { VscDebugStepOver } from "react-icons/vsc";
 
 export const Route = createFileRoute('/arrays/217')({
     component: RouteComponent,
 })
 
 
-
-const ANIMATION_STATE = {
-    IDLE: 'idle',
-} as const;
-
-
-type animationState = keyof typeof ANIMATION_STATE;
-
-
-class Vector2d {
-    public x: number
-    public y: number
-    constructor(x: number, y: number) {
-        this.x = x;
-        this.y = y;
-    }
-    public static subtract(a: Vector2d, b: Vector2d): Vector2d {
-        return new Vector2d(a.x - b.x, a.y - b.y);
-    }
-    public static magnituted(a: Vector2d): number {
-        return Math.floor(Math.hypot(a.x, a.y));
-    }
-    public static normalize(a: Vector2d) {
-        const length = Vector2d.magnituted(a);
-        if (length === 0) { return new Vector2d(0, 0); }
-        return new Vector2d((a.x / length), (a.y / length))
-
-    }
-}
-
-const tutorInit: {
-    currAnimationState: animationState;
-    postion: Vector2d;
-    walkingSpeed: number;
-    targetPosition: Vector2d;
-    updatePosition: () => void
-} = {
-    currAnimationState: 'IDLE',
-    postion: new Vector2d(0, 0),
-    walkingSpeed: 10,
-    targetPosition: new Vector2d(200, 200),
-    updatePosition: function() {
-        // modifies the position 
-        let direction = Vector2d.subtract(this.targetPosition, this.postion);
-
-        direction = Vector2d.normalize(direction);
-
-        this.postion.x += direction.x;
-        this.postion.y += direction.y;
-
-        console.log(this.postion)
-    }
-}
-
-
 function RouteComponent() {
 
     const { vals: { colors } } = useContext(ThemeContext)
     const [toggleGame, setToggleGame] = useState(true)
-    const intervalRef = useRef<number | null>(null);
-    const [nums, setNums] = useState<number[] | null>([1, 2, 3, 4, 4]);
-    const [tutorEntity, setTutorEntity] = useState(tutorInit)
+    const [nums, setNums] = useState<number[] | null>([]);
+    const [variables, setVariables] = useState<{ name: string, type: 'val' | 'ref', tooltip: string }[]>([]);
 
-    function updateTutorPosition(prev: typeof tutorEntity): typeof tutorEntity {
-        let direction = Vector2d.subtract(prev.targetPosition, prev.postion);
-        direction = Vector2d.normalize(direction);
-        let copyPosition = new Vector2d(prev.postion.x, prev.postion.y)
-        copyPosition.x += direction.x
-        copyPosition.y += direction.y
-        return { ...tutorEntity, postion: copyPosition }
+    void nums
 
 
-    }
-
-    useEffect(() => {
-        intervalRef.current = setInterval(() => {
-            setTutorEntity(prev => updateTutorPosition(prev))
-        }, 1000 / 2)
-
-        return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
-        }
-
-    }, []);
-
-    //useEffect(() => {
-    //    if (toggleGame && tutorEntity) {
-    //        console.log('i entered')
-    //        console.log(tutorEntity)
-    //
-    //        requestAnimationFrame(loop)
-    //    }
-    //}, [toggleGame])
+    const actions = useCallback(function*() {
+        setVariables([{ name: 'nums', type: 'ref', tooltip: 'input array' }])
+        yield ''
+        setVariables((prev) => [
+            ...prev,
+            {
+                name: 'i',
+                type: 'val',
+                tooltip: 'we use it to index into the array'
+            }
+        ])
+    }, [])
+    const nextAction = useRef(actions());
 
 
-
-    //const navigate = useNavigate({ from: '/arrays' })
-    //
-    //
-    //function* nextAction() { }
     return (
         <div
             style={{
@@ -343,99 +268,24 @@ function RouteComponent() {
                         flexDirection: 'column',
                     }}
                 >
-
-
                     <div
-                        id={'world'}
+                        onClick={() => {
+                            nextAction.current.next()
+                        }}
+
                     >
-                        <img
-
-                            style={{
-                                transform: `translate(${tutorEntity!.postion.x}px, ${tutorEntity?.postion.y}px)`,
-                                position: 'absolute',
-                            }}
-                            width={50} src={tutor} />
-
-                        <div
-                            style={{
-                                display: 'flex'
-                            }}
-                        >
-                            nums: {nums && nums.map((x) => (
-                                <div>
-                                    {x}
-                                </div>
-                            ))}
-                        </div>
-
-
+                        <VscDebugStepOver />
                     </div>
 
-                    <div
-                    >
-                        <div
 
-                            style={{
-                                width: 30,
-                                backgroundColor: colors.secondary,
-                                borderTop: `2px solid ${colors.primary}`,
-                                borderLeft: `2px solid ${colors.primary}`,
-                                borderRight: `2px solid ${colors.primary}`,
-                                height: 20,
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                fontSize: 12,
+                    {variables && variables.map((v, idx) => {
+                        if (v.type === 'val') {
+                            return box({ key: `var-${idx}`, name: v.name, colors })
+                        } else {
+                            return ref({ key: `var-${idx}`, name: v.name, colors })
+                        }
+                    })}
 
-                            }}
-                        >
-                            {`=>`}
-                        </div>
-                        <div
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                backgroundColor: colors.secondary,
-                                width: 30,
-                                fontSize: 10,
-                                border: `2px solid ${colors.primary}`,
-                                height: 30,
-                            }}
-                        >
-                            nums
-                        </div>
-
-                    </div>
-                    <div
-                    >
-                        <div
-
-                            style={{
-                                width: 30,
-                                backgroundColor: colors.secondary,
-                                borderTop: `2px solid ${colors.primary}`,
-                                borderLeft: `2px solid ${colors.primary}`,
-                                borderRight: `2px solid ${colors.primary}`,
-                                height: 20,
-                            }}
-                        >
-                        </div>
-                        <div
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                backgroundColor: colors.secondary,
-                                width: 30,
-                                border: `2px solid ${colors.primary}`,
-                                height: 30,
-                            }}
-                        >
-                            I
-                        </div>
-
-                    </div>
                 </div>
             </div>
 
@@ -541,3 +391,81 @@ function RouteComponent() {
 
 
 
+
+
+
+const ref = ({ key, name, colors }: any) => (
+
+    <div
+        key={key + name}
+    >
+        <div
+
+            style={{
+                width: 30,
+                backgroundColor: colors.secondary,
+                borderTop: `2px solid ${colors.primary}`,
+                borderLeft: `2px solid ${colors.primary}`,
+                borderRight: `2px solid ${colors.primary}`,
+                height: 20,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                fontSize: 12,
+
+            }}
+        >
+            {`=>`}
+        </div>
+        <div
+            style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: colors.secondary,
+                width: 30,
+                fontSize: 10,
+                border: `2px solid ${colors.primary}`,
+                height: 30,
+            }}
+        >
+            {name}
+        </div>
+
+    </div>
+)
+
+const box = ({ key, name, colors }: any) => (
+    <div
+        key={key + name}
+        style={{
+            transition: 'position(50px, 50px) 2s, position(0px, 0px) 2s'
+        }}
+    >
+        <div
+            style={{
+                width: 30,
+                backgroundColor: colors.secondary,
+                borderTop: `2px solid ${colors.primary}`,
+                borderLeft: `2px solid ${colors.primary}`,
+                borderRight: `2px solid ${colors.primary}`,
+                height: 20,
+            }}
+        >
+        </div>
+        <div
+            style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: colors.secondary,
+                width: 30,
+                border: `2px solid ${colors.primary}`,
+                height: 30,
+            }}
+        >
+            {name}
+        </div>
+
+    </div>
+)
