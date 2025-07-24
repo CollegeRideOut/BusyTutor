@@ -4,6 +4,7 @@ import { ThemeContext } from '../__root';
 import { VscDebugStart } from "react-icons/vsc";
 import { VscDebugStepOver } from "react-icons/vsc";
 
+
 export const Route = createFileRoute('/arrays/217')({
     component: RouteComponent,
 })
@@ -13,26 +14,8 @@ function RouteComponent() {
 
     const { vals: { colors } } = useContext(ThemeContext)
     const [toggleGame, setToggleGame] = useState(true)
-    const [nums, setNums] = useState<number[] | null>([]);
-    const [variables, setVariables] = useState<{ name: string, type: 'val' | 'ref', tooltip: string }[]>([]);
-
-    void nums
-
-
-    const actions = useCallback(function*() {
-        setVariables([{ name: 'nums', type: 'ref', tooltip: 'input array' }])
-        yield ''
-        setVariables((prev) => [
-            ...prev,
-            {
-                name: 'i',
-                type: 'val',
-                tooltip: 'we use it to index into the array'
-            }
-        ])
-    }, [])
-    const nextAction = useRef(actions());
-
+    //    const [nums, setNums] = useState<number[] | null>([]);
+    //   const [variables, setVariables] = useState<{ name: string, type: 'val' | 'ref', tooltip: string }[]>([]);
 
     return (
         <div
@@ -237,7 +220,7 @@ function RouteComponent() {
 
                                     onClick={() => {
                                         setToggleGame((toggleGame) => !toggleGame)
-                                        setNums([1, 2, 3, 4, 4])
+                                        //setNums([1, 2, 3, 4, 4])
                                     }}
 
                                     style={{
@@ -269,8 +252,15 @@ function RouteComponent() {
                     }}
                 >
                     <div
-                        onClick={() => {
-                            nextAction.current.next()
+                        onClick={async () => {
+                            console.log('ima send it')
+                            let response = await fetch('http://localhost:3000/array/217', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ nums: [1, 2, 3, 4, 3] })
+                            })
+                            let val = await response.json();
+                            console.log(val)
                         }}
 
                     >
@@ -278,13 +268,7 @@ function RouteComponent() {
                     </div>
 
 
-                    {variables && variables.map((v, idx) => {
-                        if (v.type === 'val') {
-                            return box({ key: `var-${idx}`, name: v.name, colors })
-                        } else {
-                            return ref({ key: `var-${idx}`, name: v.name, colors })
-                        }
-                    })}
+
 
                 </div>
             </div>

@@ -4,8 +4,8 @@ import { MdOutlineDarkMode } from "react-icons/md";
 import { MdDarkMode } from "react-icons/md";
 import { useMediaQuery } from 'react-responsive'
 import { GiHamburgerMenu } from "react-icons/gi";
-
 import { CgCloseO } from "react-icons/cg";
+
 //import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 
 
@@ -61,6 +61,7 @@ const init_theme: {
 }
 
 export const ThemeContext = createContext(init_theme)
+
 //context
 export const Route = createRootRoute({
     component: () => {
