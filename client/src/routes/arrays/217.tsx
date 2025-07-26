@@ -1,8 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useCallback, useContext, useRef, useState } from 'react';
+import {  useContext, useState } from 'react';
 import { ThemeContext } from '../__root';
 import { VscDebugStart } from "react-icons/vsc";
 import { VscDebugStepOver } from "react-icons/vsc";
+import fengari from 'fengari-web'
+
 
 
 export const Route = createFileRoute('/arrays/217')({
@@ -14,24 +16,9 @@ function RouteComponent() {
 
     const { vals: { colors } } = useContext(ThemeContext)
     const [toggleGame, setToggleGame] = useState(true)
-    const [uuid, setUuid] = useState<string | null>(null);
     //    const [nums, setNums] = useState<number[] | null>([]);
     //   const [variables, setVariables] = useState<{ name: string, type: 'val' | 'ref', tooltip: string }[]>([]);
     //
-    //
-    const actions = useCallback(function*(nums: number[]) {
-        yield { variables: [{ id: 'nums', value: nums }], holistic: 'CREATED' }
-        for (let i = 0; i < nums.length; i++) {
-            yield { variables: [{ id: 'i', value: i }], holistic: 'CREATED' }
-            yield { variables: [], holistic: { action: 'check', what: { var: { id: 'nums' }, proptety: 'length' } } }
-            for (let j = i + 1; j < nums.length; j++) {
-                if (nums[i] == nums[j]) {
-                    return true
-                }
-            }
-        }
-        return false;
-    }, [])
 
     return (
         <div
@@ -269,6 +256,7 @@ function RouteComponent() {
                 >
                     <div
                         onClick={async () => {
+                            console.log(fengari)
                         }}
 
                     >

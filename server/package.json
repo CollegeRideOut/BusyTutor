@@ -18,6 +18,7 @@
     "chrome-remote-interface": "^0.33.3",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "fengari": "^0.1.4",
     "tcp-port-used": "^1.0.2",
     "typescript": "^5.8.3",
     "zod": "^4.0.9"

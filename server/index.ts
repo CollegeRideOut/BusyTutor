@@ -6,9 +6,11 @@ import { build217 } from './array/217-builder.ts';
 import { spawn } from 'child_process'
 import tcpportued from 'tcp-port-used'
 import path from 'path'
+import fengari from 'fengari'
 
 
 
+console.log(fengari)
 type user =
     { id: string, problem: string, input: string, port: number, child: any, debugger?: CDP.Client, steps: any, currStep: number }
 
