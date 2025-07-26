@@ -10,12 +10,12 @@ import path from 'path'
 
 
 type user =
-    { id: string, problem: string, input: string, port: number, child: any, debugger?: CDP.Client }
+    { id: string, problem: string, input: string, port: number, child: any, debugger?: CDP.Client, steps: any, currStep: number }
 
-const users: user[] = []
+let users: user[] = []
 
 
-async function connectDebugger(port: number) {
+async function connectDebugger(port: number, uuid: string) {
     console.log('this is the port debugger got called with ', port)
     const debuggerClient = await CDP({ port: port, });
 
@@ -24,8 +24,35 @@ async function connectDebugger(port: number) {
     await debuggerClient.Debugger.enable();
     await debuggerClient.Runtime.enable();
 
-    debuggerClient.Debugger.paused(({ callFrames }) => {
-        console.log('Debugger paused at:', callFrames[0].location);
+    debuggerClient.Debugger.paused(async (params) => {
+        const frame = params.callFrames[0];
+        console.log('Paused at line:', frame.location.lineNumber + 1);
+        const callFrame = params.callFrames[0];
+
+        for (const scope of callFrame.scopeChain) {
+            if (scope.type === 'local' || scope.type === 'block') {
+                const { object } = scope;
+
+                const result = await debuggerClient.Runtime.getProperties({
+                    objectId: object.objectId!,
+                    ownProperties: true
+                });
+
+                console.log('Local variables:');
+                //for (const prop of result.result) {
+                //    console.log(`${prop.name} ${JSON.stringify(prop)}`);
+                //}
+                const user = users.find((u) => u.id === uuid)
+                if (!user) {
+                    console.log('WHERE IS THE USER')
+                    return;
+                }
+                user.steps.push(result.result);
+                user.currStep++;
+            }
+        }
+
+
     });
     return debuggerClient;
 }
@@ -63,6 +90,8 @@ app.post('/:type/:problem', async (req, res) => {
         port: port,
         input: problemId,
         child: c,
+        steps: [],
+        currStep: 0
     }
 
     if (c.stdout) {
@@ -75,18 +104,60 @@ app.post('/:type/:problem', async (req, res) => {
     setTimeout(async () => {
         console.log('ima call the debugger')
 
-        const debuggerClient = await connectDebugger(port)
+        const debuggerClient = await connectDebugger(port, uuid)
         u.debugger = debuggerClient
+    }, 1000)
+
+    users.push(u);
+    res.json({ id: uuid })
+})
+
+app.get('/exit/all', async (req, res) => {
+
+    for (const u of users) {
+        await u.debugger?.close()
+        u.child.stdin.pause();
+        u.child.kill();
     }
 
-        , 1000)
+    users = [];
+    res.json({ ok: 'cool' });
+})
+
+app.get("/exit/user/:id", async (req, res) => {
+    let id = req.params.id
+
+    const u = users.find((u) => u.id === id);
+    if (!u) {
+        res.json({ error: 'user not found' });
+        return;
+    }
+
+    await u.debugger?.close()
+    u.child.stdin.pause();
+    u.child.kill();
+    users = users.filter((u) => u.id !== id);
+
+    res.json({ ok: 'cool' })
+
+})
 
 
+app.get("/step/user/:id", async (req, res) => {
+    let id = req.params.id
 
-    users.push(
-        u
-    );
-    res.json({ id: uuid })
+    const u = users.find((u) => u.id === id);
+    if (!u) {
+        res.json({ error: 'user not found' });
+        return;
+    }
+
+
+    await u.debugger?.Debugger!.stepOver()
+
+
+    res.json({ steps: u.steps })
+
 })
 
 app.listen(3000);
