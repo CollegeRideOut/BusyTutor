@@ -1,9 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
-import {  useContext, useState } from 'react';
+import { useContext, useState } from 'react';
 import { ThemeContext } from '../__root';
 import { VscDebugStart } from "react-icons/vsc";
 import { VscDebugStepOver } from "react-icons/vsc";
-import fengari from 'fengari-web'
+import { testInterperter } from '../../utils/interperter'
+import parse from 'luaparse'
+
+
 
 
 
@@ -256,20 +259,12 @@ function RouteComponent() {
                 >
                     <div
                         onClick={async () => {
-                            console.log(fengari)
+                            testInterperter()
                         }}
 
                     >
                         <VscDebugStepOver />
                     </div>
-
-
-
-
-
-
-
-
 
                 </div>
             </div>
