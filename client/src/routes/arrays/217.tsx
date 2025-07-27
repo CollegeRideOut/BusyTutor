@@ -4,7 +4,6 @@ import { ThemeContext } from '../__root';
 import { VscDebugStart } from "react-icons/vsc";
 import { VscDebugStepOver } from "react-icons/vsc";
 import { testInterperter } from '../../utils/interperter'
-import parse from 'luaparse'
 
 
 

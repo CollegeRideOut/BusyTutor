@@ -1,5 +1,5 @@
 import luaparser from 'luaparse'
-import { expect, test } from 'vitest'
+import { describe, expect, test } from 'vitest'
 import { evalExpression } from './eval'
 import type { Lua_Boolean, Lua_Integer } from './lua_types'
 //
@@ -36,18 +36,193 @@ test('BooleanLiteral', () => {
 
 
 // false and nil are false anything els is true 2.5.3
-test('NoTOperator', () => {
+test('NotOperator', () => {
+
     const tests = [
-        { exp: generateBooleanLiteral(false), value: false },
-        { exp: generateBooleanLiteral(true), value: true },
+        {
+            exp:
+                {
+                    type: "UnaryExpression",
+                    operator: "not",
+                    argument: {
+                        type: "BooleanLiteral",
+                        value: true,
+                        raw: "true"
+                    }
+                } as luaparser.Expression,
+            value: false
+        },
+
+        {
+            exp:
+                {
+                    type: "UnaryExpression",
+                    operator: "not",
+                    argument: {
+                        type: "BooleanLiteral",
+                        value: false,
+                        raw: "false"
+                    }
+                } as luaparser.Expression,
+            value: true
+        },
+
+
+        {
+            exp:
+                {
+                    type: "UnaryExpression",
+                    operator: "not",
+                    argument: {
+                        type: "UnaryExpression",
+                        operator: "not",
+                        argument: {
+                            type: "BooleanLiteral",
+                            value: true,
+                            raw: "true"
+                        }
+                    }
+                } as luaparser.Expression,
+            value: true
+        },
+
+
+
+        {
+            exp:
+                {
+                    type: "UnaryExpression",
+                    operator: "not",
+                    argument: {
+                        type: "UnaryExpression",
+                        operator: "not",
+                        argument: {
+                            type: "BooleanLiteral",
+                            value: false,
+                            raw: "true"
+                        }
+                    }
+                } as luaparser.Expression,
+            value: false
+        },
+
+
+
+        {
+            exp:
+                {
+                    type: "UnaryExpression",
+                    operator: "not",
+                    argument: {
+                        type: "NumericLiteral",
+                        value: 5,
+                        raw: "5"
+                    }
+                } as luaparser.Expression,
+            value: false
+        },
+
+        {
+            exp:
+                {
+                    type: "UnaryExpression",
+                    operator: "not",
+                    argument: {
+                        type: "UnaryExpression",
+                        operator: "not",
+                        argument: {
+                            type: "NumericLiteral",
+                            value: 5,
+                            raw: "5"
+                        }
+                    }
+                } as luaparser.Expression,
+            value: true
+        },
+
+        {
+            exp:
+                {
+                    type: "UnaryExpression",
+                    operator: "not",
+                    argument: {
+                        type: "NilLiteral",
+                        value: null,
+                        raw: "nil"
+                    }
+                } as luaparser.Expression,
+            value: true
+        },
+        {
+            exp:
+                {
+                    type: "UnaryExpression",
+                    operator: "not",
+                    argument: {
+                        type: "UnaryExpression",
+                        operator: "not",
+                        argument: {
+                            type: "NilLiteral",
+                            value: null,
+                            raw: "nil"
+                        }
+                    }
+                } as luaparser.Expression,
+            value: false
+        }
+
     ];
 
     for (const test of tests) {
         let val = evalExpression(test.exp)
         expect(val.kind).toBe('boolean');
-        expect((val as Lua_Boolean).value).toBe(test.value)
+        expect((val as Lua_Boolean).value, JSON.stringify(test.exp)).toBe(test.value)
     }
 })
+
+
+
+test('MinusOperator', () => {
+
+    describe('Integer', () => {
+        const tests = [
+            {
+                exp: {
+                    type: "UnaryExpression",
+                    operator: "-",
+                    argument: {
+                        type: "NumericLiteral",
+                        value: 2,
+                        raw: "2"
+                    }
+                } as luaparser.Expression,
+                value: -2
+            },
+
+            {
+                exp: {
+                    type: "UnaryExpression",
+                    operator: "-",
+                    argument: {
+                        type: "NumericLiteral",
+                        value: 10,
+                        raw: "10"
+                    }
+                } as luaparser.Expression,
+                value: -10
+            }
+        ];
+
+        for (const test of tests) {
+            let val = evalExpression(test.exp)
+            expect(val.kind).toBe('integer');
+            expect((val as Lua_Boolean).value, JSON.stringify(test.exp)).toBe(test.value)
+        }
+
+    })
+    //TODO string coerces to int
+})
+
 
 
 function generateNumericLiteral(n: number): luaparser.Expression {
