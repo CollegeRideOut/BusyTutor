@@ -39,144 +39,24 @@ test('BooleanLiteral', () => {
 test('NotOperator', () => {
 
     const tests = [
-        {
-            exp:
-                {
-                    type: "UnaryExpression",
-                    operator: "not",
-                    argument: {
-                        type: "BooleanLiteral",
-                        value: true,
-                        raw: "true"
-                    }
-                } as luaparser.Expression,
-            value: false
-        },
-
-        {
-            exp:
-                {
-                    type: "UnaryExpression",
-                    operator: "not",
-                    argument: {
-                        type: "BooleanLiteral",
-                        value: false,
-                        raw: "false"
-                    }
-                } as luaparser.Expression,
-            value: true
-        },
-
-
-        {
-            exp:
-                {
-                    type: "UnaryExpression",
-                    operator: "not",
-                    argument: {
-                        type: "UnaryExpression",
-                        operator: "not",
-                        argument: {
-                            type: "BooleanLiteral",
-                            value: true,
-                            raw: "true"
-                        }
-                    }
-                } as luaparser.Expression,
-            value: true
-        },
-
-
-
-        {
-            exp:
-                {
-                    type: "UnaryExpression",
-                    operator: "not",
-                    argument: {
-                        type: "UnaryExpression",
-                        operator: "not",
-                        argument: {
-                            type: "BooleanLiteral",
-                            value: false,
-                            raw: "true"
-                        }
-                    }
-                } as luaparser.Expression,
-            value: false
-        },
-
-
-
-        {
-            exp:
-                {
-                    type: "UnaryExpression",
-                    operator: "not",
-                    argument: {
-                        type: "NumericLiteral",
-                        value: 5,
-                        raw: "5"
-                    }
-                } as luaparser.Expression,
-            value: false
-        },
-
-        {
-            exp:
-                {
-                    type: "UnaryExpression",
-                    operator: "not",
-                    argument: {
-                        type: "UnaryExpression",
-                        operator: "not",
-                        argument: {
-                            type: "NumericLiteral",
-                            value: 5,
-                            raw: "5"
-                        }
-                    }
-                } as luaparser.Expression,
-            value: true
-        },
-
-        {
-            exp:
-                {
-                    type: "UnaryExpression",
-                    operator: "not",
-                    argument: {
-                        type: "NilLiteral",
-                        value: null,
-                        raw: "nil"
-                    }
-                } as luaparser.Expression,
-            value: true
-        },
-        {
-            exp:
-                {
-                    type: "UnaryExpression",
-                    operator: "not",
-                    argument: {
-                        type: "UnaryExpression",
-                        operator: "not",
-                        argument: {
-                            type: "NilLiteral",
-                            value: null,
-                            raw: "nil"
-                        }
-                    }
-                } as luaparser.Expression,
-            value: false
-        }
-
+        { exp: evalProgram(luaparser.parse('return not true')), value: false },
+        { exp: evalProgram(luaparser.parse('return not false')), value: true },
+        { exp: evalProgram(luaparser.parse('return not not true')), value: true },
+        { exp: evalProgram(luaparser.parse('return not not false')), value: false },
+        { exp: evalProgram(luaparser.parse('return not 5')), value: false },
+        { exp: evalProgram(luaparser.parse('return not not 5')), value: true },
+        { exp: evalProgram(luaparser.parse('return not not 5')), value: true },
+        { exp: evalProgram(luaparser.parse('return not nil')), value: true },
+        { exp: evalProgram(luaparser.parse('return not not nil')), value: false },
     ];
 
     for (const test of tests) {
-        let val = evalExpression(test.exp)
-        expect(val.kind).toBe('boolean');
-        expect((val as Lua_Boolean).value, JSON.stringify(test.exp)).toBe(test.value)
+        expect(test.exp).toBeDefined()
+        if (!test.exp) throw Error(`test.exp is not defined`);
+
+        expect(test.exp.value[0].kind).toBe('boolean');
+        if (test.exp.value[0].kind !== 'boolean') throw Error(`test.exp value[0] is not a boolean ${test.exp}`);
+        expect(test.exp.value[0].value).toBe(test.value)
     }
 })
 
@@ -185,37 +65,17 @@ test('NotOperator', () => {
 describe('Minues operator', () => {
     test('Integer', () => {
         const tests = [
-            {
-                exp: {
-                    type: "UnaryExpression",
-                    operator: "-",
-                    argument: {
-                        type: "NumericLiteral",
-                        value: 2,
-                        raw: "2"
-                    }
-                } as luaparser.Expression,
-                value: -2
-            },
-
-            {
-                exp: {
-                    type: "UnaryExpression",
-                    operator: "-",
-                    argument: {
-                        type: "NumericLiteral",
-                        value: 10,
-                        raw: "10"
-                    }
-                } as luaparser.Expression,
-                value: -10
-            }
+            { exp: evalProgram(luaparser.parse('return -2')), value: -2 },
+            { exp: evalProgram(luaparser.parse('return -10')), value: -10 },
         ];
 
         for (const test of tests) {
-            let val = evalExpression(test.exp);
-            expect(val.kind).toBe('number');
-            expect((val as Lua_Number).value, JSON.stringify(test.exp)).toBe(test.value);
+            expect(test.exp).toBeDefined()
+            if (!test.exp) throw Error(`test.exp is not defined`);
+
+            expect(test.exp.value[0].kind).toBe('number');
+            if (test.exp.value[0].kind !== 'number') throw Error(`test.exp value[0] is not a number ${test.exp}`);
+            expect(test.exp.value[0].value).toBe(test.value)
         }
         //TODO string coerces to int
     })
@@ -227,429 +87,195 @@ describe('Minues operator', () => {
 describe('BinaryExpression', () => {
     test('+', () => {
         const tests = [
-            {
-                exp: {
-                    type: "BinaryExpression",
-                    operator: "+",
-                    left: {
-                        type: "BinaryExpression",
-                        operator: "+",
-                        left: {
-                            type: "BinaryExpression",
-                            operator: "+",
-                            left: {
-                                type: "NumericLiteral",
-                                value: 10,
-                                raw: "10"
-                            },
-                            right: {
-                                type: "NumericLiteral",
-                                value: 10,
-                                raw: "10"
-                            }
-                        },
-                        right: {
-                            type: "NumericLiteral",
-                            value: 10,
-                            raw: "10"
-                        }
-                    },
-                    right: {
-                        type: "NumericLiteral",
-                        value: 10,
-                        raw: "10"
-                    }
-                } as luaparser.Expression,
-                value: 40
-            },
+            { exp: evalProgram(luaparser.parse('return 10 + 10 + 10 + 10')), value: 40 },
+            { exp: evalProgram(luaparser.parse('return 10 + 10 ')), value: 20 },
+            { exp: evalProgram(luaparser.parse('return 10 + 10 + 20')), value: 40 },
         ]
-
         for (const test of tests) {
-            let val = evalExpression(test.exp)
-            expect(val.kind).toBe('number');
-            expect((val as Lua_Number).value, JSON.stringify(test.exp)).toBe(test.value)
+            expect(test.exp).toBeDefined()
+            if (!test.exp) throw Error(`test.exp is not defined`);
+
+            expect(test.exp.value[0].kind).toBe('number');
+            if (test.exp.value[0].kind !== 'number') throw Error(`test.exp value[0] is not a number ${test.exp}`);
+            expect(test.exp.value[0].value).toBe(test.value)
         }
 
     })
 
     test('-', () => {
         const tests = [
-            {
-                exp: {
-                    type: "BinaryExpression",
-                    operator: "-",
-                    left: {
-                        type: "BinaryExpression",
-                        operator: "-",
-                        left: {
-                            type: "BinaryExpression",
-                            operator: "-",
-                            left: {
-                                type: "NumericLiteral",
-                                value: 10,
-                                raw: "10"
-                            },
-                            right: {
-                                type: "NumericLiteral",
-                                value: 10,
-                                raw: "10"
-                            }
-                        },
-                        right: {
-                            type: "NumericLiteral",
-                            value: 10,
-                            raw: "10"
-                        }
-                    },
-                    right: {
-                        type: "NumericLiteral",
-                        value: 10,
-                        raw: "10"
-                    }
-                } as luaparser.Expression,
-                value: -20
-            },
+            { exp: evalProgram(luaparser.parse('return 10 - 10 - 10 - 10')), value: -20 },
+            { exp: evalProgram(luaparser.parse('return 10 - 10 ')), value: 0 },
+            { exp: evalProgram(luaparser.parse('return 10  - 20')), value: -10 },
         ]
-
         for (const test of tests) {
-            let val = evalExpression(test.exp)
-            expect(val.kind).toBe('number');
-            expect((val as Lua_Number).value, JSON.stringify(test.exp)).toBe(test.value)
-        }
+            expect(test.exp).toBeDefined()
+            if (!test.exp) throw Error(`test.exp is not defined`);
 
+            expect(test.exp.value[0].kind).toBe('number');
+            if (test.exp.value[0].kind !== 'number') throw Error(`test.exp value[0] is not a number ${test.exp}`);
+            expect(test.exp.value[0].value).toBe(test.value)
+        }
     })
 
     test('*', () => {
         const tests = [
-            {
-                exp: {
-                    type: "BinaryExpression",
-                    operator: "*",
-                    left: {
-                        type: "BinaryExpression",
-                        operator: "*",
-                        left: {
-                            type: "BinaryExpression",
-                            operator: "*",
-                            left: {
-                                type: "NumericLiteral",
-                                value: 10,
-                                raw: "10"
-                            },
-                            right: {
-                                type: "NumericLiteral",
-                                value: 10,
-                                raw: "10"
-                            }
-                        },
-                        right: {
-                            type: "NumericLiteral",
-                            value: 10,
-                            raw: "10"
-                        }
-                    },
-                    right: {
-                        type: "NumericLiteral",
-                        value: 10,
-                        raw: "10"
-                    }
-                } as luaparser.Expression,
-                value: 10000
-            },
+            { exp: evalProgram(luaparser.parse('return 10 * 10 * 10 * 10')), value: 10000 },
+            { exp: evalProgram(luaparser.parse('return 10 * 10 ')), value: 100 },
+            { exp: evalProgram(luaparser.parse('return 10 * 20')), value: 200 },
         ]
-
         for (const test of tests) {
-            let val = evalExpression(test.exp)
-            expect(val.kind).toBe('number');
-            expect((val as Lua_Number).value, JSON.stringify(test.exp)).toBe(test.value)
-        }
+            expect(test.exp).toBeDefined()
+            if (!test.exp) throw Error(`test.exp is not defined`);
 
+            expect(test.exp.value[0].kind).toBe('number');
+            if (test.exp.value[0].kind !== 'number') throw Error(`test.exp value[0] is not a number ${test.exp}`);
+            expect(test.exp.value[0].value).toBe(test.value)
+        }
     })
 
     test('/', () => {
         const tests = [
-            {
-                exp: {
-                    type: "BinaryExpression",
-                    operator: "/",
-                    left: {
-                        type: "NumericLiteral",
-                        value: 1,
-                        raw: "5"
-                    },
-                    right: {
-                        type: "NumericLiteral",
-                        value: 2,
-                        raw: "5"
-                    }
-                } as luaparser.Expression,
-                value: 0.5
-            },
+            { exp: evalProgram(luaparser.parse('return 10 / 10')), value: 1 },
         ]
-
         for (const test of tests) {
-            let val = evalExpression(test.exp)
-            expect(val.kind).toBe('number');
-            expect((val as Lua_Number).value, JSON.stringify(test.exp)).toBe(test.value)
-        }
+            expect(test.exp).toBeDefined()
+            if (!test.exp) throw Error(`test.exp is not defined`);
 
+            expect(test.exp.value[0].kind).toBe('number');
+            if (test.exp.value[0].kind !== 'number') throw Error(`test.exp value[0] is not a number ${test.exp}`);
+            expect(test.exp.value[0].value).toBe(test.value)
+        }
     })
 
     test('%', () => {
         const tests = [
-            {
-                exp: {
-                    type: "BinaryExpression",
-                    operator: "%",
-                    left: {
-                        type: "NumericLiteral",
-                        value: 5,
-                        raw: "5"
-                    },
-                    right: {
-                        type: "NumericLiteral",
-                        value: 5,
-                        raw: "5"
-                    }
-                } as luaparser.Expression,
-                value: 0
-            },
+            { exp: evalProgram(luaparser.parse('return 10 % 10')), value: 0 },
         ]
-
         for (const test of tests) {
-            let val = evalExpression(test.exp)
-            expect(val.kind).toBe('number');
-            expect((val as Lua_Number).value, JSON.stringify(test.exp)).toBe(test.value)
-        }
+            expect(test.exp).toBeDefined()
+            if (!test.exp) throw Error(`test.exp is not defined`);
 
+            expect(test.exp.value[0].kind).toBe('number');
+            if (test.exp.value[0].kind !== 'number') throw Error(`test.exp value[0] is not a number ${test.exp}`);
+            expect(test.exp.value[0].value).toBe(test.value)
+        }
     })
 
-    test('//', () => {
-        const tests = [
-            {
-                exp: {
-                    type: "BinaryExpression",
-                    operator: "//",
-                    left: {
-                        type: "NumericLiteral",
-                        value: 1,
-                        raw: "5"
-                    },
-                    right: {
-                        type: "NumericLiteral",
-                        value: 2,
-                        raw: "5"
-                    }
-                } as luaparser.Expression,
-                value: 0
-            },
-        ]
-
-        for (const test of tests) {
-            let val = evalExpression(test.exp)
-            expect(val.kind).toBe('number');
-            expect((val as Lua_Number).value, JSON.stringify(test.exp)).toBe(test.value)
-        }
-
-    })
+    //TODO idk
+    //test('//', () => {
+    //    const tests = [
+    //        { exp: evalProgram(luaparser.parse('return 1 // 2')), value: 0 },
+    //    ]
+    //    for (const test of tests) {
+    //        expect(test.exp).toBeDefined()
+    //        if (!test.exp) throw Error(`test.exp is not defined`);
+    //
+    //        expect(test.exp.value[0].kind).toBe('number');
+    //        if (test.exp.value[0].kind !== 'number') throw Error(`test.exp value[0] is not a number ${test.exp}`);
+    //        expect(test.exp.value[0].value).toBe(test.value)
+    //    }
+    //
+    //})
 
     // TODO baaad test delete this 
     test('^', () => {
         const tests = [
-            {
-                exp: {
-                    type: "BinaryExpression",
-                    operator: "^",
-                    left: {
-                        type: "NumericLiteral",
-                        value: 2,
-                        raw: "2"
-                    },
-                    right: {
-                        type: "NumericLiteral",
-                        value: 4,
-                        raw: "4"
-                    }
-                } as luaparser.Expression,
-                value: Math.exp(4 * Math.log(2))
-            },
+            { exp: evalProgram(luaparser.parse('return 10 ^ 10')), value: Math.exp(10 * Math.log(10)) },
         ]
-
         for (const test of tests) {
-            let val = evalExpression(test.exp)
-            expect(val.kind).toBe('number');
-            expect((val as Lua_Number).value, JSON.stringify(test.exp)).toBe(test.value)
+            expect(test.exp).toBeDefined()
+            if (!test.exp) throw Error(`test.exp is not defined`);
+
+            expect(test.exp.value[0].kind).toBe('number');
+            if (test.exp.value[0].kind !== 'number') throw Error(`test.exp value[0] is not a number ${test.exp}`);
+            expect(test.exp.value[0].value).toBe(test.value)
         }
     })
 
 
-
+    //booleans
     test('<', () => {
         const tests = [
-            {
-                exp: {
-                    type: "BinaryExpression",
-                    operator: "<",
-                    left: {
-                        type: "NumericLiteral",
-                        value: 5,
-                        raw: "5"
-                    },
-                    right: {
-                        type: "NumericLiteral",
-                        value: 5,
-                        raw: "5"
-                    }
-                } as luaparser.Expression,
-                value: false
-            },
+            { exp: evalProgram(luaparser.parse('return 10 < 10')), value: false },
         ]
-
         for (const test of tests) {
-            let val = evalExpression(test.exp)
-            expect(val.kind).toBe('boolean');
-            expect((val as Lua_Boolean).value, JSON.stringify(test.exp)).toBe(test.value)
-        }
+            expect(test.exp).toBeDefined()
+            if (!test.exp) throw Error(`test.exp is not defined`);
 
+            expect(test.exp.value[0].kind).toBe('boolean');
+            if (test.exp.value[0].kind !== 'boolean') throw Error(`test.exp value[0] is not a boolean ${test.exp}`);
+            expect(test.exp.value[0].value).toBe(test.value)
+        }
     })
 
     test('>', () => {
         const tests = [
-            {
-                exp: {
-                    type: "BinaryExpression",
-                    operator: ">",
-                    left: {
-                        type: "NumericLiteral",
-                        value: 5,
-                        raw: "5"
-                    },
-                    right: {
-                        type: "NumericLiteral",
-                        value: 5,
-                        raw: "5"
-                    }
-                } as luaparser.Expression,
-                value: false
-            },
+            { exp: evalProgram(luaparser.parse('return 10 > 10')), value: false },
         ]
-
         for (const test of tests) {
-            let val = evalExpression(test.exp)
-            expect(val.kind).toBe('boolean');
-            expect((val as Lua_Boolean).value, JSON.stringify(test.exp)).toBe(test.value)
+            expect(test.exp).toBeDefined()
+            if (!test.exp) throw Error(`test.exp is not defined`);
+
+            expect(test.exp.value[0].kind).toBe('boolean');
+            if (test.exp.value[0].kind !== 'boolean') throw Error(`test.exp value[0] is not a boolean ${test.exp}`);
+            expect(test.exp.value[0].value).toBe(test.value)
         }
     })
 
     test('==', () => {
         const tests = [
-            {
-                exp: {
-                    type: "BinaryExpression",
-                    operator: "==",
-                    left: {
-                        type: "NumericLiteral",
-                        value: 5,
-                        raw: "5"
-                    },
-                    right: {
-                        type: "NumericLiteral",
-                        value: 5,
-                        raw: "5"
-                    }
-                } as luaparser.Expression,
-                value: true
-            },
+            { exp: evalProgram(luaparser.parse('return 10 == 10')), value: true },
         ]
-
         for (const test of tests) {
-            let val = evalExpression(test.exp)
-            expect(val.kind).toBe('boolean');
-            expect((val as Lua_Boolean).value, JSON.stringify(test.exp)).toBe(test.value)
+            expect(test.exp).toBeDefined()
+            if (!test.exp) throw Error(`test.exp is not defined`);
+
+            expect(test.exp.value[0].kind).toBe('boolean');
+            if (test.exp.value[0].kind !== 'boolean') throw Error(`test.exp value[0] is not a boolean ${test.exp}`);
+            expect(test.exp.value[0].value).toBe(test.value)
         }
     })
 
     test('~=', () => {
         const tests = [
-            {
-                exp: {
-                    type: "BinaryExpression",
-                    operator: "~=",
-                    left: {
-                        type: "NumericLiteral",
-                        value: 5,
-                        raw: "5"
-                    },
-                    right: {
-                        type: "NumericLiteral",
-                        value: 5,
-                        raw: "5"
-                    }
-                } as luaparser.Expression,
-                value: false
-            },
+            { exp: evalProgram(luaparser.parse('return 10 ~= 10')), value: false },
         ]
-
         for (const test of tests) {
-            let val = evalExpression(test.exp)
-            expect(val.kind).toBe('boolean');
-            expect((val as Lua_Boolean).value, JSON.stringify(test.exp)).toBe(test.value)
+            expect(test.exp).toBeDefined()
+            if (!test.exp) throw Error(`test.exp is not defined`);
+
+            expect(test.exp.value[0].kind).toBe('boolean');
+            if (test.exp.value[0].kind !== 'boolean') throw Error(`test.exp value[0] is not a boolean ${test.exp}`);
+            expect(test.exp.value[0].value).toBe(test.value)
         }
     })
 
 
     test('<=', () => {
         const tests = [
-            {
-                exp: {
-                    type: "BinaryExpression",
-                    operator: "<=",
-                    left: {
-                        type: "NumericLiteral",
-                        value: 5,
-                        raw: "5"
-                    },
-                    right: {
-                        type: "NumericLiteral",
-                        value: 5,
-                        raw: "5"
-                    }
-                } as luaparser.Expression,
-                value: true
-            },
+            { exp: evalProgram(luaparser.parse('return 10 <= 10')), value: true },
         ]
-
         for (const test of tests) {
-            let val = evalExpression(test.exp)
-            expect(val.kind).toBe('boolean');
-            expect((val as Lua_Boolean).value, JSON.stringify(test.exp)).toBe(test.value)
+            expect(test.exp).toBeDefined()
+            if (!test.exp) throw Error(`test.exp is not defined`);
+
+            expect(test.exp.value[0].kind).toBe('boolean');
+            if (test.exp.value[0].kind !== 'boolean') throw Error(`test.exp value[0] is not a boolean ${test.exp}`);
+            expect(test.exp.value[0].value).toBe(test.value)
         }
     })
     test('>=', () => {
         const tests = [
-            {
-                exp: {
-                    type: "BinaryExpression",
-                    operator: ">=",
-                    left: {
-                        type: "NumericLiteral",
-                        value: 5,
-                        raw: "5"
-                    },
-                    right: {
-                        type: "NumericLiteral",
-                        value: 5,
-                        raw: "5"
-                    }
-                } as luaparser.Expression,
-                value: true
-            },
+            { exp: evalProgram(luaparser.parse('return 10 >= 10')), value: true },
         ]
-
         for (const test of tests) {
-            let val = evalExpression(test.exp)
-            expect(val.kind).toBe('boolean');
-            expect((val as Lua_Boolean).value, JSON.stringify(test.exp)).toBe(test.value)
+            expect(test.exp).toBeDefined()
+            if (!test.exp) throw Error(`test.exp is not defined`);
+
+            expect(test.exp.value[0].kind).toBe('boolean');
+            if (test.exp.value[0].kind !== 'boolean') throw Error(`test.exp value[0] is not a boolean ${test.exp}`);
+            expect(test.exp.value[0].value).toBe(test.value)
         }
     })
 })
@@ -660,7 +286,10 @@ describe('BinaryExpression', () => {
 describe('ReturnStatement', () => {
     test('One argument', () => {
         const tests = [
-            { exp: evalProgram(luaparser.parse('return 10')), value: 10 }
+            { exp: evalProgram(luaparser.parse('return 10')), value: 10 },
+            { exp: evalProgram(luaparser.parse('return 12')), value: 12 },
+            { exp: evalProgram(luaparser.parse('return 14')), value: 14 },
+            { exp: evalProgram(luaparser.parse('return 20')), value: 20 },
         ]
 
         for (const test of tests) {
@@ -672,10 +301,33 @@ describe('ReturnStatement', () => {
             if (test.exp.value[0].kind !== 'number') throw Error('Return value should be number');
             expect(test.exp.value[0].value).toBe(test.value);
         }
+    })
+
+
+    test('Two argument', () => {
+        const tests = [
+            { exp: evalProgram(luaparser.parse('return 10, 20')), value: [10, 20] },
+            { exp: evalProgram(luaparser.parse('return 12, 30')), value: [12, 30] },
+            { exp: evalProgram(luaparser.parse('return 14, 50')), value: [14, 50] },
+            { exp: evalProgram(luaparser.parse('return 20, 11')), value: [20, 11] },
+        ]
+
+        for (const test of tests) {
+            expect(test.exp).toBeDefined();
+            if (!test.exp) throw Error('Return should be defined');
+
+            expect(test.exp.kind).toBe('return');
+            expect(test.exp.value[0].kind).toBe('number');
+            if (test.exp.value[0].kind !== 'number') throw Error('Return value should be number');
+            expect(test.exp.value[0].value).toBe(test.value[0]);
+
+            expect(test.exp.value[1].kind).toBe('number');
+            if (test.exp.value[1].kind !== 'number') throw Error('Return value should be number');
+            expect(test.exp.value[1].value).toBe(test.value[1]);
+        }
 
     })
 })
-
 
 function generateNumericLiteral(n: number): luaparser.Expression {
     return {

@@ -1,7 +1,7 @@
 import luaparser from 'luaparse'
 
 let code = `
-return 10 + 10
+return 1 // 2
 `;
 
 
