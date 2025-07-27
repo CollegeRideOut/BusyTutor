@@ -1,7 +1,7 @@
 import luaparser from 'luaparse'
 
 let code = `
-x = -2
+x = 2 ^ 4
 `;
 
 

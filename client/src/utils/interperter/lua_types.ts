@@ -1,6 +1,7 @@
-export type Lua_Integer = {
-    kind: 'integer';
+export type Lua_Number = {
+    kind: 'number';
     value: number;
+    inspect: () => number
 };
 
 export type Lua_Boolean = {

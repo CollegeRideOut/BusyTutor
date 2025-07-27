@@ -1,10 +1,24 @@
 import luaparser from 'luaparse'
-import type { Lua_Boolean, Lua_Integer, Lua_Null } from './lua_types';
+import type { Lua_Boolean, Lua_Number, Lua_Null } from './lua_types';
 
 
 const Lua_True: Lua_Boolean = { kind: 'boolean', value: true };
 const Lua_False: Lua_Boolean = { kind: 'boolean', value: false };
 const Lua_Null: Lua_Null = { kind: 'null' };
+
+type Lua_Object = Lua_Boolean | Lua_Number | Lua_Null
+
+
+export function Inspect(obj: Lua_Object) {
+    switch (obj.kind) {
+        case 'null': {
+            return "null"
+        }
+        default: {
+            return obj.value.toString();
+        }
+    }
+}
 
 export function evalProgram(node: luaparser.Chunk) {
     for (let statement of node.body) {
@@ -24,10 +38,10 @@ export function evalStatements(node: luaparser.Statement) {
 
 
 
-export function evalExpression(exp: luaparser.Expression): Lua_Integer | Lua_Boolean | Lua_Null {
+export function evalExpression(exp: luaparser.Expression): Lua_Object {
     switch (exp.type) {
         case 'NumericLiteral': {
-            return { kind: 'integer', value: exp.value } as Lua_Integer;
+            return { kind: 'number', value: exp.value } as Lua_Number;
         }
         case 'BooleanLiteral': {
             return exp.value ? Lua_True : Lua_False;
@@ -39,12 +53,104 @@ export function evalExpression(exp: luaparser.Expression): Lua_Integer | Lua_Boo
             const arg = evalExpression(exp.argument);
             return evalUnaryExpression(exp.operator, arg)
         }
+        case 'BinaryExpression': {
+            const left = evalExpression(exp.left);
+            const right = evalExpression(exp.right);
+            return evalBinaryExpression(exp.operator, left, right)
+            //return evalBinaryExpression(exp.operator, left, right)
+        }
         default: {
             throw Error('EVAL EXPRESSION ERROR' + JSON.stringify(exp));
         }
     }
 }
-export function evalUnaryExpression(operator: "not" | "-" | "~" | "#", arg: ReturnType<typeof evalExpression>) {
+
+type Binary_Opereators = "-" | "~" | "+" | "*" | "%" | "^" | "/" | "//" | "&" | "|" | "<<" | ">>" | ".." | "~=" | "==" | "<" | "<=" | ">" | ">=";
+export function evalBinaryExpression(operator: Binary_Opereators, left: Lua_Object, right: Lua_Object) {
+    switch (true) {
+        case left.kind === 'number' && right.kind === 'number': {
+            return evalIntegerBinaryExpression(operator, left, right);
+        }
+        //case left.type === 'BinaryExpression' && right.type === 'NumericLiteral':{
+        //    evalBinaryExpression
+        //}
+        // TODO strings and more
+        default: {
+            throw Error(`Binary Expression type implemented left: ${left.kind} right: ${right.kind}`);
+            //return Lua_Null
+        }
+    }
+}
+
+export function evalIntegerBinaryExpression(operator: Binary_Opereators, left: Lua_Object, right: Lua_Object) {
+    //TODO there was an error;
+    if (left.kind !== 'number' || right.kind !== 'number') return Lua_Null;
+
+    //TODO bunch of opeartions todo and chekcout //
+    switch (operator) {
+        // arimethic
+        case '+': {
+            return { kind: 'number', value: left.value + right.value } as Lua_Number;
+        }
+        case '-': {
+            return { kind: 'number', value: left.value - right.value } as Lua_Number;
+        }
+        case '*': {
+            return { kind: 'number', value: left.value * right.value } as Lua_Number;
+        }
+        case '/': {
+            return { kind: 'number', value: left.value / right.value } as Lua_Number;
+        }
+        case '%': {
+            return {
+                kind: 'number',
+                value: left.value - Math.floor(left.value / right.value) * right.value
+            } as Lua_Number;
+        }
+        case '//': {
+            return {
+                kind: 'number',
+                value: Math.floor(left.value / right.value)
+            } as Lua_Number;
+        }
+        //TODO javascript and its god dammed percision freaking points
+        case '^': {
+            return {
+                kind: 'number',
+                value: Math.exp(right.value * Math.log(left.value))
+            } as Lua_Number;
+        }
+
+        // boolean
+        case '<': {
+            return left.value < right.value ? Lua_True : Lua_False;
+        }
+        case '>': {
+            return left.value > right.value ? Lua_True : Lua_False;
+        }
+        case '==': {
+            return left.value === right.value ? Lua_True : Lua_False;
+        }
+        case '~=': {
+            return left.value !== right.value ? Lua_True : Lua_False;
+        }
+        case '<=': {
+            return left.value <= right.value ? Lua_True : Lua_False;
+        }
+        case '>=': {
+            return left.value >= right.value ? Lua_True : Lua_False;
+        }
+
+        // TODO there was an error;
+        default: {
+            throw Error(`Interger Binary Expression not implemented   ${operator}   `);
+            //return Lua_Null;
+        }
+    }
+
+}
+
+export function evalUnaryExpression(operator: "not" | "-" | "~" | "#", arg: Lua_Object) {
     switch (operator) {
         case "not": {
             return evalNotOperator(arg);
@@ -54,15 +160,15 @@ export function evalUnaryExpression(operator: "not" | "-" | "~" | "#", arg: Retu
         }
         default: {
             throw Error("Unary Expression not Implemented");
-            //return Lua_Null;
+            //return Lua_Null`
         }
     }
 }
 
-export function evalUnaryMinuesOperator(arg: ReturnType<typeof evalExpression>) {
+export function evalUnaryMinuesOperator(arg: Lua_Object) {
     switch (arg.kind) {
-        case 'integer': {
-            return { kind: 'integer', value: -arg.value } as Lua_Integer;
+        case 'number': {
+            return { kind: 'number', value: -arg.value } as Lua_Number;
         }
         //TODO string are coerced into integers
         default: {
@@ -73,19 +179,17 @@ export function evalUnaryMinuesOperator(arg: ReturnType<typeof evalExpression>) 
     }
 }
 
-export function evalNotOperator(arg: ReturnType<typeof evalExpression>) {
+export function evalNotOperator(arg: Lua_Object) {
     switch (arg.kind) {
         case 'boolean': {
             return arg.value ? Lua_False : Lua_True;
-        }
-        case 'integer': {
-            return Lua_False;
         }
         case 'null': {
             return Lua_True;
         }
         default: {
-            throw Error(`Not operator has not implemented ${(arg as any).kind}`)
+            return Lua_False;
+            //throw Error(`Not operator has not implemented ${(arg as any).kind}`)
             //return Lua_Null;
         }
     }
