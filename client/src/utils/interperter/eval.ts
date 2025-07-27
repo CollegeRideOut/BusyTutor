@@ -1,12 +1,17 @@
 import luaparser from 'luaparse'
-import type { Lua_Boolean, Lua_Number, Lua_Null } from './lua_types';
+import type {
+    Lua_Boolean,
+    Lua_Number,
+    Lua_Null,
+    Lua_Object,
+    Lua_Return
+} from './lua_types';
 
 
 const Lua_True: Lua_Boolean = { kind: 'boolean', value: true };
 const Lua_False: Lua_Boolean = { kind: 'boolean', value: false };
 const Lua_Null: Lua_Null = { kind: 'null' };
 
-type Lua_Object = Lua_Boolean | Lua_Number | Lua_Null
 
 
 export function Inspect(obj: Lua_Object) {
@@ -21,17 +26,20 @@ export function Inspect(obj: Lua_Object) {
 }
 
 export function evalProgram(node: luaparser.Chunk) {
+    //TODO multiple statements now lets just assume one
     for (let statement of node.body) {
-        evalStatements(statement);
+        return evalStatements(statement);
     }
 
 }
 export function evalStatements(node: luaparser.Statement) {
     switch (node.type) {
-        case 'AssignmentStatement': {
-            let x = node.init[0];
-            void x;
-            break;
+        case 'ReturnStatement': {
+            let vals: Lua_Object[] = [];
+            for (let exp of node.arguments) {
+                vals.push(evalExpression(exp))
+            }
+            return { kind: 'return', value: vals } as Lua_Return
         }
     }
 }
@@ -59,6 +67,7 @@ export function evalExpression(exp: luaparser.Expression): Lua_Object {
             return evalBinaryExpression(exp.operator, left, right)
             //return evalBinaryExpression(exp.operator, left, right)
         }
+
         default: {
             throw Error('EVAL EXPRESSION ERROR' + JSON.stringify(exp));
         }
@@ -140,7 +149,6 @@ export function evalIntegerBinaryExpression(operator: Binary_Opereators, left: L
         case '>=': {
             return left.value >= right.value ? Lua_True : Lua_False;
         }
-
         // TODO there was an error;
         default: {
             throw Error(`Interger Binary Expression not implemented   ${operator}   `);

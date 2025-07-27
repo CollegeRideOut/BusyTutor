@@ -1,6 +1,6 @@
 import luaparser from 'luaparse'
 import { describe, expect, test } from 'vitest'
-import { evalExpression } from './eval'
+import { evalExpression, evalProgram } from './eval'
 import type { Lua_Boolean, Lua_Number } from './lua_types'
 //
 // test expression
@@ -653,6 +653,29 @@ describe('BinaryExpression', () => {
         }
     })
 })
+
+
+
+// !Important this return statement ima use it as a base for everything
+describe('ReturnStatement', () => {
+    test('One argument', () => {
+        const tests = [
+            { exp: evalProgram(luaparser.parse('return 10')), value: 10 }
+        ]
+
+        for (const test of tests) {
+            expect(test.exp).toBeDefined();
+            if (!test.exp) throw Error('Return should be defined');
+
+            expect(test.exp.kind).toBe('return');
+            expect(test.exp.value[0].kind).toBe('number');
+            if (test.exp.value[0].kind !== 'number') throw Error('Return value should be number');
+            expect(test.exp.value[0].value).toBe(test.value);
+        }
+
+    })
+})
+
 
 function generateNumericLiteral(n: number): luaparser.Expression {
     return {
