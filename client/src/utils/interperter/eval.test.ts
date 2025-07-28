@@ -423,6 +423,23 @@ describe('IfStatement', () => {
             expect(test.exp.value[0].value).toBe(test.value);
         }
     })
+})
+
+describe('Errors', () => {
+    test('types', () => {
+        const tests = [
+            { exp: evalChunk(luaparser.parse('return 5 + true')), value: 5 },
+            { exp: evalChunk(luaparser.parse('return -true')), value: 5 },
+            { exp: evalChunk(luaparser.parse('return true + false')), value: 5 },
+        ]
+
+        for (const test of tests) {
+            expect(test.exp).toBeDefined();
+            if (!test.exp) throw Error('Return should be defined');
+
+            expect(test.exp.kind).toBe('error');
+        }
+    })
 
 })
 
