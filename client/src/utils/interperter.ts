@@ -1,7 +1,7 @@
 import luaparser from 'luaparse'
 
 let code = `
-return 1 // 2
+if false then return 5 elseif true return 10 end return 20
 `;
 
 

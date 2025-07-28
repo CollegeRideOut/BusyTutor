@@ -19,17 +19,30 @@ export function Inspect(obj: Lua_Object) {
         case 'null': {
             return "null"
         }
+        case 'error': {
+            return `ERROR: ${obj.message}`
+        }
         default: {
             return obj.value.toString();
         }
     }
 }
 
-export function evalProgram(node: luaparser.Chunk) {
+export function evalChunk(node: luaparser.Chunk) {
+    //TODO
+    return evalStatementsArray(node.body)
+}
+
+export function evalStatementsArray(node: luaparser.Statement[]) {
     //TODO multiple statements now lets just assume one
-    for (let statement of node.body) {
-        return evalStatements(statement);
+    for (let statement of node) {
+        let lua = evalStatements(statement);
+        if (lua.kind === 'return') {
+            return lua;
+        }
     }
+
+    return Lua_Null;
 
 }
 export function evalStatements(node: luaparser.Statement) {
@@ -41,7 +54,30 @@ export function evalStatements(node: luaparser.Statement) {
             }
             return { kind: 'return', value: vals } as Lua_Return
         }
+        case 'IfStatement': {
+            for (const clause of node.clauses) {
+                const [t, obj] = evalClause(clause);
+                if (t) return obj
+            }
+            return Lua_Null
+        }
+        default: {
+            return Lua_Null;
+        }
     }
+}
+export function evalClause(clause: luaparser.IfClause | luaparser.ElseifClause | luaparser.ElseClause): [boolean, Lua_Object | Lua_Return] {
+    switch (clause.type) {
+        case 'ElseClause': {
+            return [true, evalStatementsArray(clause.body)];
+        }
+        default: {
+            let condition = evalExpression(clause.condition);
+            if (isThruthy(condition).value === false) return [false, Lua_Null];
+            else return [true, evalStatementsArray(clause.body)]
+        }
+    }
+
 }
 
 
@@ -187,7 +223,25 @@ export function evalUnaryMinuesOperator(arg: Lua_Object) {
     }
 }
 
+export function isThruthy(arg: Lua_Object) {
+    switch (arg.kind) {
+        case 'boolean': {
+            return arg.value ? Lua_True : Lua_False;
+        }
+        case 'null': {
+            return Lua_False;
+        }
+        default: {
+            return Lua_False;
+            //throw Error(`Not operator has not implemented ${(arg as any).kind}`)
+            //return Lua_Null;
+        }
+    }
+
+}
+
 export function evalNotOperator(arg: Lua_Object) {
+    //TODO switchit to use isThruthy waiting for now
     switch (arg.kind) {
         case 'boolean': {
             return arg.value ? Lua_False : Lua_True;
@@ -200,6 +254,7 @@ export function evalNotOperator(arg: Lua_Object) {
             //throw Error(`Not operator has not implemented ${(arg as any).kind}`)
             //return Lua_Null;
         }
+
     }
 }
 

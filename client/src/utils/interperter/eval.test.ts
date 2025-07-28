@@ -1,6 +1,6 @@
 import luaparser from 'luaparse'
 import { describe, expect, test } from 'vitest'
-import { evalExpression, evalProgram } from './eval'
+import { evalExpression, evalChunk } from './eval'
 import type { Lua_Boolean, Lua_Number } from './lua_types'
 //
 // test expression
@@ -39,20 +39,24 @@ test('BooleanLiteral', () => {
 test('NotOperator', () => {
 
     const tests = [
-        { exp: evalProgram(luaparser.parse('return not true')), value: false },
-        { exp: evalProgram(luaparser.parse('return not false')), value: true },
-        { exp: evalProgram(luaparser.parse('return not not true')), value: true },
-        { exp: evalProgram(luaparser.parse('return not not false')), value: false },
-        { exp: evalProgram(luaparser.parse('return not 5')), value: false },
-        { exp: evalProgram(luaparser.parse('return not not 5')), value: true },
-        { exp: evalProgram(luaparser.parse('return not not 5')), value: true },
-        { exp: evalProgram(luaparser.parse('return not nil')), value: true },
-        { exp: evalProgram(luaparser.parse('return not not nil')), value: false },
+        { exp: evalChunk(luaparser.parse('return not true')), value: false },
+        { exp: evalChunk(luaparser.parse('return not false')), value: true },
+        { exp: evalChunk(luaparser.parse('return not not true')), value: true },
+        { exp: evalChunk(luaparser.parse('return not not false')), value: false },
+        { exp: evalChunk(luaparser.parse('return not 5')), value: false },
+        { exp: evalChunk(luaparser.parse('return not not 5')), value: true },
+        { exp: evalChunk(luaparser.parse('return not not 5')), value: true },
+        { exp: evalChunk(luaparser.parse('return not nil')), value: true },
+        { exp: evalChunk(luaparser.parse('return not not nil')), value: false },
     ];
 
     for (const test of tests) {
         expect(test.exp).toBeDefined()
         if (!test.exp) throw Error(`test.exp is not defined`);
+
+
+        expect(test.exp.kind).toBe('return');
+        if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
 
         expect(test.exp.value[0].kind).toBe('boolean');
         if (test.exp.value[0].kind !== 'boolean') throw Error(`test.exp value[0] is not a boolean ${test.exp}`);
@@ -65,13 +69,17 @@ test('NotOperator', () => {
 describe('Minues operator', () => {
     test('Integer', () => {
         const tests = [
-            { exp: evalProgram(luaparser.parse('return -2')), value: -2 },
-            { exp: evalProgram(luaparser.parse('return -10')), value: -10 },
+            { exp: evalChunk(luaparser.parse('return -2')), value: -2 },
+            { exp: evalChunk(luaparser.parse('return -10')), value: -10 },
         ];
 
         for (const test of tests) {
             expect(test.exp).toBeDefined()
             if (!test.exp) throw Error(`test.exp is not defined`);
+
+
+            expect(test.exp.kind).toBe('return');
+            if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
 
             expect(test.exp.value[0].kind).toBe('number');
             if (test.exp.value[0].kind !== 'number') throw Error(`test.exp value[0] is not a number ${test.exp}`);
@@ -87,13 +95,17 @@ describe('Minues operator', () => {
 describe('BinaryExpression', () => {
     test('+', () => {
         const tests = [
-            { exp: evalProgram(luaparser.parse('return 10 + 10 + 10 + 10')), value: 40 },
-            { exp: evalProgram(luaparser.parse('return 10 + 10 ')), value: 20 },
-            { exp: evalProgram(luaparser.parse('return 10 + 10 + 20')), value: 40 },
+            { exp: evalChunk(luaparser.parse('return 10 + 10 + 10 + 10')), value: 40 },
+            { exp: evalChunk(luaparser.parse('return 10 + 10 ')), value: 20 },
+            { exp: evalChunk(luaparser.parse('return 10 + 10 + 20')), value: 40 },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
             if (!test.exp) throw Error(`test.exp is not defined`);
+
+
+            expect(test.exp.kind).toBe('return');
+            if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
 
             expect(test.exp.value[0].kind).toBe('number');
             if (test.exp.value[0].kind !== 'number') throw Error(`test.exp value[0] is not a number ${test.exp}`);
@@ -104,13 +116,17 @@ describe('BinaryExpression', () => {
 
     test('-', () => {
         const tests = [
-            { exp: evalProgram(luaparser.parse('return 10 - 10 - 10 - 10')), value: -20 },
-            { exp: evalProgram(luaparser.parse('return 10 - 10 ')), value: 0 },
-            { exp: evalProgram(luaparser.parse('return 10  - 20')), value: -10 },
+            { exp: evalChunk(luaparser.parse('return 10 - 10 - 10 - 10')), value: -20 },
+            { exp: evalChunk(luaparser.parse('return 10 - 10 ')), value: 0 },
+            { exp: evalChunk(luaparser.parse('return 10  - 20')), value: -10 },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
             if (!test.exp) throw Error(`test.exp is not defined`);
+
+
+            expect(test.exp.kind).toBe('return');
+            if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
 
             expect(test.exp.value[0].kind).toBe('number');
             if (test.exp.value[0].kind !== 'number') throw Error(`test.exp value[0] is not a number ${test.exp}`);
@@ -120,15 +136,19 @@ describe('BinaryExpression', () => {
 
     test('*', () => {
         const tests = [
-            { exp: evalProgram(luaparser.parse('return 10 * 10 * 10 * 10')), value: 10000 },
-            { exp: evalProgram(luaparser.parse('return 10 * 10 ')), value: 100 },
-            { exp: evalProgram(luaparser.parse('return 10 * 20')), value: 200 },
+            { exp: evalChunk(luaparser.parse('return 10 * 10 * 10 * 10')), value: 10000 },
+            { exp: evalChunk(luaparser.parse('return 10 * 10 ')), value: 100 },
+            { exp: evalChunk(luaparser.parse('return 10 * 20')), value: 200 },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
             if (!test.exp) throw Error(`test.exp is not defined`);
 
+
+            expect(test.exp.kind).toBe('return');
+            if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
             expect(test.exp.value[0].kind).toBe('number');
+
             if (test.exp.value[0].kind !== 'number') throw Error(`test.exp value[0] is not a number ${test.exp}`);
             expect(test.exp.value[0].value).toBe(test.value)
         }
@@ -136,11 +156,15 @@ describe('BinaryExpression', () => {
 
     test('/', () => {
         const tests = [
-            { exp: evalProgram(luaparser.parse('return 10 / 10')), value: 1 },
+            { exp: evalChunk(luaparser.parse('return 10 / 10')), value: 1 },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
             if (!test.exp) throw Error(`test.exp is not defined`);
+
+
+            expect(test.exp.kind).toBe('return');
+            if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
 
             expect(test.exp.value[0].kind).toBe('number');
             if (test.exp.value[0].kind !== 'number') throw Error(`test.exp value[0] is not a number ${test.exp}`);
@@ -150,11 +174,14 @@ describe('BinaryExpression', () => {
 
     test('%', () => {
         const tests = [
-            { exp: evalProgram(luaparser.parse('return 10 % 10')), value: 0 },
+            { exp: evalChunk(luaparser.parse('return 10 % 10')), value: 0 },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
             if (!test.exp) throw Error(`test.exp is not defined`);
+
+            expect(test.exp.kind).toBe('return');
+            if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
 
             expect(test.exp.value[0].kind).toBe('number');
             if (test.exp.value[0].kind !== 'number') throw Error(`test.exp value[0] is not a number ${test.exp}`);
@@ -165,7 +192,7 @@ describe('BinaryExpression', () => {
     //TODO idk
     //test('//', () => {
     //    const tests = [
-    //        { exp: evalProgram(luaparser.parse('return 1 // 2')), value: 0 },
+    //        { exp: evalChunk(luaparser.parse('return 1 // 2')), value: 0 },
     //    ]
     //    for (const test of tests) {
     //        expect(test.exp).toBeDefined()
@@ -181,11 +208,14 @@ describe('BinaryExpression', () => {
     // TODO baaad test delete this 
     test('^', () => {
         const tests = [
-            { exp: evalProgram(luaparser.parse('return 10 ^ 10')), value: Math.exp(10 * Math.log(10)) },
+            { exp: evalChunk(luaparser.parse('return 10 ^ 10')), value: Math.exp(10 * Math.log(10)) },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
             if (!test.exp) throw Error(`test.exp is not defined`);
+
+            expect(test.exp.kind).toBe('return');
+            if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
 
             expect(test.exp.value[0].kind).toBe('number');
             if (test.exp.value[0].kind !== 'number') throw Error(`test.exp value[0] is not a number ${test.exp}`);
@@ -197,11 +227,15 @@ describe('BinaryExpression', () => {
     //booleans
     test('<', () => {
         const tests = [
-            { exp: evalProgram(luaparser.parse('return 10 < 10')), value: false },
+            { exp: evalChunk(luaparser.parse('return 10 < 10')), value: false },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
             if (!test.exp) throw Error(`test.exp is not defined`);
+
+
+            expect(test.exp.kind).toBe('return');
+            if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
 
             expect(test.exp.value[0].kind).toBe('boolean');
             if (test.exp.value[0].kind !== 'boolean') throw Error(`test.exp value[0] is not a boolean ${test.exp}`);
@@ -211,11 +245,14 @@ describe('BinaryExpression', () => {
 
     test('>', () => {
         const tests = [
-            { exp: evalProgram(luaparser.parse('return 10 > 10')), value: false },
+            { exp: evalChunk(luaparser.parse('return 10 > 10')), value: false },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
             if (!test.exp) throw Error(`test.exp is not defined`);
+
+            expect(test.exp.kind).toBe('return');
+            if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
 
             expect(test.exp.value[0].kind).toBe('boolean');
             if (test.exp.value[0].kind !== 'boolean') throw Error(`test.exp value[0] is not a boolean ${test.exp}`);
@@ -225,11 +262,15 @@ describe('BinaryExpression', () => {
 
     test('==', () => {
         const tests = [
-            { exp: evalProgram(luaparser.parse('return 10 == 10')), value: true },
+            { exp: evalChunk(luaparser.parse('return 10 == 10')), value: true },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
             if (!test.exp) throw Error(`test.exp is not defined`);
+
+
+            expect(test.exp.kind).toBe('return');
+            if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
 
             expect(test.exp.value[0].kind).toBe('boolean');
             if (test.exp.value[0].kind !== 'boolean') throw Error(`test.exp value[0] is not a boolean ${test.exp}`);
@@ -239,11 +280,15 @@ describe('BinaryExpression', () => {
 
     test('~=', () => {
         const tests = [
-            { exp: evalProgram(luaparser.parse('return 10 ~= 10')), value: false },
+            { exp: evalChunk(luaparser.parse('return 10 ~= 10')), value: false },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
             if (!test.exp) throw Error(`test.exp is not defined`);
+
+
+            expect(test.exp.kind).toBe('return');
+            if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
 
             expect(test.exp.value[0].kind).toBe('boolean');
             if (test.exp.value[0].kind !== 'boolean') throw Error(`test.exp value[0] is not a boolean ${test.exp}`);
@@ -254,11 +299,15 @@ describe('BinaryExpression', () => {
 
     test('<=', () => {
         const tests = [
-            { exp: evalProgram(luaparser.parse('return 10 <= 10')), value: true },
+            { exp: evalChunk(luaparser.parse('return 10 <= 10')), value: true },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
             if (!test.exp) throw Error(`test.exp is not defined`);
+
+
+            expect(test.exp.kind).toBe('return');
+            if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
 
             expect(test.exp.value[0].kind).toBe('boolean');
             if (test.exp.value[0].kind !== 'boolean') throw Error(`test.exp value[0] is not a boolean ${test.exp}`);
@@ -267,11 +316,16 @@ describe('BinaryExpression', () => {
     })
     test('>=', () => {
         const tests = [
-            { exp: evalProgram(luaparser.parse('return 10 >= 10')), value: true },
+            { exp: evalChunk(luaparser.parse('return 10 >= 10')), value: true },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
+
             if (!test.exp) throw Error(`test.exp is not defined`);
+
+
+            expect(test.exp.kind).toBe('return');
+            if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
 
             expect(test.exp.value[0].kind).toBe('boolean');
             if (test.exp.value[0].kind !== 'boolean') throw Error(`test.exp value[0] is not a boolean ${test.exp}`);
@@ -286,10 +340,10 @@ describe('BinaryExpression', () => {
 describe('ReturnStatement', () => {
     test('One argument', () => {
         const tests = [
-            { exp: evalProgram(luaparser.parse('return 10')), value: 10 },
-            { exp: evalProgram(luaparser.parse('return 12')), value: 12 },
-            { exp: evalProgram(luaparser.parse('return 14')), value: 14 },
-            { exp: evalProgram(luaparser.parse('return 20')), value: 20 },
+            { exp: evalChunk(luaparser.parse('return 10')), value: 10 },
+            { exp: evalChunk(luaparser.parse('return 12')), value: 12 },
+            { exp: evalChunk(luaparser.parse('return 14')), value: 14 },
+            { exp: evalChunk(luaparser.parse('return 20')), value: 20 },
         ]
 
         for (const test of tests) {
@@ -297,6 +351,8 @@ describe('ReturnStatement', () => {
             if (!test.exp) throw Error('Return should be defined');
 
             expect(test.exp.kind).toBe('return');
+            if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
+
             expect(test.exp.value[0].kind).toBe('number');
             if (test.exp.value[0].kind !== 'number') throw Error('Return value should be number');
             expect(test.exp.value[0].value).toBe(test.value);
@@ -306,17 +362,20 @@ describe('ReturnStatement', () => {
 
     test('Two argument', () => {
         const tests = [
-            { exp: evalProgram(luaparser.parse('return 10, 20')), value: [10, 20] },
-            { exp: evalProgram(luaparser.parse('return 12, 30')), value: [12, 30] },
-            { exp: evalProgram(luaparser.parse('return 14, 50')), value: [14, 50] },
-            { exp: evalProgram(luaparser.parse('return 20, 11')), value: [20, 11] },
+            { exp: evalChunk(luaparser.parse('return 10, 20')), value: [10, 20] },
+            { exp: evalChunk(luaparser.parse('return 12, 30')), value: [12, 30] },
+            { exp: evalChunk(luaparser.parse('return 14, 50')), value: [14, 50] },
+            { exp: evalChunk(luaparser.parse('return 20, 11')), value: [20, 11] },
         ]
 
         for (const test of tests) {
             expect(test.exp).toBeDefined();
             if (!test.exp) throw Error('Return should be defined');
 
+
             expect(test.exp.kind).toBe('return');
+            if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
+
             expect(test.exp.value[0].kind).toBe('number');
             if (test.exp.value[0].kind !== 'number') throw Error('Return value should be number');
             expect(test.exp.value[0].value).toBe(test.value[0]);
@@ -328,6 +387,45 @@ describe('ReturnStatement', () => {
 
     })
 })
+
+
+describe('IfStatement', () => {
+    test('IfCaluse', () => {
+        const tests = [
+            { exp: evalChunk(luaparser.parse('if true then return 5 end')), value: 5 },
+            { exp: evalChunk(luaparser.parse(`if false then return 5 elseif true then return 10 end return 20`)), value: 10 },
+            { exp: evalChunk(luaparser.parse(`if false then return 5 elseif false then return 10 else return 2 end return 20`)), value: 2 },
+            {
+                exp: evalChunk(luaparser.parse(`
+                 if true then 
+                     if true then
+                         return 99
+                     end
+                 elseif false then 
+                    return 10 
+                 else 
+                     return 2 
+                 end 
+                 return 20`)),
+                value: 99
+            },
+        ]
+
+        for (const test of tests) {
+            expect(test.exp).toBeDefined();
+            if (!test.exp) throw Error('Return should be defined');
+
+            expect(test.exp.kind).toBe('return');
+            if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
+
+            expect(test.exp.value[0].kind).toBe('number');
+            if (test.exp.value[0].kind !== 'number') throw Error('Return value should be number');
+            expect(test.exp.value[0].value).toBe(test.value);
+        }
+    })
+
+})
+
 
 function generateNumericLiteral(n: number): luaparser.Expression {
     return {
