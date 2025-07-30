@@ -6,6 +6,7 @@ import type {
     Lua_Object,
     Lua_Return,
     Lua_Function,
+    Lua_String,
 } from './lua_types';
 
 export function Inspect(obj: Lua_Object) {
@@ -145,6 +146,18 @@ export function evalExpression(exp: luaparser.Expression, environment: Lua_Envir
         }
         case 'BooleanLiteral': {
             return exp.value ? Lua_True : Lua_False;
+        }
+
+        case 'StringLiteral': {
+            let val = ""
+            if (exp.raw[0] === "'" || exp.raw[0] === "\"") {
+                for (let i = 1; i < exp.raw.length - 1; i++) {
+                    val += exp.raw[i];
+                }
+            } else {
+                val = parseLongString(exp.raw);
+            }
+            return { kind: 'string', value: val } as Lua_String;
         }
         case 'NilLiteral': {
             return Lua_Null;
@@ -362,3 +375,22 @@ export function evalNotOperator(arg: Lua_Object) {
     }
 }
 
+
+export function parseLongString(input: string): string {
+    // 1. Match opening: '[' + zero or more '=' + '['
+    let openMatch = input.match(/^\[(=*)\[/)
+    if (!openMatch) throw new Error("Invalid long string start")
+
+    const equalsCount = openMatch[1].length
+    const closePattern = new RegExp(`\\]${'='.repeat(equalsCount)}\\]`)
+
+    // 2. Find closing bracket index after opening
+    const closeIndex = input.search(closePattern)
+    if (closeIndex === -1) throw new Error("Closing bracket not found")
+
+    // 3. Extract content between opening and closing
+    const contentStart = openMatch[0].length
+    const content = input.substring(contentStart, closeIndex)
+
+    return content
+}
