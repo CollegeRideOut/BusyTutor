@@ -1,7 +1,14 @@
 import luaparser from 'luaparse'
 
 let code = `
-if false then return 5 elseif true return 10 end return 20
+                    newAdder = function(x)
+                        f = function (y)
+                            return x + y
+                        end
+                        return f
+                    end
+                    addTwo = newAdder(2)
+                    return addTwo(3)
 `;
 
 

@@ -17,7 +17,7 @@ export const Route = createFileRoute('/arrays/217')({
 function RouteComponent() {
 
     const { vals: { colors } } = useContext(ThemeContext)
-    const [toggleGame, setToggleGame] = useState(true)
+    const [toggleGame, setToggleGame] = useState(false)
     //    const [nums, setNums] = useState<number[] | null>([]);
     //   const [variables, setVariables] = useState<{ name: string, type: 'val' | 'ref', tooltip: string }[]>([]);
     //
@@ -245,132 +245,84 @@ function RouteComponent() {
                 </div>
 
 
-                <div
-                    id={'viewport'}
-                    style={{
-                        width: '100%',
-                        transform: toggleGame ? 'translateX(0)' : 'translateX(50%)',
-                        transition: ' opacity 0s ease-in, transform 0.3s ease-in',
-                        opacity: toggleGame ? 1 : 0,
-                        display: 'flex',
-                        flexDirection: 'column',
-                    }}
-                >
-                    <div
-                        onClick={async () => {
-                            testInterperter()
-                        }}
 
-                    >
-                        <VscDebugStepOver />
-                    </div>
-
-                </div>
             </div>
 
             <div
+                id={'viewport'}
                 style={{
                     width: '50%',
                     display: 'flex',
-                    rowGap: 40,
-                    paddingLeft: 20,
                     flexDirection: 'column',
-                    alignItems: 'center'
                 }}
             >
-
                 <div
-
-                    style={{
-                        width: '100%',
-                        display: 'flex',
-                        paddingTop: 40,
-                        rowGap: 20,
-                        flexDirection: 'column'
+                    onClick={async () => {
+                        testInterperter()
                     }}
+
                 >
-                    <div>
-                        {` function containsDuplicate(nums: number[]): boolean { `}
-                    </div>
-                    <div
-                        style={{
-                            marginLeft: 40,
-                        }}
-                    >
-                        {`for (let i = 0; i < nums.length; i++) { `}
-                    </div>
-                    <div
-                        style={{
-                            marginLeft: 80,
-                        }}
-                    >
-                        {` for (let j = i + 1; j < nums.length; j++) {  `}
-                    </div>
-                    <div
-
-                        style={{
-                            marginLeft: 120,
-                        }}
-                    >
-                        {` if (nums[i] == nums[j]){`}
-                    </div>
-                    <div
-
-                        style={{
-                            marginLeft: 160,
-                        }}
-                    >
-                        {`return true;`}
-                    </div>
-
-                    <div
-                        style={{
-                            marginLeft: 120,
-                        }}
-                    >
-                        {`  } `}
-                    </div>
-
-                    <div
-
-                        style={{
-                            marginLeft: 80,
-                        }}
-                    >
-                        {`  }`}
-                    </div>
-
-                    <div
-
-                        style={{
-                            marginLeft: 40,
-                        }}
-                    >
-                        {`   } `}
-                    </div>
-                    <div
-
-                        style={{
-                            marginLeft: 120,
-                        }}
-                    >
-                        {`  return false; `}
-                    </div>
-                    <div>
-                        {` }; `}
-                    </div>
+                    <VscDebugStepOver />
+                    {arrayVisual({ arg: [{ 1: 2 }], name: 'hello', colors })}
                 </div>
 
-
-
             </div>
+
+
         </div>
     )
 }
 
 
 
+const arrayVisual = ({ arg, colors }: any) => {
+    return (
+        <div
+            style={{
+                display: 'flex',
+            }}
+        >
 
+            <div
+                style={{
+                    borderLeft: '1px solid black',
+                    borderTop: '1px solid black',
+                    borderBottom: '1px solid black',
+                    width: 10
+                }}
+            ></div>
+            {arg.map((n: any, idx: any) => (
+                <div
+                    key={`array-${n}`}
+                    style={{
+                        display: 'flex',
+                    }}
+                >
+                    <div
+                        style={{
+                            padding: 10,
+                            borderRight: `${idx === arg.length - 1 ? 0 : 1}px solid black`
+                        }}
+                    >{typeof n === 'object' ? (
+                        ref({ key: n, name: 'obj', colors })
+                    ) : n}</div>
+
+                </div>
+
+            ))}
+
+            <div
+                style={{
+                    borderRight: '1px solid black',
+                    borderTop: '1px solid black',
+                    borderBottom: '1px solid black',
+                    width: 10
+                }}
+            ></div>
+        </div>
+    )
+
+}
 
 
 const ref = ({ key, name, colors }: any) => (

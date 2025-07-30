@@ -2,7 +2,8 @@ import luaparser from 'luaparse'
 import { describe, expect, test } from 'vitest'
 import { evalExpression, evalChunk } from './eval'
 import type { Lua_Boolean, Lua_Number } from './lua_types'
-//
+import { Lua_Environment } from './lua_types'
+
 // test expression
 
 test('NumericLiteral', () => {
@@ -39,15 +40,15 @@ test('BooleanLiteral', () => {
 test('NotOperator', () => {
 
     const tests = [
-        { exp: evalChunk(luaparser.parse('return not true')), value: false },
-        { exp: evalChunk(luaparser.parse('return not false')), value: true },
-        { exp: evalChunk(luaparser.parse('return not not true')), value: true },
-        { exp: evalChunk(luaparser.parse('return not not false')), value: false },
-        { exp: evalChunk(luaparser.parse('return not 5')), value: false },
-        { exp: evalChunk(luaparser.parse('return not not 5')), value: true },
-        { exp: evalChunk(luaparser.parse('return not not 5')), value: true },
-        { exp: evalChunk(luaparser.parse('return not nil')), value: true },
-        { exp: evalChunk(luaparser.parse('return not not nil')), value: false },
+        { exp: evalChunk(luaparser.parse('return not true'), new Lua_Environment()), value: false },
+        { exp: evalChunk(luaparser.parse('return not false'), new Lua_Environment()), value: true },
+        { exp: evalChunk(luaparser.parse('return not not true'), new Lua_Environment()), value: true },
+        { exp: evalChunk(luaparser.parse('return not not false'), new Lua_Environment()), value: false },
+        { exp: evalChunk(luaparser.parse('return not 5'), new Lua_Environment()), value: false },
+        { exp: evalChunk(luaparser.parse('return not not 5'), new Lua_Environment()), value: true },
+        { exp: evalChunk(luaparser.parse('return not not 5'), new Lua_Environment()), value: true },
+        { exp: evalChunk(luaparser.parse('return not nil'), new Lua_Environment()), value: true },
+        { exp: evalChunk(luaparser.parse('return not not nil'), new Lua_Environment()), value: false },
     ];
 
     for (const test of tests) {
@@ -69,8 +70,8 @@ test('NotOperator', () => {
 describe('Minues operator', () => {
     test('Integer', () => {
         const tests = [
-            { exp: evalChunk(luaparser.parse('return -2')), value: -2 },
-            { exp: evalChunk(luaparser.parse('return -10')), value: -10 },
+            { exp: evalChunk(luaparser.parse('return -2'), new Lua_Environment()), value: -2 },
+            { exp: evalChunk(luaparser.parse('return -10'), new Lua_Environment()), value: -10 },
         ];
 
         for (const test of tests) {
@@ -95,9 +96,9 @@ describe('Minues operator', () => {
 describe('BinaryExpression', () => {
     test('+', () => {
         const tests = [
-            { exp: evalChunk(luaparser.parse('return 10 + 10 + 10 + 10')), value: 40 },
-            { exp: evalChunk(luaparser.parse('return 10 + 10 ')), value: 20 },
-            { exp: evalChunk(luaparser.parse('return 10 + 10 + 20')), value: 40 },
+            { exp: evalChunk(luaparser.parse('return 10 + 10 + 10 + 10'), new Lua_Environment()), value: 40 },
+            { exp: evalChunk(luaparser.parse('return 10 + 10 '), new Lua_Environment()), value: 20 },
+            { exp: evalChunk(luaparser.parse('return 10 + 10 + 20'), new Lua_Environment()), value: 40 },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
@@ -116,9 +117,9 @@ describe('BinaryExpression', () => {
 
     test('-', () => {
         const tests = [
-            { exp: evalChunk(luaparser.parse('return 10 - 10 - 10 - 10')), value: -20 },
-            { exp: evalChunk(luaparser.parse('return 10 - 10 ')), value: 0 },
-            { exp: evalChunk(luaparser.parse('return 10  - 20')), value: -10 },
+            { exp: evalChunk(luaparser.parse('return 10 - 10 - 10 - 10'), new Lua_Environment()), value: -20 },
+            { exp: evalChunk(luaparser.parse('return 10 - 10 '), new Lua_Environment()), value: 0 },
+            { exp: evalChunk(luaparser.parse('return 10  - 20'), new Lua_Environment()), value: -10 },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
@@ -136,9 +137,9 @@ describe('BinaryExpression', () => {
 
     test('*', () => {
         const tests = [
-            { exp: evalChunk(luaparser.parse('return 10 * 10 * 10 * 10')), value: 10000 },
-            { exp: evalChunk(luaparser.parse('return 10 * 10 ')), value: 100 },
-            { exp: evalChunk(luaparser.parse('return 10 * 20')), value: 200 },
+            { exp: evalChunk(luaparser.parse('return 10 * 10 * 10 * 10'), new Lua_Environment()), value: 10000 },
+            { exp: evalChunk(luaparser.parse('return 10 * 10 '), new Lua_Environment()), value: 100 },
+            { exp: evalChunk(luaparser.parse('return 10 * 20'), new Lua_Environment()), value: 200 },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
@@ -156,7 +157,7 @@ describe('BinaryExpression', () => {
 
     test('/', () => {
         const tests = [
-            { exp: evalChunk(luaparser.parse('return 10 / 10')), value: 1 },
+            { exp: evalChunk(luaparser.parse('return 10 / 10'), new Lua_Environment()), value: 1 },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
@@ -174,7 +175,7 @@ describe('BinaryExpression', () => {
 
     test('%', () => {
         const tests = [
-            { exp: evalChunk(luaparser.parse('return 10 % 10')), value: 0 },
+            { exp: evalChunk(luaparser.parse('return 10 % 10'), new Lua_Environment()), value: 0 },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
@@ -208,7 +209,7 @@ describe('BinaryExpression', () => {
     // TODO baaad test delete this 
     test('^', () => {
         const tests = [
-            { exp: evalChunk(luaparser.parse('return 10 ^ 10')), value: Math.exp(10 * Math.log(10)) },
+            { exp: evalChunk(luaparser.parse('return 10 ^ 10'), new Lua_Environment()), value: Math.exp(10 * Math.log(10)) },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
@@ -227,7 +228,7 @@ describe('BinaryExpression', () => {
     //booleans
     test('<', () => {
         const tests = [
-            { exp: evalChunk(luaparser.parse('return 10 < 10')), value: false },
+            { exp: evalChunk(luaparser.parse('return 10 < 10'), new Lua_Environment()), value: false },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
@@ -245,7 +246,7 @@ describe('BinaryExpression', () => {
 
     test('>', () => {
         const tests = [
-            { exp: evalChunk(luaparser.parse('return 10 > 10')), value: false },
+            { exp: evalChunk(luaparser.parse('return 10 > 10'), new Lua_Environment()), value: false },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
@@ -262,7 +263,7 @@ describe('BinaryExpression', () => {
 
     test('==', () => {
         const tests = [
-            { exp: evalChunk(luaparser.parse('return 10 == 10')), value: true },
+            { exp: evalChunk(luaparser.parse('return 10 == 10'), new Lua_Environment()), value: true },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
@@ -280,7 +281,7 @@ describe('BinaryExpression', () => {
 
     test('~=', () => {
         const tests = [
-            { exp: evalChunk(luaparser.parse('return 10 ~= 10')), value: false },
+            { exp: evalChunk(luaparser.parse('return 10 ~= 10'), new Lua_Environment()), value: false },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
@@ -299,7 +300,7 @@ describe('BinaryExpression', () => {
 
     test('<=', () => {
         const tests = [
-            { exp: evalChunk(luaparser.parse('return 10 <= 10')), value: true },
+            { exp: evalChunk(luaparser.parse('return 10 <= 10'), new Lua_Environment()), value: true },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
@@ -316,7 +317,7 @@ describe('BinaryExpression', () => {
     })
     test('>=', () => {
         const tests = [
-            { exp: evalChunk(luaparser.parse('return 10 >= 10')), value: true },
+            { exp: evalChunk(luaparser.parse('return 10 >= 10'), new Lua_Environment()), value: true },
         ]
         for (const test of tests) {
             expect(test.exp).toBeDefined()
@@ -340,10 +341,10 @@ describe('BinaryExpression', () => {
 describe('ReturnStatement', () => {
     test('One argument', () => {
         const tests = [
-            { exp: evalChunk(luaparser.parse('return 10')), value: 10 },
-            { exp: evalChunk(luaparser.parse('return 12')), value: 12 },
-            { exp: evalChunk(luaparser.parse('return 14')), value: 14 },
-            { exp: evalChunk(luaparser.parse('return 20')), value: 20 },
+            { exp: evalChunk(luaparser.parse('return 10'), new Lua_Environment()), value: 10 },
+            { exp: evalChunk(luaparser.parse('return 12'), new Lua_Environment()), value: 12 },
+            { exp: evalChunk(luaparser.parse('return 14'), new Lua_Environment()), value: 14 },
+            { exp: evalChunk(luaparser.parse('return 20'), new Lua_Environment()), value: 20 },
         ]
 
         for (const test of tests) {
@@ -362,10 +363,10 @@ describe('ReturnStatement', () => {
 
     test('Two argument', () => {
         const tests = [
-            { exp: evalChunk(luaparser.parse('return 10, 20')), value: [10, 20] },
-            { exp: evalChunk(luaparser.parse('return 12, 30')), value: [12, 30] },
-            { exp: evalChunk(luaparser.parse('return 14, 50')), value: [14, 50] },
-            { exp: evalChunk(luaparser.parse('return 20, 11')), value: [20, 11] },
+            { exp: evalChunk(luaparser.parse('return 10, 20'), new Lua_Environment()), value: [10, 20] },
+            { exp: evalChunk(luaparser.parse('return 12, 30'), new Lua_Environment()), value: [12, 30] },
+            { exp: evalChunk(luaparser.parse('return 14, 50'), new Lua_Environment()), value: [14, 50] },
+            { exp: evalChunk(luaparser.parse('return 20, 11'), new Lua_Environment()), value: [20, 11] },
         ]
 
         for (const test of tests) {
@@ -392,9 +393,9 @@ describe('ReturnStatement', () => {
 describe('IfStatement', () => {
     test('IfCaluse', () => {
         const tests = [
-            { exp: evalChunk(luaparser.parse('if true then return 5 end')), value: 5 },
-            { exp: evalChunk(luaparser.parse(`if false then return 5 elseif true then return 10 end return 20`)), value: 10 },
-            { exp: evalChunk(luaparser.parse(`if false then return 5 elseif false then return 10 else return 2 end return 20`)), value: 2 },
+            { exp: evalChunk(luaparser.parse('if true then return 5 end'), new Lua_Environment()), value: 5 },
+            { exp: evalChunk(luaparser.parse(`if false then return 5 elseif true then return 10 end return 20`), new Lua_Environment()), value: 10 },
+            { exp: evalChunk(luaparser.parse(`if false then return 5 elseif false then return 10 else return 2 end return 20`), new Lua_Environment()), value: 2 },
             {
                 exp: evalChunk(luaparser.parse(`
                  if true then 
@@ -406,7 +407,7 @@ describe('IfStatement', () => {
                  else 
                      return 2 
                  end 
-                 return 20`)),
+                 return 20`), new Lua_Environment()),
                 value: 99
             },
         ]
@@ -428,9 +429,9 @@ describe('IfStatement', () => {
 describe('Errors', () => {
     test('types', () => {
         const tests = [
-            { exp: evalChunk(luaparser.parse('return 5 + true')), value: 5 },
-            { exp: evalChunk(luaparser.parse('return -true')), value: 5 },
-            { exp: evalChunk(luaparser.parse('return true + false')), value: 5 },
+            { exp: evalChunk(luaparser.parse('return 5 + true'), new Lua_Environment()), value: 5 },
+            { exp: evalChunk(luaparser.parse('return -true'), new Lua_Environment()), value: 5 },
+            { exp: evalChunk(luaparser.parse('return true + false'), new Lua_Environment()), value: 5 },
         ]
 
         for (const test of tests) {
@@ -438,6 +439,101 @@ describe('Errors', () => {
             if (!test.exp) throw Error('Return should be defined');
 
             expect(test.exp.kind).toBe('error');
+        }
+    })
+
+})
+
+
+describe('AssignmentStatement', () => {
+    test('Global', () => {
+        const tests = [
+            { exp: evalChunk(luaparser.parse('x = 5; return x'), new Lua_Environment()), value: [5] },
+            { exp: evalChunk(luaparser.parse('x = 10; return x'), new Lua_Environment()), value: [10] },
+            { exp: evalChunk(luaparser.parse('x,y = 10; return x, y'), new Lua_Environment()), value: [10, null] },
+            { exp: evalChunk(luaparser.parse('x,y = 10, 20; return x, y'), new Lua_Environment()), value: [10, 20] },
+            { exp: evalChunk(luaparser.parse('x,y = 10, 20, 30; return x, y'), new Lua_Environment()), value: [10, 20] },
+        ]
+
+        for (const test of tests) {
+            expect(test.exp).toBeDefined();
+            if (!test.exp) throw Error('Return should be defined');
+            if (test.exp.kind !== 'return') throw Error(`${test.exp.kind === 'error' ? test.exp.message : 'null'}`);
+            expect(test.exp.kind).toBe('return');
+
+            for (let i = 0; i < test.exp.value.length; i++) {
+                const val = test.exp.value[i];
+                if (val.kind === 'null') expect(test.value[i]).toBe(null);
+                else if (val.kind === 'error') throw Error('should not be an error');
+                else if (val.kind !== 'number') throw Error(' should be a number');
+                else expect(val!.value).toBe(test.value[i]);
+            }
+        }
+    })
+})
+
+
+describe('FunctionDeclaration', () => {
+    test('Global', () => {
+        const tests = [
+            {
+                exp: evalChunk(luaparser.parse(`
+                    x = 1
+                    function foo()
+                        return x;
+                    end
+                    return foo()
+                `), new Lua_Environment()), value: [1]
+            },
+            {
+                exp: evalChunk(luaparser.parse(`
+                    x = 1
+                    function foo(x)
+                        return x;
+                    end
+                    return foo(5), x
+                `), new Lua_Environment()), value: [5, 1]
+            },
+            {
+                exp: evalChunk(luaparser.parse(`
+                    x = 1
+                    function foo(x, y)
+                        return x + y;
+                    end
+                    return foo(5, 10), x
+                `), new Lua_Environment()), value: [15, 1]
+            },
+            { exp: evalChunk(luaparser.parse(`
+                    x = function (p, y)
+                        return p + y;
+                    end
+                    return x(5, 10)
+                `), new Lua_Environment()), value: [15] },
+            { exp: evalChunk(luaparser.parse(`
+                    newAdder = function(x)
+                        f = function (y)
+                            return x + y
+                        end
+                        return f
+                    end
+                    addTwo = newAdder(2)
+                    return addTwo(3)
+                `), new Lua_Environment()), value: [5] },
+        ]
+
+        for (const test of tests) {
+            expect(test.exp).toBeDefined();
+            if (!test.exp) throw Error('Return should be defined');
+            if (test.exp.kind !== 'return') throw Error(`${test.exp.kind === 'error' ? test.exp.message : 'null'}`);
+            expect(test.exp.kind).toBe('return');
+
+            for (let i = 0; i < test.exp.value.length; i++) {
+                const val = test.exp.value[i];
+                if (val.kind === 'null') expect(test.value[i]).toBe(null);
+                else if (val.kind === 'error') throw Error('should not be an error')
+                else if (val.kind !== 'number') throw Error(` should be a number ${val.kind}`);
+                else expect(val.value).toBe(test.value[i]);
+            }
         }
     })
 
