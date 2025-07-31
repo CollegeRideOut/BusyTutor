@@ -10,6 +10,8 @@ import type {
     Lua_Builtin
 } from './lua_types';
 
+let Lua_Global_Environment = new Lua_Environment();
+
 export function Inspect(obj: Lua_Object) {
     switch (obj.kind) {
         case 'null': {
@@ -26,6 +28,7 @@ export function Inspect(obj: Lua_Object) {
 
 export function evalChunk(node: luaparser.Chunk, environment: Lua_Environment) {
     //TODO
+    Lua_Global_Environment = new Lua_Environment()
     return evalStatementsArray(node.body, environment)
 }
 
@@ -62,8 +65,7 @@ export function evalStatements(node: luaparser.Statement, environment: Lua_Envir
             }
             return Lua_Null
         }
-        case 'LocalStatement':
-        case 'AssignmentStatement': {
+        case 'LocalStatement': {
             const vals: Lua_Object[] = [];
             for (let v of node.init) {
                 let val = evalExpression(v, environment)
@@ -84,10 +86,69 @@ export function evalStatements(node: luaparser.Statement, environment: Lua_Envir
 
             return Lua_Null
         }
+
+        case 'AssignmentStatement': {
+            const vals: Lua_Object[] = [];
+            for (let v of node.init) {
+                let val = evalExpression(v, environment)
+                if (val.kind === 'error') return val;
+                // TODO idk if this is good unwrapping return
+                if (val.kind === 'return') vals.push(...val.value);
+                else vals.push(val);
+            }
+            while (true) {
+                if (vals.length >= node.variables.length) break;
+                vals.push(Lua_Null);
+            }
+
+            for (let i = 0; i < node.variables.length; i++) {
+                let e = evalAssignment(node.variables[i], vals[i], Lua_Global_Environment);
+                if (e.kind === 'error') return e;
+            }
+
+            return Lua_Null
+        }
         case 'FunctionDeclaration': {
             const func = { kind: 'function', body: node.body, parameters: node.parameters, environment: environment } as Lua_Function
             if (node.identifier) { evalAssignment(node.identifier, func, environment); }
             return func
+        }
+        case 'CallStatement': {
+            return evalExpression(node.expression, environment);
+        }
+        case 'ForNumericStatement': {
+            let start = evalExpression(node.start, environment)
+            if (start.kind === 'return') start = start.value[0] || Lua_Null;
+            if (start.kind === 'error') return start;
+            if (start.kind !== 'number') return { kind: 'error', message: `${start.kind} cannot be used in a numeric for loop` } as Lua_Error;
+
+
+            evalAssignment(node.variable, start, environment);
+            let [start_obj, exist] = environment.get(node.variable.name)
+            if (!exist) return { kind: 'error', message: `${node.variable.name} does not exist interperter error` } as Lua_Error;
+            if (start_obj.kind === 'error') return start_obj;
+            if (start_obj.kind !== 'number') return { kind: 'error', message: `${start_obj.kind} shoudve been a number interpert error` } as Lua_Error;
+
+            let end = evalExpression(node.end, environment)
+            if (end.kind === 'return') end = end.value[0] || Lua_Null;
+            if (end.kind === 'error') return start;
+            if (end.kind !== 'number') return { kind: 'error', message: `${end.kind} cannot be used in a numeric for loop` } as Lua_Error;
+
+            let step = node.step ? evalExpression(node.step, environment) : { kind: 'number', value: 1 } as Lua_Number;
+
+            if (step.kind === 'return') step = step.value[0] || Lua_Null;
+            if (step.kind === 'error') return step;
+            if (step.kind !== 'number') return { kind: 'error', message: `${end.kind} cannot be used in a numeric for loop` } as Lua_Error;
+
+            let i = start.value
+
+            while ((step.value > 0 && i <= end.value) || (step.value < 0 && i >= end.value)) {
+                environment.set(node.variable.name, { kind: 'number', value: i } as Lua_Number)
+                const body = evalStatementsArray(node.body, environment)
+                if (body.kind === 'error' || body.kind === 'return') return body;
+                i += step.value
+            }
+            return Lua_Null;
         }
         default: {
             return { kind: 'error', message: `${node.type} statement not implemented` } as Lua_Error;
@@ -106,7 +167,6 @@ export function evalAssignment(exp: luaparser.Identifier | luaparser.MemberExpre
 
             let idx = evalExpression(exp.index, environment);
 
-            console.log(exp.index.type, idx)
             if (idx.kind === 'return') idx = idx.value[0] || Lua_Null;
             if (idx.kind === 'error') return idx;
             if (idx.kind === 'null') return { kind: 'error', message: 'nil cannot be used as index for table' } as Lua_Error
@@ -184,10 +244,12 @@ export function evalExpression(exp: luaparser.Expression, environment: Lua_Envir
             return evalUnaryExpression(exp.operator, arg)
         }
         case 'BinaryExpression': {
-            const left = evalExpression(exp.left, environment);
+            let left = evalExpression(exp.left, environment);
+            if (left.kind === 'return') left = left.value[0] || Lua_Null
             if (left.kind === 'error') return left;
 
-            const right = evalExpression(exp.right, environment);
+            let right = evalExpression(exp.right, environment);
+            if (right.kind === 'return') right = right.value[0] || Lua_Null
             if (right.kind === 'error') return right;
 
             return evalBinaryExpression(exp.operator, left, right)
@@ -196,6 +258,9 @@ export function evalExpression(exp: luaparser.Expression, environment: Lua_Envir
         case 'Identifier': {
             let [val, exist] = environment.get(exp.name)
             if (exist) return val;
+
+            [val, exist] = Lua_Global_Environment.get(exp.name);
+            if (exist) return val
 
             let val_builtin = builtin.get(exp.name)
             if (!val_builtin) return Lua_Null;
@@ -241,7 +306,6 @@ export function evalExpression(exp: luaparser.Expression, environment: Lua_Envir
 
             let idx = evalExpression(exp.index, environment);
 
-            console.log(exp.index.type, idx)
             if (idx.kind === 'return') idx = idx.value[0] || Lua_Null;
             if (idx.kind === 'error') return idx;
             if (idx.kind === 'null') return { kind: 'error', message: 'nil cannot be used as index for table' } as Lua_Error
@@ -413,9 +477,24 @@ export function evalUnaryExpression(operator: "not" | "-" | "~" | "#", arg: Lua_
         case '-': {
             return evalUnaryMinuesOperator(arg);
         }
+        case '#': {
+            return evalUnaryLengthOperator(arg);
+
+        }
         default: {
-            return { kind: 'error', message: `type missmatch ${operator}${arg.kind} not implemented` } as Lua_Error
+            return { kind: 'error', message: `${operator}$ not implemented` } as Lua_Error
             //return Lua_Null`
+        }
+    }
+}
+export function evalUnaryLengthOperator(arg: Lua_Object) {
+    switch (arg.kind) {
+        case 'string':
+            return { kind: 'number', value: arg.value.length } as Lua_Number;
+        case 'table':
+            return { kind: 'number', value: arg.idx } as Lua_Number;
+        default: {
+            return { kind: 'error', message: `type missmatch #${arg.kind}` } as Lua_Error
         }
     }
 }
@@ -427,7 +506,7 @@ export function evalUnaryMinuesOperator(arg: Lua_Object) {
         }
         //TODO string are coerced into integers
         default: {
-            return { kind: 'error', message: `type missmatch -${arg.kind} not implemented` } as Lua_Error
+            return { kind: 'error', message: `type missmatch -${arg.kind}` } as Lua_Error
         }
     }
 }

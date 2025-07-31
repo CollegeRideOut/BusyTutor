@@ -1,9 +1,13 @@
 import luaparser from 'luaparse'
 
 let code = `
-x = { name = 1 }
-x[2] = '2'
-return x['name']
+x = 0
+i = 1
+for i = 1, 3, -1 do
+    x = x + 1
+end
+
+return x
 `;
 
 

@@ -88,6 +88,29 @@ test('NotOperator', () => {
     }
 })
 
+test('LengthOperator #', () => {
+
+    const tests = [
+        { exp: evalChunk(luaparser.parse('return #"hello"'), new Lua_Environment()), value: 5 },
+        { exp: evalChunk(luaparser.parse('x = "22" return #x'), new Lua_Environment()), value: 2 },
+        { exp: evalChunk(luaparser.parse('x = {1,2,3} return #x'), new Lua_Environment()), value: 3 },
+        { exp: evalChunk(luaparser.parse('return #{1,2,3, 4}'), new Lua_Environment()), value: 4 },
+    ];
+
+    for (const test of tests) {
+        expect(test.exp).toBeDefined()
+        if (!test.exp) throw Error(`test.exp is not defined`);
+
+
+        expect(test.exp.kind).toBe('return');
+        if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
+
+        expect(test.exp.value[0].kind).toBe('number');
+        if (test.exp.value[0].kind !== 'number') throw Error(`test.exp value[0] is not a number ${test.exp}`);
+        expect(test.exp.value[0].value).toBe(test.value)
+    }
+})
+
 
 
 describe('Minues operator', () => {
@@ -525,10 +548,11 @@ describe('FunctionDeclaration', () => {
                 exp: evalChunk(luaparser.parse(`
                     x = 1
                     function foo()
-                        return x;
+                        x = x + 1;
+                        return x
                     end
                     return foo()
-                `), new Lua_Environment()), value: [1]
+                `), new Lua_Environment()), value: [2]
             },
             {
                 exp: evalChunk(luaparser.parse(`
@@ -568,7 +592,7 @@ describe('FunctionDeclaration', () => {
                     return addTwo(3)
                 `), new Lua_Environment()), value: [5]
             },
-
+            //
             {
                 exp: evalChunk(luaparser.parse(`
                     rec = function(x)
@@ -594,7 +618,7 @@ describe('FunctionDeclaration', () => {
                 if (val.kind === 'null') expect(test.value[i]).toBe(null);
                 else if (val.kind === 'error') throw Error('should not be an error')
                 else if (val.kind !== 'number' && val.kind !== 'boolean') throw Error(` should be a number ${val.kind}`);
-                else expect(val.value).toBe(test.value[i]);
+                else expect(val.value, `test idx ${i}`).toBe(test.value[i]);
             }
         }
     })
@@ -737,6 +761,121 @@ describe('Tables', () => {
     })
 
 })
+
+test('ForNumericStatement', () => {
+
+    const tests = [
+        {
+            exp: evalChunk(luaparser.parse(`
+                    x = 0
+                    for i = 1, 3 do
+                        x = x + 1
+                    end
+
+                    return x
+                `), new Lua_Environment()),
+            value: [3],
+        },
+        {
+            exp: evalChunk(luaparser.parse(`
+                    x = 0
+                    for i = 1, 3 do
+                      x = x + i
+                    end
+                    return x
+                `), new Lua_Environment()),
+            value: [6],
+        },
+        {
+            exp: evalChunk(luaparser.parse(`
+                    for i = 1, 5 do
+                      if i == 3 then return i end
+                    end
+                    return 0
+                `), new Lua_Environment()),
+            value: [3],
+        },
+
+        {
+            exp: evalChunk(luaparser.parse(`
+                    function sayHi(n)
+                      return "hi" .. n
+                    end
+
+                    res = ""
+                    for i = 1, 2 do
+                      res = res .. sayHi(i)
+                    end
+                    return res
+                `), new Lua_Environment()),
+            value: ['hi1hi2'],
+        },
+
+        {
+            exp: evalChunk(luaparser.parse(`
+                    function limit()
+                      return 3
+                    end
+
+                    sum = 0
+                    for i = 1, limit() do
+                      sum = sum + i
+                    end
+                    return sum 
+                `), new Lua_Environment()),
+            value: [6],
+        },
+
+        {
+            exp: evalChunk(luaparser.parse(`
+                    function getStep()
+                      return 2
+                    end
+
+                    sum = 0
+                    for i = 1, 5, getStep() do
+                      sum = sum + i
+                    end
+                    return sum 
+                `), new Lua_Environment()),
+            value: [9],
+        },
+
+        {
+            exp: evalChunk(luaparser.parse(`
+                x = 0
+                function addToX(n)
+                  x = x + n
+                end
+
+                for i = 1, 3 do
+                  addToX(i)
+                end
+                return x 
+                `), new Lua_Environment()),
+            value: [6],
+        },
+
+
+
+    ]
+
+    for (const test of tests) {
+        expect(test.exp).toBeDefined();
+        if (!test.exp) throw Error('Return should be defined');
+        if (test.exp.kind !== 'return') throw Error(`${test.exp.kind === 'error' ? test.exp.message : 'null'}`);
+        expect(test.exp.kind).toBe('return');
+
+        for (let i = 0; i < test.exp.value.length; i++) {
+            const val = test.exp.value[i];
+            if (val.kind === 'null') expect(test.value[i]).toBe(null);
+            else if (val.kind === 'error') throw Error('should not be an error')
+            else if (val.kind !== 'number' && val.kind !== 'boolean' && val.kind !== 'string') throw Error(` should be a number ${val.kind}`);
+            else expect(val.value).toBe(test.value[i]);
+        }
+    }
+})
+
 
 
 function generateNumericLiteral(n: number): luaparser.Expression {

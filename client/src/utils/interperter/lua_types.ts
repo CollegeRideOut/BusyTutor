@@ -5,7 +5,7 @@ export type Lua_Object = Lua_Return | Lua_Error | Lua_Number | Lua_Boolean | Lua
 export class Lua_Environment {
     public kind: 'environment' = 'environment';
     public store: Map<string, Lua_Object>;
-    private outer: Lua_Environment | null;
+    public outer: Lua_Environment | null;
 
     constructor(outer: Lua_Environment | null = null) {
         this.store = new Map();
@@ -122,10 +122,11 @@ export class Lua_Table {
 
     constructor() {
         this.store = new Map();
-        this.idx = 1;
+        this.idx = 0;
     }
 
     setValue(val: Lua_Object): Lua_Null | Lua_Error {
+
         switch (val.kind) {
 
             case 'string':
@@ -135,13 +136,13 @@ export class Lua_Table {
             case 'table':
             case 'null':
             case 'builtin': {
-                this.store.set(this.idx, val);
                 this.idx++;
+                this.store.set(this.idx, val);
                 return Lua_Null;
             }
             case 'return': {
-                this.store.set(this.idx, val.value[0] || Lua_Null);
                 this.idx++;
+                this.store.set(this.idx, val.value[0] || Lua_Null);
                 return Lua_Null;
             }
 
