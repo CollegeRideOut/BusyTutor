@@ -632,6 +632,112 @@ describe('Builtins', () => {
 
 })
 
+describe('Tables', () => {
+    test('', () => {
+        const tests = [
+            {
+                exp: evalChunk(luaparser.parse(`
+                    x = { 2, 3 }
+                    return x[1]
+                `), new Lua_Environment()),
+                value: [2],
+            },
+            {
+                exp: evalChunk(luaparser.parse(`
+                    x = { name = 1 }
+                    return x['name']
+                `), new Lua_Environment()),
+                value: [1],
+            },
+
+            {
+                exp: evalChunk(luaparser.parse(`
+                    name = '2'
+                    x = { name = 1 }
+                    return x['name']
+                `), new Lua_Environment()),
+                value: [1],
+            },
+
+            {
+                exp: evalChunk(luaparser.parse(`
+                    x = { name = 1 }
+                    return x['name']
+                `), new Lua_Environment()),
+                value: [1],
+            },
+            {
+                exp: evalChunk(luaparser.parse(`
+                    x = { name = 1 }
+                    return x['na']
+                `), new Lua_Environment()),
+                value: [null],
+            },
+
+            {
+                exp: evalChunk(luaparser.parse(`
+                    x = { ['2'] = 1 }
+                    return x[2]
+                `), new Lua_Environment()),
+                value: [null],
+            },
+
+            {
+                exp: evalChunk(luaparser.parse(`
+                    k = {}
+                    x = { ['2'] = 1 }
+                    x[k] = 'yes'
+                    return x[k]
+                `), new Lua_Environment()),
+                value: ['yes'],
+            },
+
+            {
+                exp: evalChunk(luaparser.parse(`
+                    k = {}
+                    x = { ['2'] = 1 }
+                    x[k] = 'yes'
+                    return x[{}]
+                `), new Lua_Environment()),
+                value: [null],
+            },
+
+            {
+                exp: evalChunk(luaparser.parse(`
+                    x = {3, 2}
+                    y = x
+                    return y[1]
+                `), new Lua_Environment()),
+                value: [3],
+            },
+
+            {
+                exp: evalChunk(luaparser.parse(`
+                    local t = { [true] = "yes", [false] = "no" }
+                    return t[false]
+                `), new Lua_Environment()),
+                value: ['no'],
+            },
+        ]
+
+        for (const test of tests) {
+            expect(test.exp).toBeDefined();
+            if (!test.exp) throw Error('Return should be defined');
+            if (test.exp.kind !== 'return') throw Error(`${test.exp.kind === 'error' ? test.exp.message : 'null'}`);
+            expect(test.exp.kind).toBe('return');
+
+            for (let i = 0; i < test.exp.value.length; i++) {
+                const val = test.exp.value[i];
+                if (val.kind === 'null') expect(test.value[i]).toBe(null);
+                else if (val.kind === 'error') throw Error('should not be an error')
+                else if (val.kind !== 'number' && val.kind !== 'boolean' && val.kind !== 'string') throw Error(` should be a number ${val.kind}`);
+                else expect(val.value).toBe(test.value[i]);
+            }
+        }
+    })
+
+})
+
 
 function generateNumericLiteral(n: number): luaparser.Expression {
     return {

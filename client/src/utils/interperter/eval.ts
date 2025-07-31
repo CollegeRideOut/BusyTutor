@@ -1,5 +1,5 @@
 import luaparser from 'luaparse'
-import { Lua_Environment, Lua_Null, Lua_True, Lua_False, builtin } from './lua_types';
+import { Lua_Table, Lua_Environment, Lua_Null, Lua_True, Lua_False, builtin } from './lua_types';
 import type {
     Lua_Number,
     Lua_Error,
@@ -62,6 +62,7 @@ export function evalStatements(node: luaparser.Statement, environment: Lua_Envir
             }
             return Lua_Null
         }
+        case 'LocalStatement':
         case 'AssignmentStatement': {
             const vals: Lua_Object[] = [];
             for (let v of node.init) {
@@ -98,6 +99,20 @@ export function evalAssignment(exp: luaparser.Identifier | luaparser.MemberExpre
     switch (exp.type) {
         case 'Identifier':
             return evalIdentiferAssignment(exp, val, environment);
+        case 'IndexExpression':
+            const identifier = evalExpression(exp.base, environment);
+            if (identifier.kind === 'error') return identifier;
+            if (identifier.kind !== 'table') return { kind: 'error', message: `${identifier.kind} cannot be indexed` } as Lua_Error;
+
+            let idx = evalExpression(exp.index, environment);
+
+            console.log(exp.index.type, idx)
+            if (idx.kind === 'return') idx = idx.value[0] || Lua_Null;
+            if (idx.kind === 'error') return idx;
+            if (idx.kind === 'null') return { kind: 'error', message: 'nil cannot be used as index for table' } as Lua_Error
+            identifier.set(idx, val);
+            return Lua_Null
+
         default: {
             return { kind: 'error', message: `AssignmentStatement of ${exp.type} not implemented` } as Lua_Error
         }
@@ -180,7 +195,6 @@ export function evalExpression(exp: luaparser.Expression, environment: Lua_Envir
         }
         case 'Identifier': {
             let [val, exist] = environment.get(exp.name)
-            console.log('did it find it?', exp.name, exist)
             if (exist) return val;
 
             let val_builtin = builtin.get(exp.name)
@@ -209,8 +223,53 @@ export function evalExpression(exp: luaparser.Expression, environment: Lua_Envir
             return func
         }
 
+        case 'TableConstructorExpression': {
+            let t = new Lua_Table();
+            for (const field of exp.fields) {
+                const [key, val] = evalTableField(field, environment)
+                if (key.kind === 'error') return key;
+                if (val.kind === 'error') return val;
+                if (key.kind === 'null') t.setValue(val);
+                else t.set(key, val);
+            }
+            return t;
+        }
+        case 'IndexExpression': {
+            const identifier = evalExpression(exp.base, environment);
+            if (identifier.kind === 'error') return identifier;
+            if (identifier.kind !== 'table') return { kind: 'error', message: `${identifier.kind} cannot be indexed` } as Lua_Error;
+
+            let idx = evalExpression(exp.index, environment);
+
+            console.log(exp.index.type, idx)
+            if (idx.kind === 'return') idx = idx.value[0] || Lua_Null;
+            if (idx.kind === 'error') return idx;
+            if (idx.kind === 'null') return { kind: 'error', message: 'nil cannot be used as index for table' } as Lua_Error
+
+            const val = identifier.get(idx);
+            return val;
+        }
+
         default: {
             return { kind: 'error', message: `${exp.type} not implemented` } as Lua_Error
+        }
+    }
+}
+export function evalTableField(field: (luaparser.TableKey | luaparser.TableKeyString | luaparser.TableValue), environment: Lua_Environment): [Lua_Object, Lua_Object] {
+    switch (field.type) {
+        case 'TableKey': {
+            const key = evalExpression(field.key, environment)
+            if (key.kind === "null") return [{ kind: 'error', message: 'Nil cannot be use as key' } as Lua_Error, Lua_Null]
+            const val = evalExpression(field.value, environment)
+            return [key, val]
+        }
+        case 'TableKeyString': {
+            const val = evalExpression(field.value, environment)
+            return [{ kind: 'string', value: field.key.name } as Lua_String, val]
+        }
+        case 'TableValue': {
+            const val = evalExpression(field.value, environment);
+            return [Lua_Null, val];
         }
     }
 }

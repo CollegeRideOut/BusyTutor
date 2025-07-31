@@ -1,5 +1,5 @@
 import luaparser from 'luaparse'
-export type Lua_Object = Lua_Return | Lua_Error | Lua_Number | Lua_Boolean | Lua_Null | Lua_Function | Lua_String | Lua_Builtin
+export type Lua_Object = Lua_Return | Lua_Error | Lua_Number | Lua_Boolean | Lua_Null | Lua_Function | Lua_String | Lua_Builtin | Lua_Table
 
 
 export class Lua_Environment {
@@ -114,3 +114,94 @@ export type Lua_Null = { kind: 'null'; };
 export const Lua_True: Lua_Boolean = { kind: 'boolean', value: true };
 export const Lua_False: Lua_Boolean = { kind: 'boolean', value: false };
 export const Lua_Null: Lua_Null = { kind: 'null' };
+
+export class Lua_Table {
+    kind: 'table' = 'table'
+    store: Map<Lua_Object | string | number, Lua_Object>;
+    idx: number;
+
+    constructor() {
+        this.store = new Map();
+        this.idx = 1;
+    }
+
+    setValue(val: Lua_Object): Lua_Null | Lua_Error {
+        switch (val.kind) {
+
+            case 'string':
+            case 'number':
+            case 'boolean':
+            case 'function':
+            case 'table':
+            case 'null':
+            case 'builtin': {
+                this.store.set(this.idx, val);
+                this.idx++;
+                return Lua_Null;
+            }
+            case 'return': {
+                this.store.set(this.idx, val.value[0] || Lua_Null);
+                this.idx++;
+                return Lua_Null;
+            }
+
+            case 'error': {
+                return { kind: 'error', message: 'error cannot be used as value' }
+            }
+
+        }
+    }
+
+    set(key: Lua_Object, val: Lua_Object): Lua_Null | Lua_Error {
+        // TODO if value = Lua_Null delete key from map
+        switch (key.kind) {
+            // use value
+            case 'string':
+            case 'number': {
+                this.store.set(key.value, val)
+                return Lua_Null;
+            }
+
+            // use reference
+            case 'builtin':
+            case 'table':
+            case 'boolean':
+            case 'function': {
+                this.store.set(key, val)
+                return Lua_Null;
+            }
+
+            // should not happen
+            case 'return':
+            case 'error':
+            case 'null': {
+                return { kind: 'error', message: `${key.kind} cannot be used as key heererer` } as Lua_Error
+            }
+
+            default: {
+                return { kind: 'error', message: `Lua_table key not implemented` } as Lua_Error
+            }
+        }
+    }
+
+    get(key: Lua_Object): Lua_Object {
+        switch (key.kind) {
+            case 'string':
+            case 'number': {
+                return this.store.get(key.value) || Lua_Null;
+            }
+            case 'boolean':
+            case 'function':
+            case 'table':
+            case 'builtin': {
+                return this.store.get(key) || Lua_Null;
+            }
+
+            case 'error':
+            case 'return':
+            case 'null': {
+                return { kind: 'error', message: `${key.kind} cannot be used as key for table` } as Lua_Error
+            }
+        }
+    }
+}
