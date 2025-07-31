@@ -1,8 +1,11 @@
 import luaparser from 'luaparse'
 
 let code = `
-x = {1, 2, 3, 4}
-x.2
+t = {1}
+function t:sound()
+    return self[1]
+end
+return t:sound()
 `;
 
 

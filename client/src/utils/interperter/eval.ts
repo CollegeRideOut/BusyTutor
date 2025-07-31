@@ -109,7 +109,7 @@ export function evalStatements(node: luaparser.Statement, environment: Lua_Envir
             return Lua_Null
         }
         case 'FunctionDeclaration': {
-            const func = { kind: 'function', body: node.body, parameters: node.parameters, environment: environment } as Lua_Function
+            const func = { kind: 'function', self: false, body: node.body, parameters: node.parameters, environment: environment } as Lua_Function
             if (node.identifier) { evalAssignment(node.identifier, func, environment); }
             return func
         }
@@ -160,6 +160,7 @@ export function evalAssignment(exp: luaparser.Identifier | luaparser.MemberExpre
     switch (exp.type) {
         case 'Identifier':
             return evalIdentiferAssignment(exp, val, environment);
+
         case 'IndexExpression':
             const identifier = evalExpression(exp.base, environment);
             if (identifier.kind === 'error') return identifier;
@@ -273,17 +274,25 @@ export function evalExpression(exp: luaparser.Expression, environment: Lua_Envir
                 return { kind: 'error', message: `${func.kind} is supposed to be a function` };
 
             const args: Lua_Object[] = [];
+            if (func.kind === 'function') {
+                if (func.self) args.push(func.self)
+            }
+
             for (let a of exp.arguments) {
                 const arg = evalExpression(a, environment);
                 if (arg.kind === 'error') return arg;
 
                 args.push(arg);
             }
+
+            if (func.kind === 'function') {
+                if (func.self) func.self = false
+            }
             return applyFunction(func, args);
         }
 
         case 'FunctionDeclaration': {
-            const func = { kind: 'function', body: exp.body, parameters: exp.parameters, environment: environment } as Lua_Function
+            const func = { kind: 'function', self: false, body: exp.body, parameters: exp.parameters, environment: environment } as Lua_Function
             //if (exp.identifier) { evalAssignment(exp.identifier, func, environment); }
             return func
         }
@@ -312,6 +321,21 @@ export function evalExpression(exp: luaparser.Expression, environment: Lua_Envir
 
             const val = identifier.get(idx);
             return val;
+        }
+        // TODO a lot of bugs when have to use as ansighemtn  or call expression test has error cause of this
+        case 'MemberExpression': {
+            const identifier = evalExpression(exp.base, environment);
+            if (identifier.kind === 'error') return identifier;
+            if (identifier.kind !== 'table') return { kind: 'error', message: `${identifier.kind} cannot be indexed` } as Lua_Error;
+
+            if (exp.indexer === '.') {
+                const val = identifier.get({ kind: 'string', value: exp.identifier.name } as Lua_String);
+                return val;
+            } else {
+                const val = identifier.get({ kind: 'string', value: exp.identifier.name } as Lua_String);
+                return val;
+            }
+            //return { kind: 'error', message: `indexer : not implemented` } as Lua_Error
         }
 
         default: {

@@ -742,6 +742,42 @@ describe('Tables', () => {
                 `), new Lua_Environment()),
                 value: ['no'],
             },
+            {
+                exp: evalChunk(luaparser.parse(`
+                    local t = { sound = { 1, sound = { 31 } } }
+                    return t['sound']['sound'][1]
+                `), new Lua_Environment()),
+                value: [31],
+            },
+
+            {
+                exp: evalChunk(luaparser.parse(`
+                    local t = { sound = { 1, sound = { 31 } } }
+                    return t.sound.sound[1]
+                `), new Lua_Environment()),
+                value: [31],
+            },
+
+
+            {
+                exp: evalChunk(luaparser.parse(`
+                    local t = {2, sound = function(xx) return xx[1] end }
+                    return t:sound()
+                `), new Lua_Environment()),
+                value: [2],
+            },
+            {
+                exp: evalChunk(luaparser.parse(`
+                    t = {2}
+                    function t:sound()
+                        return self[1]
+                    end
+                    return t:sound()
+                `), new Lua_Environment()),
+                value: [2],
+            },
+
+
         ]
 
         for (const test of tests) {

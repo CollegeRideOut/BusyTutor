@@ -91,6 +91,7 @@ type Lua_Builtin_Function = (...args: Lua_Object[]) => Lua_Return
 
 export type Lua_Function = {
     kind: 'function';
+    self: Lua_Object |false,
     parameters: (luaparser.Identifier | luaparser.VarargLiteral)[],
     body: luaparser.Statement[],
     environment: Lua_Environment
