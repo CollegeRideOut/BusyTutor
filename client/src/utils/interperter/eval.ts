@@ -1,5 +1,5 @@
 import luaparser from 'luaparse'
-import { Lua_Environment, Lua_Null, Lua_True, Lua_False } from './lua_types';
+import { Lua_Environment, Lua_Null, Lua_True, Lua_False, builtin } from './lua_types';
 import type {
     Lua_Number,
     Lua_Error,
@@ -7,6 +7,7 @@ import type {
     Lua_Return,
     Lua_Function,
     Lua_String,
+    Lua_Builtin
 } from './lua_types';
 
 export function Inspect(obj: Lua_Object) {
@@ -18,7 +19,7 @@ export function Inspect(obj: Lua_Object) {
             return `ERROR: ${obj.message}`
         }
         default: {
-            return obj.value.toString();
+            //return obj.value.toString();
         }
     }
 }
@@ -178,12 +179,19 @@ export function evalExpression(exp: luaparser.Expression, environment: Lua_Envir
             //return evalBinaryExpression(exp.operator, left, right)
         }
         case 'Identifier': {
-            return environment.get(exp.name)
+            let [val, exist] = environment.get(exp.name)
+            console.log('did it find it?', exp.name, exist)
+            if (exist) return val;
+
+            let val_builtin = builtin.get(exp.name)
+            if (!val_builtin) return Lua_Null;
+            return val_builtin;
         }
         case 'CallExpression': {
             let func = evalExpression(exp.base, environment);
             if (func.kind === 'error') return func;
-            if (func.kind !== 'function') return { kind: 'error', message: `${func.kind} is supposed to be a function` };
+            if (func.kind !== 'function' && func.kind !== 'builtin')
+                return { kind: 'error', message: `${func.kind} is supposed to be a function` };
 
             const args: Lua_Object[] = [];
             for (let a of exp.arguments) {
@@ -206,10 +214,18 @@ export function evalExpression(exp: luaparser.Expression, environment: Lua_Envir
         }
     }
 }
-export function applyFunction(func: Lua_Function, args: Lua_Object[]): Lua_Object {
-    const extendedEnv = extendeFunctionEnv(func, args);
-    const evaulated = evalStatementsArray(func.body, extendedEnv);
-    return evaulated;
+export function applyFunction(func: Lua_Function | Lua_Builtin, args: Lua_Object[]): Lua_Object {
+    switch (func.kind) {
+        case 'function': {
+            const extendedEnv = extendeFunctionEnv(func, args);
+            const evaulated = evalStatementsArray(func.body, extendedEnv);
+            return evaulated;
+        }
+        case 'builtin': {
+            return func.fn(...args)
+        }
+    }
+
 }
 
 export function extendeFunctionEnv(func: Lua_Function, args: Lua_Object[]): Lua_Environment {
@@ -233,8 +249,8 @@ export function extendeFunctionEnv(func: Lua_Function, args: Lua_Object[]): Lua_
 type Binary_Opereators = "-" | "~" | "+" | "*" | "%" | "^" | "/" | "//" | "&" | "|" | "<<" | ">>" | ".." | "~=" | "==" | "<" | "<=" | ">" | ">=";
 export function evalBinaryExpression(operator: Binary_Opereators, left: Lua_Object, right: Lua_Object) {
     switch (true) {
-        case left.kind === 'number' && right.kind === 'number': {
-            return evalIntegerBinaryExpression(operator, left, right);
+        case (left.kind === 'number' || left.kind === 'string') && (right.kind === 'number' || right.kind === 'string'): {
+            return evalIntegerorStringBinaryExpression(operator, left, right);
         }
         // TODO strings and more
         default: {
@@ -245,47 +261,68 @@ export function evalBinaryExpression(operator: Binary_Opereators, left: Lua_Obje
     }
 }
 
-export function evalIntegerBinaryExpression(operator: Binary_Opereators, left: Lua_Object, right: Lua_Object) {
+export function evalIntegerorStringBinaryExpression(operator: Binary_Opereators, left: Lua_Object, right: Lua_Object) {
     //TODO there was an error;
-    if (left.kind !== 'number' || right.kind !== 'number')
+    if (
+        (left.kind !== 'number' && left.kind !== 'string') ||
+        (right.kind !== 'number' && right.kind !== 'string')
+    )
         return { kind: 'error', message: `type missmatch ${left.kind} ${operator} ${right.kind}` } as Lua_Error;
 
     //TODO bunch of opeartions todo and chekcout //
+    const nleft = left.kind === 'number' ? left.value : parseFloat(left.value);
+    const nright = right.kind === 'number' ? right.value : parseFloat(right.value);
     switch (operator) {
         // arimethic
         case '+': {
-            return { kind: 'number', value: left.value + right.value } as Lua_Number;
+            return { kind: 'number', value: nleft + nright } as Lua_Number;
         }
         case '-': {
-            return { kind: 'number', value: left.value - right.value } as Lua_Number;
+            return { kind: 'number', value: nleft - nright } as Lua_Number;
         }
         case '*': {
-            return { kind: 'number', value: left.value * right.value } as Lua_Number;
+            return { kind: 'number', value: nleft * nright } as Lua_Number;
         }
         case '/': {
-            return { kind: 'number', value: left.value / right.value } as Lua_Number;
+            return { kind: 'number', value: nleft / nright } as Lua_Number;
         }
         case '%': {
             return {
                 kind: 'number',
-                value: left.value - Math.floor(left.value / right.value) * right.value
+                value: nleft - Math.floor(nleft / nright) * nright
             } as Lua_Number;
         }
         case '//': {
             return {
                 kind: 'number',
-                value: Math.floor(left.value / right.value)
+                value: Math.floor(nleft / nright)
             } as Lua_Number;
         }
         //TODO javascript and its god dammed percision freaking points
         case '^': {
             return {
                 kind: 'number',
-                value: Math.exp(right.value * Math.log(left.value))
+                value: Math.exp(nright * Math.log(nleft))
             } as Lua_Number;
         }
 
-        // boolean
+        case '..': {
+            return { kind: 'string', value: left.value.toString().concat(right.value.toString()) } as Lua_String;
+        }
+        default: {
+            // boolean
+            return booleanOperations(operator, left, right);
+        }
+    }
+
+}
+
+
+export function booleanOperations(operator: Binary_Opereators, left: Lua_Object, right: Lua_Object): Lua_Object {
+    if (left.kind != 'number' && left.kind !== 'string' || left.kind !== right.kind)
+        return { kind: 'error', message: `type missmatch ${left.kind} ${operator} ${right.kind}` } as Lua_Error;
+
+    switch (operator) {
         case '<': {
             return left.value < right.value ? Lua_True : Lua_False;
         }
@@ -304,13 +341,9 @@ export function evalIntegerBinaryExpression(operator: Binary_Opereators, left: L
         case '>=': {
             return left.value >= right.value ? Lua_True : Lua_False;
         }
-        // TODO there was an error;
-        default: {
-            return { kind: 'error', message: `Binary operator ${operator} not implemented` } as Lua_Error
-            //return Lua_Null;
-        }
+        default:
+            return { kind: 'error', message: `Booean operator ${operator} not implemented` } as Lua_Error
     }
-
 }
 
 export function evalUnaryExpression(operator: "not" | "-" | "~" | "#", arg: Lua_Object) {

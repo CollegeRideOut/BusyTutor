@@ -248,6 +248,28 @@ describe('BinaryExpression', () => {
     })
 
 
+    // string
+    test('..', () => {
+        const tests = [
+            { exp: evalChunk(luaparser.parse('return "hel".."lo"'), new Lua_Environment()), value: "hello" },
+            { exp: evalChunk(luaparser.parse('x = "he"; return x .. "llo" '), new Lua_Environment()), value: "hello" },
+            { exp: evalChunk(luaparser.parse('x, y = "hel", "lo"; return x .. y'), new Lua_Environment()), value: "hello" },
+        ]
+        for (const test of tests) {
+            expect(test.exp).toBeDefined()
+            if (!test.exp) throw Error(`test.exp is not defined`);
+
+
+            expect(test.exp.kind).toBe('return');
+            if (test.exp.kind !== 'return') throw Error(`test.exp is not defined`);
+            expect(test.exp.value[0].kind).toBe('string');
+
+            if (test.exp.value[0].kind !== 'string') throw Error(`test.exp value[0] is not a number ${test.exp}`);
+            expect(test.exp.value[0].value).toBe(test.value)
+        }
+    })
+
+
     //booleans
     test('<', () => {
         const tests = [
@@ -572,6 +594,37 @@ describe('FunctionDeclaration', () => {
                 if (val.kind === 'null') expect(test.value[i]).toBe(null);
                 else if (val.kind === 'error') throw Error('should not be an error')
                 else if (val.kind !== 'number' && val.kind !== 'boolean') throw Error(` should be a number ${val.kind}`);
+                else expect(val.value).toBe(test.value[i]);
+            }
+        }
+    })
+
+})
+
+
+
+describe('Builtins', () => {
+    test('Function', () => {
+        const tests = [
+            {
+                exp: evalChunk(luaparser.parse(`
+                   x = tostring(5)
+                   return x
+                `), new Lua_Environment()), value: ["5"]
+            },
+        ]
+
+        for (const test of tests) {
+            expect(test.exp).toBeDefined();
+            if (!test.exp) throw Error('Return should be defined');
+            if (test.exp.kind !== 'return') throw Error(`${test.exp.kind === 'error' ? test.exp.message : 'null'}`);
+            expect(test.exp.kind).toBe('return');
+
+            for (let i = 0; i < test.exp.value.length; i++) {
+                const val = test.exp.value[i];
+                if (val.kind === 'null') expect(test.value[i]).toBe(null);
+                else if (val.kind === 'error') throw Error('should not be an error')
+                else if (val.kind !== 'number' && val.kind !== 'boolean' && val.kind !== 'string') throw Error(` should be a number ${val.kind}`);
                 else expect(val.value).toBe(test.value[i]);
             }
         }
