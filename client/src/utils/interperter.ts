@@ -1,13 +1,8 @@
 import luaparser from 'luaparse'
 
 let code = `
-x = 0
-i = 1
-for i = 1, 3, -1 do
-    x = x + 1
-end
-
-return x
+x = {1, 2, 3, 4}
+x.2
 `;
 
 

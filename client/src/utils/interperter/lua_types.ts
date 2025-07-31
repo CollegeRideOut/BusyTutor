@@ -115,6 +115,7 @@ export const Lua_True: Lua_Boolean = { kind: 'boolean', value: true };
 export const Lua_False: Lua_Boolean = { kind: 'boolean', value: false };
 export const Lua_Null: Lua_Null = { kind: 'null' };
 
+//TODO delete if value is set to null and do something about the idx is suppsed to be contiguos numeric values
 export class Lua_Table {
     kind: 'table' = 'table'
     store: Map<Lua_Object | string | number, Lua_Object>;
