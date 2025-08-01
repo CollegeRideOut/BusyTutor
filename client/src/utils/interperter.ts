@@ -1,20 +1,14 @@
-import luaparser from 'luaparse'
+import luaparser from "luaparse";
 
 let code = `
-t = {1}
-function t:sound()
-    return self[1]
-end
-return t:sound()
+local obj = {} 
+obj.name = 'a'
+return 'a' 
 `;
 
-
-
-
 export function testInterperter() {
-    void code
+    void code;
     let ast = luaparser.parse(code);
 
     console.log(ast);
 }
-
