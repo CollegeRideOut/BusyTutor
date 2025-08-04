@@ -167,7 +167,7 @@ export function evalStatements(
 
             let end = evalExpression(node.end, environment);
             if (end.kind === "return") end = end.value[0] || Lua_Null;
-            if (end.kind === "error") return start;
+            if (end.kind === "error") return end;
             if (end.kind !== "number")
                 return {
                     kind: "error",
@@ -410,7 +410,7 @@ export function evalExpression(
                 parameters: exp.parameters,
                 environment: environment,
             } as Lua_Function;
-            if (exp.identifier) { evalAssignment(exp.identifier, func, environment); }
+            if (exp.identifier) { evalAssignment(exp.identifier, func, environment, true); }
             return func;
         }
 
@@ -533,6 +533,10 @@ export function evalExpression(
             }
             //return { kind: 'error', message: `indexer : not implemented` } as Lua_Error
         }
+        case "VarargLiteral":
+        case "LogicalExpression":
+        case "TableCallExpression":
+        case "StringCallExpression":
 
         default: {
             return {
@@ -630,8 +634,10 @@ export function evalBinaryExpression(
     right: Lua_Object,
 ) {
     switch (true) {
-        case (left.kind === "number" || left.kind === "string") &&
-            (right.kind === "number" || right.kind === "string"): {
+        case (
+            (left.kind === "number" || left.kind === "string") &&
+            (right.kind === "number" || right.kind === "string")
+        ): {
                 return evalIntegerorStringBinaryExpression(operator, left, right);
             }
         // TODO strings and more
@@ -767,6 +773,7 @@ export function evalUnaryExpression(
         case "#": {
             return evalUnaryLengthOperator(arg);
         }
+        case "~":
         default: {
             return {
                 kind: "error",
