@@ -1,7 +1,9 @@
-import type { Lua_Object } from "../interperter/lua_types"
+//import type { Lua_Object } from "../interperter/lua_types"
+
+import type { Lua_Object } from "../interperter/lua_types";
 
 export type Lua_Object_Visualizer = {
-    loction?: {
+    location: {
         start: {
             line: number;
             column: number;
@@ -11,5 +13,9 @@ export type Lua_Object_Visualizer = {
             column: number;
         };
     };
-    obj?: Lua_Object
+    chilld?: Lua_Object_Visualizer[]
+    mainString?: string,
+    kind: Lua_Object['kind']
+    tooltip?: string,
+    id: string
 }

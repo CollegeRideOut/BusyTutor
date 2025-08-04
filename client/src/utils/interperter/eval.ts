@@ -134,7 +134,7 @@ export function evalStatements(
                 environment: environment,
             } as Lua_Function;
             if (node.identifier) {
-                evalAssignment(node.identifier, func, environment);
+                evalAssignment(node.identifier, func, environment, false);
             }
             return func;
         }
@@ -151,7 +151,7 @@ export function evalStatements(
                     message: `${start.kind} cannot be used in a numeric for loop`,
                 } as Lua_Error;
 
-            evalAssignment(node.variable, start, environment);
+            evalAssignment(node.variable, start, environment, false);
             let [start_obj, exist] = environment.get(node.variable.name);
             if (!exist)
                 return {
@@ -202,6 +202,14 @@ export function evalStatements(
             }
             return Lua_Null;
         }
+        //TODO
+        case "LabelStatement":
+        case "BreakStatement":
+        case "GotoStatement":
+        case "WhileStatement":
+        case "DoStatement":
+        case "RepeatStatement":
+        case "ForGenericStatement":
         default: {
             return {
                 kind: "error",
@@ -279,9 +287,10 @@ export function evalIdentiferAssignment(
     environment: Lua_Environment,
     global: boolean
 ) {
+    // TODO wtf ? why did i do this cant it just get the first val or some?
     switch (val.kind) {
         case "return": {
-            return { kind: "error", message: "can assing an error" } as Lua_Error;
+            return { kind: "error", message: "cant assing an return?" } as Lua_Error;
         }
         case "error": {
             return val;
