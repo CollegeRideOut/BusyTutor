@@ -190,6 +190,7 @@ export function* evalStatements(
         }
 
         case "FunctionDeclaration": {
+
             const func = {
                 kind: "function",
                 self: false,
@@ -460,7 +461,6 @@ export function* evalExpression(
             return [null, Lua_Null];
         }
         case "UnaryExpression": {
-
             const gen_arg = evalExpression(exp.argument, environment);
             let visual_arg: ReturnType<typeof gen_arg.next> = { done: true, value: [null, Lua_Null] };
             do {
