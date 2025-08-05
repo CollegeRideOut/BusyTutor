@@ -22,7 +22,10 @@ function RouteComponent() {
     const theme = useContext(ThemeContext)
     const [gen, setGen] = useState<ReturnType<typeof evalChunk>>()
     const [visual, setVisual] = useState<Lua_Object_Visualizer[]>([])
+    const [envVisual, setEnviVisual] = useState<Lua_Object_Visualizer[]>([])
     const [ast, setAst] = useState<luaparser.Chunk | null>(null)
+    const [environement, setEnvironment] = useState<Lua_Environment | null>(null)
+    const [globalEnvironment, setGlobalEnvironment] = useState<Lua_Environment | null>(null)
     //    const [history, setHistory] = useState<Lua_Object_Visualizer[]>([]);
 
     useEffect(() => {
@@ -53,8 +56,11 @@ function RouteComponent() {
         <Button onClick={() => {
             const _ast = luaparser.parse(code, { locations: true })
             setAst(_ast);
-            setGen(evalChunk(_ast, new Lua_Environment()))
-            //setHistory([]);
+            let env = new Lua_Environment()
+            let globalEnvironment = new Lua_Environment();
+            setEnvironment(env);
+            setGlobalEnvironment(globalEnvironment);
+            setGen(evalChunk(_ast, env))
         }
         }
         >Crete Generator</Button>
@@ -68,9 +74,21 @@ function RouteComponent() {
             if (val.done) {
                 setGen(undefined)
             } else {
-                if (!val.value) return;
-                setVisual([...visual, val.value])
+                //if (!val.value) return;
+                //setVisual([...visual, val.value])
+                //
+                let v = val.value[1]
+
+                let visual = val.value[0]
+                if (visual) {
+                    setEnviVisual([...envVisual, visual])
+                    console.log('env visual hapened')
+                }
+                setEnvironment(JSON.parse(JSON.stringify(v, replacer), reviver) as Lua_Environment)
             }
+            setGlobalEnvironment(x => x)
+            console.log('hello', environement!.store);
+
         }
         }
         >Next</Button>
@@ -82,6 +100,7 @@ function RouteComponent() {
             }
             console.log(ast)
             console.log(visual)
+            console.log(envVisual)
 
         }}
         >print ast</Button>
@@ -96,6 +115,52 @@ function RouteComponent() {
             }}
         >
             {visCode}
+        </div>
+
+        <div
+            style={{
+                border: '1px solid black',
+                height: '100%',
+                marginTop: 50,
+                width: '100%'
+            }}
+        >
+            <div>
+                global
+                {
+                    globalEnvironment && Object.entries(globalEnvironment.store).map((a) => {
+                        return <div>{a[0]}</div>
+                    })}
+
+            </div>
+
+            <div>
+                local
+                {
+                    environement && [...environement.store.entries()].map((x) => {
+                        let obj = x[1]
+                        switch (obj.kind) {
+                            case 'string':
+                            case 'number':
+                            case 'boolean': {
+                                return <div>{x[0]} {obj.value}</div>
+                            }
+                            case 'table': {
+                                return <div>{x[0]} {obj.kind}</div>
+                            }
+                            case 'return':
+                            case 'error':
+                            case 'null':
+                            case 'builtin':
+                            case 'function': {
+                                return <div>{x[0]} {obj.kind}</div>
+                            }
+                        }
+
+                    })
+                }
+
+            </div>
         </div>
     </div>
 }
@@ -127,8 +192,8 @@ export function evalStatements(
 ) {
 
     let id = `${node.loc!.start.line}-${node.loc!.end.line} | ${node.loc!.start.column}-${node.loc!.end.column}`
-    let visual = visuals.find((v) => v.id === id);
-    void visual;
+    //let visual = visuals.find((v) => v.id === id);
+    //void visual;
     switch (node.type) {
         case "ReturnStatement": {
             let vals: ReactNode[] = [];
@@ -523,4 +588,22 @@ export function evalTableField(
             return <div key={id} className="flex gap-x-0.5">{val}</div>
         }
     }
+}
+function replacer(key: any, value: any) {
+    if (value instanceof Map) {
+        return {
+            dataType: 'Map',
+            value: Array.from(value.entries()), // or with spread: value: [...value]
+        };
+    } else {
+        return value;
+    }
+}
+function reviver(key: any, value: any) {
+    if (typeof value === 'object' && value !== null) {
+        if (value.dataType === 'Map') {
+            return new Map(value.value);
+        }
+    }
+    return value;
 }

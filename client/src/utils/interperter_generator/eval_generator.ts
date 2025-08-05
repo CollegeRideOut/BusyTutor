@@ -20,6 +20,11 @@ import type {
 import type { Lua_Object_Visualizer } from "./generator_types.ts";
 
 
+
+// TODO add this to the og one
+export function setGlobalEnvironment(env: Lua_Environment) {
+    Lua_Global_Environment = env;
+}
 let Lua_Global_Environment = new Lua_Environment();
 
 export function evalChunkTestHelper(node: luaparser.Chunk, environment: Lua_Environment) {
@@ -29,15 +34,18 @@ export function evalChunkTestHelper(node: luaparser.Chunk, environment: Lua_Envi
     return v.value;
 }
 
-export function* evalChunk(node: luaparser.Chunk, environment: Lua_Environment) {
+export function* evalChunk(node: luaparser.Chunk, environment: Lua_Environment): Generator<
+    [Lua_Object_Visualizer | null, Lua_Environment],
+    Lua_Object,
+    [Lua_Object_Visualizer | null, Lua_Environment]
+> {
     //TODO
-    Lua_Global_Environment = new Lua_Environment();
     let gen = evalStatementsArray(node.body, environment)
     let p: ReturnType<typeof gen.next> = { done: true, value: [null, Lua_Null] };
     do {
         p = gen.next();
         if (!p.value) continue;
-        yield p.value[0];
+        yield [p.value[0], environment];
     } while (!p.done);
     return p.value![1]
 }
@@ -91,7 +99,7 @@ export function* evalStatements(
             }
 
             return [
-                { id, location: node.loc!, mainString: 'return', kind: 'return' },
+                null,
                 { kind: "return", value: vals }]
         }
         case "IfStatement": {
@@ -341,12 +349,7 @@ export function* evalStatements(
 
         default: {
             return [
-                {
-                    id,
-                    location: node.loc!,
-                    kind: 'error'
-                },
-                {
+                null, {
                     kind: "error",
                     message: `${node.type} statement not implemented`,
                 }
@@ -432,12 +435,7 @@ export function* evalExpression(
 
         case "NumericLiteral": {
             return [
-                {
-                    id,
-                    location: exp.loc!,
-                    mainString: exp.value.toString(),
-                    kind: 'number',
-                },
+                null,
                 { kind: "number", value: exp.value } as Lua_Number
             ];
         }
@@ -499,10 +497,22 @@ export function* evalExpression(
         // TODO visuals?
         case "Identifier": {
             let [val, exist] = environment.get(exp.name);
-            if (exist) return [null, val];
+            let v = { indexer: { name: exp.name, type: 'indentifier', value: '' } } as Lua_Object_Visualizer
+            switch (val.kind) {
+                case 'number': {
+                    v.indexer!.value = val.value;
+                }
+            }
+            if (exist) return [v, val];
 
             [val, exist] = Lua_Global_Environment.get(exp.name);
-            if (exist) return [null, val];
+            switch (val.kind) {
+                case 'number': {
+                    v.indexer!.value = val.value;
+                }
+            }
+
+            if (exist) return [v, val];
 
             let val_builtin = builtin.get(exp.name);
             if (!val_builtin) return [null, Lua_Null];
@@ -595,12 +605,13 @@ export function* evalExpression(
         }
 
         case "IndexExpression": {
-
+            console.log('hellooooo????????')
             const gen_identifier = evalExpression(exp.base, environment);
             let visual_identifier: ReturnType<typeof gen_identifier.next> = { done: true, value: [null, Lua_Null] };
             do {
                 visual_identifier = gen_identifier.next();
-                yield visual_identifier.value;
+                yield [null, Lua_Null];
+
             } while (!visual_identifier.done);
             const identifier = visual_identifier.value[1];
             if (identifier.kind === "error") return [null, identifier];
@@ -620,7 +631,7 @@ export function* evalExpression(
             let visual_idx: ReturnType<typeof gen_idx.next> = { done: true, value: [null, Lua_Null] };
             do {
                 visual_idx = gen_idx.next();
-                yield visual_idx.value;
+                yield [null, Lua_Null];
             } while (!visual_idx.done);
 
             let idx = visual_idx.value[1];
@@ -636,9 +647,14 @@ export function* evalExpression(
                     } as Lua_Error
                 ];
             }
+            let v = {
+                identifier: { type: 'identifier', name: visual_identifier.value[0]!.indexer!.name, value: 'hello' },
+                indexer: { type: 'identifier', name: visual_idx.value[0]!.indexer!.name, value: visual_idx.value[0]!.indexer!.value, },
+
+            } as Lua_Object_Visualizer
 
             const val = identifier.get(idx);
-            return [null, val];
+            return [v, val];
         }
 
         case "MemberExpression": {
@@ -744,11 +760,7 @@ export function* evalExpression(
         }
 
         default: {
-            return [{
-                id,
-                kind: 'error',
-                location: exp.loc!
-            }, {
+            return [null, {
                 kind: "error",
                 message: `${exp.type} not implemented`,
             }];

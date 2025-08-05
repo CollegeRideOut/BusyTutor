@@ -2,20 +2,10 @@
 
 import type { Lua_Object } from "../interperter/lua_types";
 
+let a: Lua_Object | null = null;
+void a
+
 export type Lua_Object_Visualizer = {
-    location: {
-        start: {
-            line: number;
-            column: number;
-        };
-        end: {
-            line: number;
-            column: number;
-        };
-    };
-    chilld?: Lua_Object_Visualizer[]
-    mainString?: string,
-    kind: Lua_Object['kind']
-    tooltip?: string,
-    id: string
+    indexer?: { type: string, name: string, value: string | number },
+    identifier?: { type: string, name: string, value: any },
 }
