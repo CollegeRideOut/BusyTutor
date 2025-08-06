@@ -67,7 +67,7 @@ export function evalStatements(
                 if (obj.kind === "return") vals.push(...obj.value);
                 else vals.push(obj);
             }
-            return { kind: "return", value: vals } as Lua_Return;
+            return { id: crypto.randomUUID(), kind: "return", value: vals } satisfies Lua_Return;
         }
         case "IfStatement": {
             for (const clause of node.clauses) {
@@ -126,13 +126,14 @@ export function evalStatements(
             return Lua_Null;
         }
         case "FunctionDeclaration": {
-            const func = {
+            const func: Lua_Function = {
+                id: crypto.randomUUID(),
                 kind: "function",
                 self: false,
                 body: node.body,
                 parameters: node.parameters,
                 environment: environment,
-            } as Lua_Function;
+            };
             if (node.identifier) {
                 evalAssignment(node.identifier, func, environment, false);
             }
@@ -147,44 +148,49 @@ export function evalStatements(
             if (start.kind === "error") return start;
             if (start.kind !== "number")
                 return {
+                    id: crypto.randomUUID(),
                     kind: "error",
                     message: `${start.kind} cannot be used in a numeric for loop`,
-                } as Lua_Error;
+                } satisfies Lua_Error;
 
             evalAssignment(node.variable, start, environment, false);
             let [start_obj, exist] = environment.get(node.variable.name);
             if (!exist)
                 return {
+                    id: crypto.randomUUID(),
                     kind: "error",
                     message: `${node.variable.name} does not exist interperter error`,
-                } as Lua_Error;
+                } satisfies Lua_Error;
             if (start_obj.kind === "error") return start_obj;
             if (start_obj.kind !== "number")
                 return {
+                    id: crypto.randomUUID(),
                     kind: "error",
                     message: `${start_obj.kind} shoudve been a number interpert error`,
-                } as Lua_Error;
+                } satisfies Lua_Error;
 
             let end = evalExpression(node.end, environment);
             if (end.kind === "return") end = end.value[0] || Lua_Null;
             if (end.kind === "error") return end;
             if (end.kind !== "number")
                 return {
+                    id: crypto.randomUUID(),
                     kind: "error",
                     message: `${end.kind} cannot be used in a numeric for loop`,
-                } as Lua_Error;
+                } satisfies Lua_Error;
 
             let step = node.step
                 ? evalExpression(node.step, environment)
-                : ({ kind: "number", value: 1 } as Lua_Number);
+                : ({ id: crypto.randomUUID(), kind: "number", value: 1 } satisfies Lua_Number);
 
             if (step.kind === "return") step = step.value[0] || Lua_Null;
             if (step.kind === "error") return step;
             if (step.kind !== "number")
                 return {
+                    id: crypto.randomUUID(),
                     kind: "error",
                     message: `${end.kind} cannot be used in a numeric for loop`,
-                } as Lua_Error;
+                } satisfies Lua_Error;
 
             let i = start.value;
 
@@ -193,9 +199,10 @@ export function evalStatements(
                 (step.value < 0 && i >= end.value)
             ) {
                 environment.set(node.variable.name, {
+                    id: crypto.randomUUID(),
                     kind: "number",
                     value: i,
-                } as Lua_Number);
+                } satisfies Lua_Number);
                 const body = evalStatementsArray(node.body, environment);
                 if (body.kind === "error" || body.kind === "return") return body;
                 i += step.value;
@@ -212,9 +219,10 @@ export function evalStatements(
         case "ForGenericStatement":
         default: {
             return {
+                id: crypto.randomUUID(),
                 kind: "error",
                 message: `${node.type} statement not implemented`,
-            } as Lua_Error;
+            } satisfies Lua_Error;
         }
     }
 }
@@ -237,9 +245,10 @@ export function evalAssignment(
             if (identifier.kind === "error") return identifier;
             if (identifier.kind !== "table")
                 return {
+                    id: crypto.randomUUID(),
                     kind: "error",
                     message: `${identifier.kind} cannot be indexed`,
-                } as Lua_Error;
+                } satisfies Lua_Error;
 
             let idx = evalExpression(exp.index, environment);
 
@@ -247,9 +256,10 @@ export function evalAssignment(
             if (idx.kind === "error") return idx;
             if (idx.kind === "null")
                 return {
+                    id: crypto.randomUUID(),
                     kind: "error",
                     message: "nil cannot be used as index for table",
-                } as Lua_Error;
+                } satisfies Lua_Error;
             identifier.set(idx, val);
             return Lua_Null;
         case "MemberExpression": {
@@ -257,16 +267,17 @@ export function evalAssignment(
             if (identifier.kind === "error") return identifier;
             if (identifier.kind !== "table")
                 return {
+                    id: crypto.randomUUID(),
                     kind: "error",
                     message: `${identifier.kind} cannot be indexed`,
-                } as Lua_Error;
+                } satisfies Lua_Error;
 
             if (exp.indexer === ":") {
-                if (val.kind !== 'function') return { kind: 'error', message: `member ':' is used on functons not${val.kind}` }
+                if (val.kind !== 'function') return { id: crypto.randomUUID(), kind: 'error', message: `member ':' is used on functons not${val.kind}` }
                 val.parameters.unshift({ name: 'self', type: 'Identifier' })
-                identifier.set({ kind: 'string', value: exp.identifier.name } as Lua_String, val);
+                identifier.set({ id: crypto.randomUUID(), kind: 'string', value: exp.identifier.name } satisfies Lua_String, val);
             } else {
-                identifier.set({ kind: 'string', value: exp.identifier.name } as Lua_String, val);
+                identifier.set({ id: crypto.randomUUID(), kind: 'string', value: exp.identifier.name } satisfies Lua_String, val);
             }
 
             return Lua_Null;
@@ -274,9 +285,10 @@ export function evalAssignment(
 
         default: {
             return {
+                id: crypto.randomUUID(),
                 kind: "error",
                 message: `AssignmentStatement of  not implemented`,
-            } as Lua_Error;
+            } satisfies Lua_Error;
         }
     }
 }
@@ -290,7 +302,7 @@ export function evalIdentiferAssignment(
     // TODO wtf ? why did i do this cant it just get the first val or some?
     switch (val.kind) {
         case "return": {
-            return { kind: "error", message: "cant assing an return?" } as Lua_Error;
+            return { id: crypto.randomUUID(), kind: "error", message: "cant assing an return?" } satisfies Lua_Error;
         }
         case "error": {
             return val;
@@ -327,7 +339,7 @@ export function evalExpression(
 ): Lua_Object {
     switch (exp.type) {
         case "NumericLiteral": {
-            return { kind: "number", value: exp.value } as Lua_Number;
+            return { id: crypto.randomUUID(), kind: "number", value: exp.value } satisfies Lua_Number;
         }
         case "BooleanLiteral": {
             return exp.value ? Lua_True : Lua_False;
@@ -342,7 +354,7 @@ export function evalExpression(
             } else {
                 val = parseLongString(exp.raw);
             }
-            return { kind: "string", value: val } as Lua_String;
+            return { id: crypto.randomUUID(), kind: "string", value: val } satisfies Lua_String;
         }
         case "NilLiteral": {
             return Lua_Null;
@@ -380,9 +392,10 @@ export function evalExpression(
             if (func.kind === "error") return func;
             if (func.kind !== "function" && func.kind !== "builtin")
                 return {
+                    id: crypto.randomUUID(),
                     kind: "error",
                     message: `${func.kind} is supposed to be a function`,
-                };
+                } satisfies Lua_Error;
 
             const args: Lua_Object[] = [];
             if (func.kind === "function") {
@@ -404,12 +417,13 @@ export function evalExpression(
 
         case "FunctionDeclaration": {
             const func = {
+                id: crypto.randomUUID(),
                 kind: "function",
                 self: false,
                 body: exp.body,
                 parameters: exp.parameters,
                 environment: environment,
-            } as Lua_Function;
+            } satisfies Lua_Function;
             if (exp.identifier) { evalAssignment(exp.identifier, func, environment, true); }
             return func;
         }
@@ -430,9 +444,10 @@ export function evalExpression(
             if (identifier.kind === "error") return identifier;
             if (identifier.kind !== "table")
                 return {
+                    id: crypto.randomUUID(),
                     kind: "error",
                     message: `${identifier.kind} cannot be indexed`,
-                } as Lua_Error;
+                } satisfies Lua_Error;
 
             let idx = evalExpression(exp.index, environment);
 
@@ -440,9 +455,10 @@ export function evalExpression(
             if (idx.kind === "error") return idx;
             if (idx.kind === "null")
                 return {
+                    id: crypto.randomUUID(),
                     kind: "error",
                     message: "nil cannot be used as index for table",
-                } as Lua_Error;
+                } satisfies Lua_Error;
 
             const val = identifier.get(idx);
             return val;
@@ -453,48 +469,60 @@ export function evalExpression(
             if (identifier.kind === "error") return identifier;
             if (identifier.kind !== "table")
                 return {
+                    id: crypto.randomUUID(),
                     kind: "error",
                     message: `${identifier.kind} cannot be indexed`,
-                } as Lua_Error;
+                } satisfies Lua_Error;
 
             if (exp.indexer === ".") {
                 const val = identifier.get({
+                    id: crypto.randomUUID(),
                     kind: "string",
                     value: exp.identifier.name,
-                } as Lua_String);
+                } satisfies Lua_String);
                 if (val.kind !== 'null') return val
                 if (identifier.metatable.kind !== 'table') return val;
 
                 const __index = identifier.metatable.get({
+                    id: crypto.randomUUID(),
                     kind: "string",
                     value: '__index',
-                })
+                } satisfies Lua_String)
 
                 if (__index.kind === 'null') return Lua_Null;
 
                 if (__index.kind === 'function') {
 
                     return applyFunction(__index, [identifier, {
+                        id: crypto.randomUUID(),
                         kind: "string",
                         value: exp.identifier.name,
-                    }])
+                    } satisfies Lua_String])
                 }
                 if (__index.kind !== 'table')
-                    return { kind: 'error', message: "__index should be table" };
+                    return { id: crypto.randomUUID(), kind: 'error', message: "__index should be table" } satisfies Lua_Error;
 
                 return __index.get({
+                    id: crypto.randomUUID(),
                     kind: "string",
                     value: exp.identifier.name,
-                });
+                } satisfies Lua_String);
 
             } else {
                 const val = identifier.get({
+                    id: crypto.randomUUID(),
                     kind: "string",
                     value: exp.identifier.name,
-                } as Lua_String);
+                } satisfies Lua_String);
 
 
-                if (val.kind !== 'function' && val.kind !== 'null') { return { kind: 'error', message: 'member : can olny be used on functions' } }
+                if (val.kind !== 'function' && val.kind !== 'null') {
+                    return {
+                        id: crypto.randomUUID(),
+                        kind: 'error',
+                        message: 'member : can olny be used on functions'
+                    }
+                }
                 if (val.kind === 'function') {
                     val.self = identifier;
                     return val;
@@ -503,9 +531,10 @@ export function evalExpression(
 
                 if (identifier.metatable.kind !== 'table') return val;
                 const __index = identifier.metatable.get({
+                    id: crypto.randomUUID(),
                     kind: "string",
                     value: '__index',
-                })
+                } satisfies Lua_String)
 
                 if (__index.kind === 'null') return Lua_Null;
                 if (__index.kind === 'function') {
@@ -514,16 +543,27 @@ export function evalExpression(
                     return __index
                 }
                 if (__index.kind !== 'table')
-                    return { kind: 'error', message: "__index should be table or function" };
+                    return {
+                        id: crypto.randomUUID(),
+                        kind: 'error',
+                        message: "__index should be table or function"
+                    } satisfies Lua_Error;
 
                 let func = __index.get({
+                    id: crypto.randomUUID(),
                     kind: "string",
                     value: exp.identifier.name,
-                });
+                } satisfies Lua_String);
 
 
 
-                if (func.kind !== 'function' && func.kind !== 'null') { return { kind: 'error', message: 'member : can olny be used on functions' } }
+                if (func.kind !== 'function' && func.kind !== 'null') {
+                    return {
+                        id: crypto.randomUUID(),
+                        kind: 'error',
+                        message: 'member : can olny be used on functions'
+                    } satisfies Lua_Error
+                }
                 if (func.kind === 'null') return Lua_Null;
                 func.self = identifier;
                 return func;
@@ -540,9 +580,10 @@ export function evalExpression(
 
         default: {
             return {
+                id: crypto.randomUUID(),
                 kind: "error",
                 message: `${exp.type} not implemented`,
-            } as Lua_Error;
+            } satisfies Lua_Error;
         }
     }
 }
@@ -555,7 +596,7 @@ export function evalTableField(
             const key = evalExpression(field.key, environment);
             if (key.kind === "null")
                 return [
-                    { kind: "error", message: "Nil cannot be use as key" } as Lua_Error,
+                    { id: crypto.randomUUID(), kind: "error", message: "Nil cannot be use as key" } satisfies Lua_Error,
                     Lua_Null,
                 ];
             const val = evalExpression(field.value, environment);
@@ -563,7 +604,7 @@ export function evalTableField(
         }
         case "TableKeyString": {
             const val = evalExpression(field.value, environment);
-            return [{ kind: "string", value: field.key.name } as Lua_String, val];
+            return [{ id: crypto.randomUUID(), kind: "string", value: field.key.name } satisfies Lua_String, val];
         }
         case "TableValue": {
             const val = evalExpression(field.value, environment);
@@ -643,9 +684,10 @@ export function evalBinaryExpression(
         // TODO strings and more
         default: {
             return {
+                id: crypto.randomUUID(),
                 kind: "error",
                 message: `type missmatch ${left.kind} ${operator} ${right.kind}`,
-            } as Lua_Error;
+            } satisfies Lua_Error;
 
             //return Lua_Null
         }
@@ -663,9 +705,10 @@ export function evalIntegerorStringBinaryExpression(
         (right.kind !== "number" && right.kind !== "string")
     )
         return {
+            id: crypto.randomUUID(),
             kind: "error",
             message: `type missmatch ${left.kind} ${operator} ${right.kind}`,
-        } as Lua_Error;
+        } satisfies Lua_Error;
 
     //TODO bunch of opeartions todo and chekcout //
     const nleft = left.kind === "number" ? left.value : parseFloat(left.value);
@@ -674,42 +717,46 @@ export function evalIntegerorStringBinaryExpression(
     switch (operator) {
         // arimethic
         case "+": {
-            return { kind: "number", value: nleft + nright } as Lua_Number;
+            return { id: crypto.randomUUID(), kind: "number", value: nleft + nright } satisfies Lua_Number;
         }
         case "-": {
-            return { kind: "number", value: nleft - nright } as Lua_Number;
+            return { id: crypto.randomUUID(), kind: "number", value: nleft - nright } satisfies Lua_Number;
         }
         case "*": {
-            return { kind: "number", value: nleft * nright } as Lua_Number;
+            return { id: crypto.randomUUID(), kind: "number", value: nleft * nright } satisfies Lua_Number;
         }
         case "/": {
-            return { kind: "number", value: nleft / nright } as Lua_Number;
+            return { id: crypto.randomUUID(), kind: "number", value: nleft / nright } satisfies Lua_Number;
         }
         case "%": {
             return {
+                id: crypto.randomUUID(),
                 kind: "number",
                 value: nleft - Math.floor(nleft / nright) * nright,
-            } as Lua_Number;
+            } satisfies Lua_Number;
         }
         case "//": {
             return {
+                id: crypto.randomUUID(),
                 kind: "number",
                 value: Math.floor(nleft / nright),
-            } as Lua_Number;
+            } satisfies Lua_Number;
         }
         //TODO javascript and its god dammed percision freaking points
         case "^": {
             return {
+                id: crypto.randomUUID(),
                 kind: "number",
                 value: Math.exp(nright * Math.log(nleft)),
-            } as Lua_Number;
+            } satisfies Lua_Number;
         }
 
         case "..": {
             return {
+                id: crypto.randomUUID(),
                 kind: "string",
                 value: left.value.toString().concat(right.value.toString()),
-            } as Lua_String;
+            } satisfies Lua_String;
         }
         default: {
             // boolean
@@ -728,9 +775,10 @@ export function booleanOperations(
         left.kind !== right.kind
     )
         return {
+            id: crypto.randomUUID(),
             kind: "error",
             message: `type missmatch ${left.kind} ${operator} ${right.kind}`,
-        } as Lua_Error;
+        } satisfies Lua_Error;
 
     switch (operator) {
         case "<": {
@@ -753,9 +801,10 @@ export function booleanOperations(
         }
         default:
             return {
+                id: crypto.randomUUID(),
                 kind: "error",
                 message: `Booean operator ${operator} not implemented`,
-            } as Lua_Error;
+            } satisfies Lua_Error;
     }
 }
 
@@ -776,9 +825,10 @@ export function evalUnaryExpression(
         case "~":
         default: {
             return {
+                id: crypto.randomUUID(),
                 kind: "error",
                 message: `${operator}$ not implemented`,
-            } as Lua_Error;
+            } satisfies Lua_Error;
             //return Lua_Null`
         }
     }
@@ -786,14 +836,15 @@ export function evalUnaryExpression(
 export function evalUnaryLengthOperator(arg: Lua_Object) {
     switch (arg.kind) {
         case "string":
-            return { kind: "number", value: arg.value.length } as Lua_Number;
+            return { id: crypto.randomUUID(), kind: "number", value: arg.value.length } satisfies Lua_Number;
         case "table":
-            return { kind: "number", value: arg.idx } as Lua_Number;
+            return { id: crypto.randomUUID(), kind: "number", value: arg.idx } satisfies Lua_Number;
         default: {
             return {
+                id: crypto.randomUUID(),
                 kind: "error",
                 message: `type missmatch #${arg.kind}`,
-            } as Lua_Error;
+            } satisfies Lua_Error;
         }
     }
 }
@@ -801,14 +852,15 @@ export function evalUnaryLengthOperator(arg: Lua_Object) {
 export function evalUnaryMinuesOperator(arg: Lua_Object) {
     switch (arg.kind) {
         case "number": {
-            return { kind: "number", value: -arg.value } as Lua_Number;
+            return { id: crypto.randomUUID(), kind: "number", value: -arg.value } satisfies Lua_Number;
         }
         //TODO string are coerced into integers
         default: {
             return {
+                id: crypto.randomUUID(),
                 kind: "error",
                 message: `type missmatch -${arg.kind}`,
-            } as Lua_Error;
+            } satisfies Lua_Error;
         }
     }
 }

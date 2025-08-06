@@ -37,15 +37,18 @@ export class Lua_Environment {
 
 export const builtin: Map<string, Lua_Builtin> = new Map<string, Lua_Builtin>(
     Object.entries({
-        //
+
         tostring: {
             kind: "builtin",
             fn: function(...args) {
                 if (args.length === 0) {
                     return {
+                        id: crypto.randomUUID(),
                         kind: "return",
                         value: [
                             {
+
+                                id: crypto.randomUUID(),
                                 kind: "error",
                                 message: "tostring expects 1 arguent",
                             } as Lua_Error,
@@ -56,34 +59,56 @@ export const builtin: Map<string, Lua_Builtin> = new Map<string, Lua_Builtin>(
                 let obj = args[0];
                 switch (obj.kind) {
                     case "string": {
-                        return { kind: "return", value: [obj] };
+                        return (
+                            {
+                                id: crypto.randomUUID(),
+                                kind: "return",
+                                value: [obj]
+                            }
+                        );
                     }
                     case "number": {
                         return {
+                            id: crypto.randomUUID(),
                             kind: "return",
                             value: [
-                                { kind: "string", value: obj.value.toString() } as Lua_String,
+                                {
+
+                                    id: crypto.randomUUID(),
+                                    kind: "string", value: obj.value.toString()
+                                } as Lua_String,
                             ],
                         };
                     }
                     case "boolean": {
                         return {
+                            id: crypto.randomUUID(),
                             kind: "return",
                             value: [
-                                { kind: "string", value: obj.value.toString() } as Lua_String,
+                                {
+                                    id: crypto.randomUUID(),
+                                    kind: "string",
+                                    value: obj.value.toString()
+                                } as Lua_String,
                             ],
                         };
                     }
                     case "function": {
                         return {
+                            id: crypto.randomUUID(),
                             kind: "return",
-                            value: [{ kind: "string", value: obj.body.join() } as Lua_String],
+                            value: [{
+                                id: crypto.randomUUID(),
+                                kind: "string",
+                                value: obj.body.join()
+                            } as Lua_String],
                         };
                     }
                     case "error": {
                         return {
+                            id: crypto.randomUUID(),
                             kind: "return",
-                            value: [{ kind: "string", value: obj.message } as Lua_String],
+                            value: [{ id: crypto.randomUUID(), kind: "string", value: obj.message } as Lua_String],
                         };
                     }
 
@@ -92,15 +117,18 @@ export const builtin: Map<string, Lua_Builtin> = new Map<string, Lua_Builtin>(
                     }
                     case "null":
                         return {
+                            id: crypto.randomUUID(),
                             kind: "return",
-                            value: [{ kind: "string", value: "nil" } as Lua_String],
+                            value: [{ id: crypto.randomUUID(), kind: "string", value: "nil" } as Lua_String],
                         };
                     case "builtin":
                     default: {
                         return {
+                            id: crypto.randomUUID(),
                             kind: "return",
                             value: [
                                 {
+                                    id: crypto.randomUUID(),
                                     kind: "error",
                                     message: `tostring not implemented with ${obj.kind} `,
                                 } as Lua_Error,
@@ -112,25 +140,26 @@ export const builtin: Map<string, Lua_Builtin> = new Map<string, Lua_Builtin>(
         },
 
 
+
         setmetatable: {
             kind: "builtin",
             fn: function(...args) {
                 if (args.length !== 2)
-                    return { kind: 'return', value: [{ kind: 'error', message: 'setmetatable takes 2 arguments' }] };
+                    return { id: crypto.randomUUID(), kind: 'return', value: [{ id: crypto.randomUUID(), kind: 'error', message: 'setmetatable takes 2 arguments' }] };
 
                 let curr = args[0];
 
                 if (curr.kind !== 'table')
-                    return { kind: 'return', value: [{ kind: 'error', message: 'argument 1 must be of type table' }] };
+                    return { id: crypto.randomUUID(), kind: 'return', value: [{ id: crypto.randomUUID(), kind: 'error', message: 'argument 1 must be of type table' }] };
 
                 let meta = args[1];
 
                 if (meta.kind !== 'table')
-                    return { kind: 'return', value: [{ kind: 'error', message: 'argument 2 must be of type table' }] };
+                    return { id: crypto.randomUUID(), kind: 'return', value: [{ id: crypto.randomUUID(), kind: 'error', message: 'argument 2 must be of type table' }] };
 
                 curr.metatable = meta;
 
-                return { kind: 'return', value: [curr] };
+                return { id: crypto.randomUUID(), kind: 'return', value: [curr] };
             }
         },
 
@@ -146,6 +175,7 @@ export type Lua_Builtin = {
 type Lua_Builtin_Function = (...args: Lua_Object[]) => Lua_Return;
 
 export type Lua_Function = {
+    id: string,
     kind: "function";
     self: Lua_Object | false;
     parameters: (luaparser.Identifier | luaparser.VarargLiteral)[];
@@ -153,27 +183,28 @@ export type Lua_Function = {
     environment: Lua_Environment;
 };
 
-export type Lua_Return = { kind: "return"; value: Lua_Object[] };
+export type Lua_Return = { id: string, kind: "return"; value: Lua_Object[] };
 
-export type Lua_Identifier = { kind: "identifier"; name: string };
+export type Lua_Identifier = { id: string, kind: "identifier"; name: string };
 
-export type Lua_Error = { kind: "error"; message: string };
+export type Lua_Error = { id: string, kind: "error"; message: string };
 
-export type Lua_Number = { kind: "number"; value: number };
+export type Lua_Number = { id: string, kind: "number"; value: number };
 
-export type Lua_Boolean = { kind: "boolean"; value: boolean };
+export type Lua_Boolean = { id: string, kind: "boolean"; value: boolean };
 
-export type Lua_String = { kind: "string"; value: string };
+export type Lua_String = { id: string, kind: "string"; value: string };
 
-export type Lua_Null = { kind: "null" };
+export type Lua_Null = { id: string, kind: "null" };
 
 // constants
-export const Lua_True: Lua_Boolean = { kind: "boolean", value: true };
-export const Lua_False: Lua_Boolean = { kind: "boolean", value: false };
-export const Lua_Null: Lua_Null = { kind: "null" };
+export const Lua_True: Lua_Boolean = { id: crypto.randomUUID(), kind: "boolean", value: true };
+export const Lua_False: Lua_Boolean = { id: crypto.randomUUID(), kind: "boolean", value: false };
+export const Lua_Null: Lua_Null = { id: crypto.randomUUID(), kind: "null" };
 
 //TODO delete if value is set to null and do something about the idx is suppsed to be contiguos numeric values
 export class Lua_Table {
+    id: string;
     kind: "table" = "table";
     store: Map<Lua_Object | string | number, Lua_Object>;
     __index: Lua_Object = Lua_Null
@@ -181,6 +212,7 @@ export class Lua_Table {
     idx: number;
 
     constructor() {
+        this.id = crypto.randomUUID();
         this.store = new Map();
         this.idx = 0;
     }
@@ -205,7 +237,7 @@ export class Lua_Table {
             }
 
             case "error": {
-                return { kind: "error", message: "error cannot be used as value" };
+                return { id: crypto.randomUUID(), kind: "error", message: "error cannot be used as value" };
             }
         }
     }
@@ -274,3 +306,4 @@ export class Lua_Table {
         }
     }
 }
+
