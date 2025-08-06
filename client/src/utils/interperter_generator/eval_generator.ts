@@ -428,7 +428,7 @@ export function isThruthy(arg: Lua_Object) {
             return Lua_False;
         }
         default: {
-            return Lua_False;
+            return Lua_True;
             //throw Error(`Not operator has not implemented ${(arg as any).kind}`)
             //return Lua_Null;
         }
