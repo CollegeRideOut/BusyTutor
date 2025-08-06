@@ -22,10 +22,10 @@ import type { Lua_Object_Visualizer } from "./generator_types.ts";
 
 
 // TODO add this to the og one
-export function setGlobalEnvironment(env: Lua_Environment) {
+export function setGLobalEnvironmentGenerator(env: Lua_Environment) {
     Lua_Global_Environment = env;
 }
-let Lua_Global_Environment = new Lua_Environment();
+export let Lua_Global_Environment = new Lua_Environment();
 
 export function evalChunkTestHelper(node: luaparser.Chunk, environment: Lua_Environment) {
     const g = evalChunk(node, environment);
@@ -82,6 +82,7 @@ export function* evalStatements(
 > {
 
     let id = `${node.loc!.start.line}-${node.loc!.end.line} | ${node.loc!.start.column}-${node.loc!.end.column}`
+    void id
     switch (node.type) {
         case "ReturnStatement": {
             let vals: Lua_Object[] = [];

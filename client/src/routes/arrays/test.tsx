@@ -5,11 +5,11 @@ import type { ReactNode } from 'react'
 import { ThemeContext } from '../__root'
 import luaparser from 'luaparse'
 //import { evalChunk } from '../../utils/interperter_generator/eval_generator'
-import { Lua_Environment, } from '../../utils/interperter/lua_types'
+import { Lua_Environment, Lua_Table, } from '../../utils/interperter/lua_types'
 //import type { Lua_Object } from '../../utils/interperter/lua_types'
 import { Button } from '../../components/ui/button'
 import type { Lua_Object_Visualizer } from '../../utils/interperter_generator/generator_types'
-import { evalChunk } from '../../utils/interperter_generator/eval_generator'
+import { evalChunk, Lua_Global_Environment, setGLobalEnvironmentGenerator } from '../../utils/interperter_generator/eval_generator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip'
 import { parseLongString } from '../../utils/interperter/eval'
 
@@ -24,14 +24,26 @@ function RouteComponent() {
     const [visual, setVisual] = useState<Lua_Object_Visualizer[]>([])
     const [envVisual, setEnviVisual] = useState<Lua_Object_Visualizer[]>([])
     const [ast, setAst] = useState<luaparser.Chunk | null>(null)
-    const [environement, setEnvironment] = useState<Lua_Environment | null>(null)
+    const [environment, setEnvironment] = useState<Lua_Environment | null>(null)
     const [globalEnvironment, setGlobalEnvironment] = useState<Lua_Environment | null>(null)
+    const [visualEnvironment, setVisualEnvironment] = useState<ReactNode[]>([]);
+    const [visualGlobalEnvironment, setVisualGlobalEnvironment] = useState<ReactNode[]>([])
     //    const [history, setHistory] = useState<Lua_Object_Visualizer[]>([]);
 
     useEffect(() => {
         if (!ast) return;
         createVisCode();
+
     }, [ast, visual])
+    useEffect(() => {
+        if (!environment) return;
+        setVisualEnvironment(environmentVisual(environment))
+    }, [environment])
+
+    useEffect(() => {
+        if (!globalEnvironment) return;
+        setVisualGlobalEnvironment(environmentVisual(globalEnvironment))
+    }, [globalEnvironment])
 
     function createVisCode() {
         if (!ast) return;
@@ -39,130 +51,202 @@ function RouteComponent() {
 
     }
     return <div
-        className="flex flex-col grow"
+        className="flex grow w-full"
     >
-        <textarea
-            onChange={(e) => setCode(e.target.value)}
-            value={code}
-            className="my-8 mx-8"
-            style={{
-                background: theme.vals.colors.secondary,
-                height: '40%',
-                width: '40%'
-
-            }}
-
-        />
-        <Button onClick={() => {
-            const _ast = luaparser.parse(code, { locations: true })
-            setAst(_ast);
-            let env = new Lua_Environment()
-            let globalEnvironment = new Lua_Environment();
-            setEnvironment(env);
-            setGlobalEnvironment(globalEnvironment);
-            setGen(evalChunk(_ast, env))
-        }
-        }
-        >Crete Generator</Button>
-
-        <Button onClick={() => {
-            if (!gen) {
-                console.log('no Generator')
-                return;
-            }
-            const val = gen.next();
-            if (val.done) {
-                setGen(undefined)
-            } else {
-                //if (!val.value) return;
-                //setVisual([...visual, val.value])
-                //
-                let v = val.value[1]
-
-                let visual = val.value[0]
-                if (visual) {
-                    setEnviVisual([...envVisual, visual])
-                    console.log('env visual hapened')
-                }
-                setEnvironment(JSON.parse(JSON.stringify(v, replacer), reviver) as Lua_Environment)
-            }
-            setGlobalEnvironment(x => x)
-            console.log('hello', environement!.store);
-
-        }
-        }
-        >Next</Button>
-
-        <Button onClick={() => {
-            if (!ast) {
-                console.log('no ast')
-                return;
-            }
-            console.log(ast)
-            console.log(visual)
-            console.log(envVisual)
-
-        }}
-        >print ast</Button>
-
-
         <div
-            style={{
-                border: '1px solid black',
-                height: '100%',
-                marginTop: 50,
-                width: '100%'
-            }}
+            className="flex flex-col w-1/2"
         >
-            {visCode}
+            {!gen ? <textarea
+                onChange={(e) => setCode(e.target.value)}
+                value={code}
+                className="flex flex-col w-4/5 h-4/5"
+                style={{
+                    background: theme.vals.colors.secondary,
+                }}
+            /> :
+                (
+                    <div
+                        className="flex flex-col w-4/5 h-full"
+                        style={{
+                            border: '1px solid black',
+                            height: '100%',
+                            marginTop: 50,
+                            width: '100%'
+                        }}
+                    >
+                        {visCode}
+                    </div>
+                )
+            }
+            <Button onClick={() => {
+                const _ast = luaparser.parse(code, { locations: true })
+                setAst(_ast);
+                let env = new Lua_Environment()
+                let globalEnvironment = new Lua_Environment();
+                setEnvironment(env);
+                setGLobalEnvironmentGenerator(globalEnvironment);
+                setGlobalEnvironment(globalEnvironment);
+                setGen(evalChunk(_ast, env));
+            }
+            }
+            >Crete Generator</Button>
+
+            <Button onClick={() => {
+                if (!gen) {
+                    console.log('no Generator')
+                    return;
+                }
+                const val = gen.next();
+                if (val.done) {
+                    setGen(undefined)
+                } else {
+                    //if (!val.value) return;
+                    //setVisual([...visual, val.value])
+                    //
+                    let v = val.value[1]
+
+                    let visual = val.value[0]
+                    if (visual) {
+                        setEnviVisual([...envVisual, visual])
+                        console.log('env visual hapened')
+                    }
+                    setEnvironment(JSON.parse(JSON.stringify(v, replacer), reviver) as Lua_Environment)
+                    setGlobalEnvironment(JSON.parse(JSON.stringify(Lua_Global_Environment, replacer), reviver) as Lua_Environment)
+                }
+                //console.log('hello', environement!.store);
+
+            }
+            }
+            >Next</Button>
+
+            <Button onClick={() => {
+                setAst(null)
+                setVisCode([])
+                setGen(undefined);
+
+            }}
+            >reset</Button>
+
+            <Button onClick={() => {
+                if (!ast) {
+                    console.log('no ast')
+                    return;
+                }
+                console.log(ast)
+                console.log(visual)
+                console.log(envVisual)
+
+            }}
+            >print ast</Button>
+
         </div>
 
+
         <div
-            style={{
-                border: '1px solid black',
-                height: '100%',
-                marginTop: 50,
-                width: '100%'
-            }}
+            className="flex flex-col w-1/2"
         >
-            <div>
-                global
-                {
-                    globalEnvironment && Object.entries(globalEnvironment.store).map((a) => {
-                        return <div>{a[0]}</div>
-                    })}
+            <div
+                style={{
+                    border: '1px solid black',
+                    height: '100%',
+                    marginTop: 50,
+                    width: '100%'
+                }}
+            >
+                <div>
+                    global
+                    {
+                        visualGlobalEnvironment
+                    }
 
-            </div>
+                </div>
 
-            <div>
-                local
-                {
-                    environement && [...environement.store.entries()].map((x) => {
-                        let obj = x[1]
-                        switch (obj.kind) {
-                            case 'string':
-                            case 'number':
-                            case 'boolean': {
-                                return <div>{x[0]} {obj.value}</div>
-                            }
-                            case 'table': {
-                                return <div>{x[0]} {obj.kind}</div>
-                            }
-                            case 'return':
-                            case 'error':
-                            case 'null':
-                            case 'builtin':
-                            case 'function': {
-                                return <div>{x[0]} {obj.kind}</div>
-                            }
-                        }
+                <div>
+                    local
+                    {
+                        visualEnvironment
+                    }
 
-                    })
-                }
-
+                </div>
             </div>
         </div>
     </div>
+}
+function environmentVisual(env: Lua_Environment) {
+    if (!env) return [];
+    if (!env.store) return [];
+    let rc = [...env.store.entries()].map(([identifier, obj]) => {
+        switch (obj.kind) {
+            case 'string':
+            case 'number':
+            case 'boolean': {
+                return <div>{identifier} {obj.value}</div>
+            }
+            case 'table': {
+                return <div>{identifier} {tableVisualizer(obj)}</div>
+            }
+            case 'return':
+            case 'error':
+            case 'null':
+            case 'builtin':
+            case 'function': {
+                return <div>{identifier} {obj.kind}</div>
+            }
+        }
+    })
+    return rc;
+
+}
+export function tableVisualizer(t: Lua_Table) {
+    let rc = [...t.store.entries()].map(([key, obj]) => {
+        switch (obj.kind) {
+            case 'string':
+            case 'number':
+            case 'boolean': {
+                return (
+                    <div
+                        className="flex gap-x-2"
+                    >
+                        {key.toString()}:{obj.value}
+                    </div>)
+            }
+            case 'function': {
+                return (
+                    <div
+                        className="flex gap-x-2"
+                    >
+                        {key.toString()}:{obj.kind}
+                    </div>
+                )
+            }
+            case 'table': {
+                return (
+                    <div
+                        className="flex gap-x-2"
+                    >
+
+                        {key.toString()}: {tableVisualizer(obj)}
+                    </div>
+                );
+            }
+            case 'return':
+            case 'error':
+            case 'null':
+            case 'builtin': {
+                return null
+            }
+            default: {
+                return <div></div>
+            }
+        }
+    })
+    return (
+        <div
+            className="flex gap-x-2"
+        >
+            {...rc}
+        </div>
+    )
 }
 
 export function evalChunkFront(
@@ -353,8 +437,8 @@ export function evalExpression(
 ): ReactNode {
 
     let id = `${exp.loc!.start.line}-${exp.loc!.end.line} | ${exp.loc!.start.column}-${exp.loc!.end.column}`
-    let visual = visuals.find((v) => v.id === id);
-    void visual
+    //let visual = visuals.find((v) => v.id === id);
+    //void visual
     switch (exp.type) {
         case "NumericLiteral": {
             return (
@@ -589,7 +673,7 @@ export function evalTableField(
         }
     }
 }
-function replacer(key: any, value: any) {
+function replacer(_key: any, value: any) {
     if (value instanceof Map) {
         return {
             dataType: 'Map',
@@ -599,7 +683,7 @@ function replacer(key: any, value: any) {
         return value;
     }
 }
-function reviver(key: any, value: any) {
+function reviver(_key: any, value: any) {
     if (typeof value === 'object' && value !== null) {
         if (value.dataType === 'Map') {
             return new Map(value.value);
