@@ -6,6 +6,6 @@ let a: Lua_Object | null = null;
 void a
 
 export type Lua_Object_Visualizer = {
-    indexer?: { type: string, name: string, value: string | number },
-    identifier?: { type: string, name: string, value: any },
+    indexer?: { id: string, type: string, name: string, value: string | number },
+    identifier?: { id: string, type: string, name: string, value: any },
 }

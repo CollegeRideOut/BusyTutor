@@ -37,8 +37,8 @@ export class Lua_Environment {
 
 export const builtin: Map<string, Lua_Builtin> = new Map<string, Lua_Builtin>(
     Object.entries({
-
         tostring: {
+            id: crypto.randomUUID(),
             kind: "builtin",
             fn: function(...args) {
                 if (args.length === 0) {
@@ -138,10 +138,8 @@ export const builtin: Map<string, Lua_Builtin> = new Map<string, Lua_Builtin>(
                 }
             },
         },
-
-
-
         setmetatable: {
+            id: crypto.randomUUID(),
             kind: "builtin",
             fn: function(...args) {
                 if (args.length !== 2)
@@ -168,6 +166,7 @@ export const builtin: Map<string, Lua_Builtin> = new Map<string, Lua_Builtin>(
 );
 
 export type Lua_Builtin = {
+    id: string;
     kind: "builtin";
     fn: Lua_Builtin_Function;
 };

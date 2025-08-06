@@ -509,7 +509,7 @@ export function* evalExpression(
         // TODO visuals?
         case "Identifier": {
             let [val, exist] = environment.get(exp.name);
-            let v = { indexer: { name: exp.name, type: 'indentifier', value: '' } } satisfies Lua_Object_Visualizer
+            let v = { indexer: { id: val.id, name: exp.name, type: 'indentifier', value: '', } } satisfies Lua_Object_Visualizer
             switch (val.kind) {
                 case 'number': {
                     v.indexer!.value = String(val.value);
@@ -619,7 +619,6 @@ export function* evalExpression(
         }
 
         case "IndexExpression": {
-            console.log('hellooooo????????')
             const gen_identifier = evalExpression(exp.base, environment);
             let visual_identifier: ReturnType<typeof gen_identifier.next> = { done: true, value: [null, Lua_Null] };
             do {
@@ -664,15 +663,26 @@ export function* evalExpression(
                 ];
             }
             let v = null
+
+            const val = identifier.get(idx);
             if (visual_idx.value[0] && visual_identifier.value[0]) {
                 v = {
-                    identifier: { type: 'identifier', name: visual_identifier.value[0]!.indexer!.name, value: 'hello' },
-                    indexer: { type: 'identifier', name: visual_idx.value[0]!.indexer!.name, value: visual_idx.value[0]!.indexer!.value, },
+                    identifier: {
+                        id: visual_identifier.value[0]!.indexer!.id,
+                        type: 'identifier',
+                        name: visual_identifier.value[0]!.indexer!.name,
+                        value: val.id,
+                    },
+                    indexer: {
+                        id: visual_idx.value[0]!.indexer!.id,
+                        type: 'identifier',
+                        name: visual_idx.value[0]!.indexer!.name,
+                        value: visual_idx.value[0]!.indexer!.value,
+                    },
 
                 } satisfies Lua_Object_Visualizer
             }
 
-            const val = identifier.get(idx);
             return [v, val];
         }
 

@@ -1,6 +1,6 @@
 //import { GoPackageDependencies } from "react-icons/go";
 import { createFileRoute } from '@tanstack/react-router'
-import { useContext, useEffect, useState, } from 'react'
+import { useContext, useEffect, useRef, useState, } from 'react'
 import type { ReactNode } from 'react'
 import { ThemeContext } from '../__root'
 import luaparser from 'luaparse'
@@ -28,6 +28,8 @@ function RouteComponent() {
     const [globalEnvironment, setGlobalEnvironment] = useState<Lua_Environment | null>(null)
     const [visualEnvironment, setVisualEnvironment] = useState<ReactNode[]>([]);
     const [visualGlobalEnvironment, setVisualGlobalEnvironment] = useState<ReactNode[]>([])
+    const visualEnvironmentRef = useRef<Map<string, HTMLElement>>(new Map());
+    const [svg, setSvg] = useState<ReactNode>(null);
     //    const [history, setHistory] = useState<Lua_Object_Visualizer[]>([]);
 
     useEffect(() => {
@@ -37,13 +39,46 @@ function RouteComponent() {
     }, [ast, visual])
     useEffect(() => {
         if (!environment) return;
-        setVisualEnvironment(environmentVisual(environment))
+        setVisualEnvironment(environmentVisual(environment, visualEnvironmentRef))
     }, [environment])
 
     useEffect(() => {
         if (!globalEnvironment) return;
-        setVisualGlobalEnvironment(environmentVisual(globalEnvironment))
+        setVisualGlobalEnvironment(environmentVisual(globalEnvironment, visualEnvironmentRef))
     }, [globalEnvironment])
+    useEffect(() => {
+        if (!envVisual) return;
+        if(envVisual.length < 2) return;
+        console.log('hello', envVisual)
+        const rect2 = visualEnvironmentRef.current.get(envVisual[1].indexer!.name)!.getBoundingClientRect()
+        const rect1 = visualEnvironmentRef.current.get(envVisual[1].identifier!.value)!.getBoundingClientRect()
+        const coords = {
+            x1: rect1.left ,
+            y1: rect1.top  ,
+            x2: rect2.left ,
+            y2: rect2.top 
+        }
+
+
+
+        setSvg(
+            <svg
+                style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none" }}
+                width={window.innerWidth}
+                height={window.innerHeight}
+            >
+                <line
+                    x1={coords.x1}
+                    y1={coords.y1}
+                    x2={coords.x2}
+                    y2={coords.y2}
+                    stroke="red"
+                    strokeWidth={2}
+                />
+            </svg>
+        )
+
+    }, [envVisual])
 
     function createVisCode() {
         if (!ast) return;
@@ -107,8 +142,10 @@ function RouteComponent() {
 
                     let visual = val.value[0]
                     if (visual) {
-                        setEnviVisual([...envVisual, visual])
-                        console.log('env visual hapened')
+                        if (visual.identifier && visual.indexer) {
+                            setEnviVisual([...envVisual, visual])
+                            console.log('env visual hapened')
+                        }
                     }
                     setEnvironment(JSON.parse(JSON.stringify(v, replacer), reviver) as Lua_Environment)
                     setGlobalEnvironment(JSON.parse(JSON.stringify(Lua_Global_Environment, replacer), reviver) as Lua_Environment)
@@ -170,9 +207,10 @@ function RouteComponent() {
                 </div>
             </div>
         </div>
+        {svg}
     </div>
 }
-function environmentVisual(env: Lua_Environment) {
+function environmentVisual(env: Lua_Environment, ref: React.RefObject<Map<string, HTMLElement>>) {
     if (!env) return [];
     if (!env.store) return [];
     let rc = [...env.store.entries()].map(([identifier, obj]) => {
@@ -180,10 +218,14 @@ function environmentVisual(env: Lua_Environment) {
             case 'string':
             case 'number':
             case 'boolean': {
-                return <div>{identifier} {obj.value}</div>
+                return <div
+                    ref={(el) => { el && ref.current.set(identifier, el) }}
+                >{identifier} {String(obj.value)}</div>
             }
             case 'table': {
-                return <div>{identifier} {tableVisualizer(obj)}</div>
+                return <div
+                    ref={(el) => { el && ref.current.set(identifier, el) }}
+                >{identifier} {tableVisualizer(obj, ref)}</div>
             }
             case 'return':
             case 'error':
@@ -197,15 +239,22 @@ function environmentVisual(env: Lua_Environment) {
     return rc;
 
 }
-export function tableVisualizer(t: Lua_Table) {
+export function tableVisualizer(t: Lua_Table, ref: React.RefObject<Map<string, HTMLElement>>) {
     let rc = [...t.store.entries()].map(([key, obj]) => {
+        let key_s = ''
+        if (typeof key === 'string') key_s = key;
+        else if (typeof key === 'number') key_s = String(key);
+        else key_s = key.id;
+
         switch (obj.kind) {
             case 'string':
             case 'number':
             case 'boolean': {
+
                 return (
                     <div
                         className="flex gap-x-2"
+                        ref={(el) => { el && ref.current.set(obj.id, el) }}
                     >
                         {key.toString()}:{obj.value}
                     </div>)
@@ -214,6 +263,7 @@ export function tableVisualizer(t: Lua_Table) {
                 return (
                     <div
                         className="flex gap-x-2"
+                        ref={(el) => { el && ref.current.set(obj.id, el) }}
                     >
                         {key.toString()}:{obj.kind}
                     </div>
@@ -223,9 +273,10 @@ export function tableVisualizer(t: Lua_Table) {
                 return (
                     <div
                         className="flex gap-x-2"
-                    >
+                        ref={(el) => { el && ref.current.set(obj.id, el) }}
 
-                        {key.toString()}: {tableVisualizer(obj)}
+                    >
+                        {key.toString()}: {tableVisualizer(obj, ref)}
                     </div>
                 );
             }
