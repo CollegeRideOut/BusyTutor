@@ -39,6 +39,7 @@
 - [ ] Mini tooltips – show variable info (type, value, key) on hover
 - [ ] Operation-aware visual feedback – color/effect depending on operation (+, -, *, assignment)
 - [ ] Simple animations for assignments – animate variables/tables when updated or accessed
+- [ ] Add all tables to a heap with unique IDs for clean visualization, leaving cycle handling and arrow layout as a later enhancement.
 
 ### next
 - [ ] Can support multiple paths simultaneously (for statements like a[1] === b[1])  
