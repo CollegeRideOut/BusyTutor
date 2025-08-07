@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute('/')({
   component: Index,
 });
 
@@ -24,10 +24,10 @@ function Index() {
   return (
     <div
       style={{
-        width: "100%",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
+        width: '100%',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         columnGap: 20,
         fontSize: 50,
 
@@ -36,15 +36,15 @@ function Index() {
     >
       <div
         style={{
-          display: "flex",
-          width: "80%",
-          alignItems: "center",
+          display: 'flex',
+          width: '80%',
+          alignItems: 'center',
           columnGap: 20,
           fontSize: 50,
         }}
       >
         <div
-          className={"tutor"}
+          className={'tutor'}
           style={{
             backgroundPosition: `-${spriteWidthPosition + frameWidthDIstance * frame}px -${spriteHeightPosition}px`,
           }}

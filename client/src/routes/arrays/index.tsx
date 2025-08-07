@@ -1,8 +1,8 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useContext, useState } from "react";
-import { ThemeContext } from "../__root";
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useContext, useState } from 'react';
+import { ThemeContext } from '../__root';
 
-export const Route = createFileRoute("/arrays/")({
+export const Route = createFileRoute('/arrays/')({
   component: RouteComponent,
 });
 
@@ -10,27 +10,27 @@ function RouteComponent() {
   const {
     vals: { colors },
   } = useContext(ThemeContext);
-  const navigate = useNavigate({ from: "/arrays" });
+  const navigate = useNavigate({ from: '/arrays' });
   const [toggleHashing, setToggleHashing] = useState(false);
   return (
     <div
       style={{
-        width: "100%",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100%",
+        width: '100%',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100%',
       }}
     >
       <div
         style={{
-          width: "70%",
+          width: '70%',
           borderLeft: `1px solid ${colors.text}`,
           borderRight: `1px solid ${colors.text}`,
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
           rowGap: 40,
         }}
       >
@@ -38,53 +38,53 @@ function RouteComponent() {
           style={{
             marginTop: 40,
             fontSize: 40,
-            fontWeight: "bold",
-            width: "100%",
-            display: "flex",
-            justifyContent: "center",
+            fontWeight: 'bold',
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
           }}
         >
           Arrays
         </div>
         <div
           style={{
-            width: "70%",
+            width: '70%',
           }}
         >
           <div
             style={{
-              width: "100%",
+              width: '100%',
             }}
           >
             <div
               onClick={() => setToggleHashing((prev) => !prev)}
               style={{
-                cursor: "pointer",
+                cursor: 'pointer',
                 backgroundColor: colors.background,
-                display: "flex",
+                display: 'flex',
                 border: `1px solid ${colors.text}`,
                 borderRadius: 10,
-                justifyContent: "center",
-                alignItems: "center",
-                height: "min-content",
-                flexDirection: "column",
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: 'min-content',
+                flexDirection: 'column',
               }}
             >
               <div
                 style={{
                   marginTop: 20,
                   marginBottom: 20,
-                  display: "flex",
-                  width: "90%",
-                  justifyContent: "center",
+                  display: 'flex',
+                  width: '90%',
+                  justifyContent: 'center',
                 }}
               >
                 <div
                   style={{
-                    display: "flex",
-                    width: "100%",
-                    justifyContent: "space-between",
-                    fontWeight: "bold",
+                    display: 'flex',
+                    width: '100%',
+                    justifyContent: 'space-between',
+                    fontWeight: 'bold',
                     fontSize: 18,
                   }}
                 >
@@ -96,31 +96,31 @@ function RouteComponent() {
 
               <div
                 style={{
-                  width: "100%",
+                  width: '100%',
                   backgroundColor: colors.primary,
                   borderBottomLeftRadius: 10,
                   borderBottomRightRadius: 10,
-                  display: toggleHashing ? "flex" : "none",
+                  display: toggleHashing ? 'flex' : 'none',
                   borderTop: `1px solid ${colors.text}`,
-                  flexDirection: "column",
-                  alignItems: "center",
+                  flexDirection: 'column',
+                  alignItems: 'center',
                   paddingTop: 20,
                   paddingBottom: 20,
                 }}
                 onClick={() => {
-                  navigate({ to: "/arrays/217" });
+                  navigate({ to: '/arrays/217' });
                 }}
               >
                 <div
                   style={{
-                    width: "80%",
-                    display: "flex",
-                    justifyContent: "space-between",
+                    width: '80%',
+                    display: 'flex',
+                    justifyContent: 'space-between',
                   }}
                 >
                   <p
                     style={{
-                      width: "50%",
+                      width: '50%',
                     }}
                   >
                     Contains Duplicate

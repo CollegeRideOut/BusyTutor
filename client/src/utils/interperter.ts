@@ -1,4 +1,4 @@
-import luaparser from "luaparse";
+import luaparser from 'luaparse';
 
 let code = `
 local obj = {} 
@@ -7,8 +7,8 @@ return 'a'
 `;
 
 export function testInterperter() {
-    void code;
-    let ast = luaparser.parse(code);
+  void code;
+  let ast = luaparser.parse(code);
 
-    console.log(ast);
+  console.log(ast);
 }

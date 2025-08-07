@@ -1,11 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useContext, useState } from "react";
-import { ThemeContext } from "../__root";
-import { VscDebugStart } from "react-icons/vsc";
-import { VscDebugStepOver } from "react-icons/vsc";
-import { testInterperter } from "../../utils/interperter";
+import { createFileRoute } from '@tanstack/react-router';
+import { useContext, useState } from 'react';
+import { ThemeContext } from '../__root';
+import { VscDebugStart } from 'react-icons/vsc';
+import { VscDebugStepOver } from 'react-icons/vsc';
+import { testInterperter } from '../../utils/interperter';
 
-export const Route = createFileRoute("/arrays/217")({
+export const Route = createFileRoute('/arrays/217')({
   component: RouteComponent,
 });
 
@@ -21,39 +21,39 @@ function RouteComponent() {
   return (
     <div
       style={{
-        width: "100%",
-        display: "flex",
+        width: '100%',
+        display: 'flex',
 
-        height: "100%",
+        height: '100%',
       }}
     >
       <div
         style={{
-          width: "50%",
+          width: '50%',
           borderRight: `1px solid ${colors.text}`,
           padding: !toggleGame ? 20 : 0,
           rowGap: !toggleGame ? 40 : 0,
           paddingTop: !toggleGame ? 40 : 0,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
         }}
       >
         <div
           style={{
-            transform: toggleGame ? "translateX(-50%)" : "translateX(0)",
+            transform: toggleGame ? 'translateX(-50%)' : 'translateX(0)',
             transition:
-              " visibility 0, opacity 0.5s ease-out, transform 0.5s ease-out",
-            visibility: toggleGame ? "hidden" : "visible",
+              ' visibility 0, opacity 0.5s ease-out, transform 0.5s ease-out',
+            visibility: toggleGame ? 'hidden' : 'visible',
             opacity: toggleGame ? 0 : 1,
-            display: toggleGame ? "none" : "flex",
-            flexDirection: "column",
-            alignItems: "center",
+            display: toggleGame ? 'none' : 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
           }}
         >
           <div
             style={{
-              fontWeight: "bold",
+              fontWeight: 'bold',
               fontSize: 40,
             }}
           >
@@ -61,9 +61,9 @@ function RouteComponent() {
           </div>
           <div
             style={{
-              width: "100%",
-              display: "flex",
-              flexDirection: "column",
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
               rowGap: 20,
             }}
           >
@@ -74,29 +74,29 @@ function RouteComponent() {
             </p>
             <div
               style={{
-                display: "flex",
-                flexDirection: "column",
+                display: 'flex',
+                flexDirection: 'column',
                 rowGap: 10,
               }}
             >
               <div
                 style={{
-                  fontWeight: "bold",
+                  fontWeight: 'bold',
                 }}
               >
                 Constraints
               </div>
               <ul
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
+                  display: 'flex',
+                  flexDirection: 'column',
                   rowGap: 10,
                   paddingLeft: 40,
-                  listStyle: "disc",
+                  listStyle: 'disc',
                 }}
               >
-                <li>${"1 <= nums.length <= 105"}</li>
-                <li>{"-109 <= nums[i] <= 109"}</li>
+                <li>${'1 <= nums.length <= 105'}</li>
+                <li>{'-109 <= nums[i] <= 109'}</li>
               </ul>
             </div>
           </div>
@@ -104,14 +104,14 @@ function RouteComponent() {
           <div
             style={{
               rowGap: 20,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
             }}
           >
             <div
               style={{
-                fontWeight: "bold",
+                fontWeight: 'bold',
                 fontSize: 20,
               }}
             >
@@ -128,8 +128,8 @@ function RouteComponent() {
                   style={{
                     width: 50,
                     backgroundColor: colors.primary,
-                    display: "flex",
-                    justifyContent: "center",
+                    display: 'flex',
+                    justifyContent: 'center',
                   }}
                 >
                   1
@@ -138,14 +138,14 @@ function RouteComponent() {
             </div>
             <div
               style={{
-                display: "flex",
+                display: 'flex',
                 rowGap: 10,
-                flexDirection: "column",
+                flexDirection: 'column',
               }}
             >
               <div
                 style={{
-                  fontWeight: "bold",
+                  fontWeight: 'bold',
                   fontSize: 17,
                 }}
               >
@@ -158,7 +158,7 @@ function RouteComponent() {
               </div>
               <div
                 style={{
-                  display: "flex",
+                  display: 'flex',
                 }}
               >
                 <div
@@ -173,7 +173,7 @@ function RouteComponent() {
 
               <div
                 style={{
-                  display: "flex",
+                  display: 'flex',
                 }}
               >
                 <div
@@ -191,15 +191,15 @@ function RouteComponent() {
           <div
             style={{
               rowGap: 20,
-              width: "100%",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
             }}
           >
             <div
               style={{
-                fontWeight: "bold",
+                fontWeight: 'bold',
                 fontSize: 20,
               }}
             >
@@ -209,13 +209,13 @@ function RouteComponent() {
             <div
               onClick={() => {}}
               style={{
-                width: "100%",
+                width: '100%',
               }}
             >
               <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
+                  display: 'flex',
+                  alignItems: 'center',
                   columnGap: 20,
                 }}
               >
@@ -225,11 +225,11 @@ function RouteComponent() {
                     //setNums([1, 2, 3, 4, 4])
                   }}
                   style={{
-                    cursor: "pointer",
+                    cursor: 'pointer',
                   }}
                 />
                 <div>
-                  <b style={{ fontWeight: "bold" }}>Nums:</b> [1, 2, 3, 4, 4]
+                  <b style={{ fontWeight: 'bold' }}>Nums:</b> [1, 2, 3, 4, 4]
                   Result: True
                 </div>
               </div>
@@ -239,11 +239,11 @@ function RouteComponent() {
       </div>
 
       <div
-        id={"viewport"}
+        id={'viewport'}
         style={{
-          width: "50%",
-          display: "flex",
-          flexDirection: "column",
+          width: '50%',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         <div
@@ -252,7 +252,7 @@ function RouteComponent() {
           }}
         >
           <VscDebugStepOver />
-          {arrayVisual({ arg: [{ 1: 2 }], name: "hello", colors })}
+          {arrayVisual({ arg: [{ 1: 2 }], name: 'hello', colors })}
         </div>
       </div>
     </div>
@@ -263,14 +263,14 @@ const arrayVisual = ({ arg, colors }: any) => {
   return (
     <div
       style={{
-        display: "flex",
+        display: 'flex',
       }}
     >
       <div
         style={{
-          borderLeft: "1px solid black",
-          borderTop: "1px solid black",
-          borderBottom: "1px solid black",
+          borderLeft: '1px solid black',
+          borderTop: '1px solid black',
+          borderBottom: '1px solid black',
           width: 10,
         }}
       ></div>
@@ -278,7 +278,7 @@ const arrayVisual = ({ arg, colors }: any) => {
         <div
           key={`array-${n}`}
           style={{
-            display: "flex",
+            display: 'flex',
           }}
         >
           <div
@@ -287,16 +287,16 @@ const arrayVisual = ({ arg, colors }: any) => {
               borderRight: `${idx === arg.length - 1 ? 0 : 1}px solid black`,
             }}
           >
-            {typeof n === "object" ? ref({ key: n, name: "obj", colors }) : n}
+            {typeof n === 'object' ? ref({ key: n, name: 'obj', colors }) : n}
           </div>
         </div>
       ))}
 
       <div
         style={{
-          borderRight: "1px solid black",
-          borderTop: "1px solid black",
-          borderBottom: "1px solid black",
+          borderRight: '1px solid black',
+          borderTop: '1px solid black',
+          borderBottom: '1px solid black',
           width: 10,
         }}
       ></div>
@@ -314,9 +314,9 @@ const ref = ({ key, name, colors }: any) => (
         borderLeft: `2px solid ${colors.primary}`,
         borderRight: `2px solid ${colors.primary}`,
         height: 20,
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         fontSize: 12,
       }}
     >
@@ -324,9 +324,9 @@ const ref = ({ key, name, colors }: any) => (
     </div>
     <div
       style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         backgroundColor: colors.secondary,
         width: 30,
         fontSize: 10,
@@ -343,7 +343,7 @@ const box = ({ key, name, colors }: any) => (
   <div
     key={key + name}
     style={{
-      transition: "position(50px, 50px) 2s, position(0px, 0px) 2s",
+      transition: 'position(50px, 50px) 2s, position(0px, 0px) 2s',
     }}
   >
     <div
@@ -358,9 +358,9 @@ const box = ({ key, name, colors }: any) => (
     ></div>
     <div
       style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         backgroundColor: colors.secondary,
         width: 30,
         border: `2px solid ${colors.primary}`,

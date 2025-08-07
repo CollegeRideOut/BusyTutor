@@ -1,47 +1,47 @@
-import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
-import { createContext, useEffect, useState } from "react";
-import { MdOutlineDarkMode } from "react-icons/md";
-import { MdDarkMode } from "react-icons/md";
-import { useMediaQuery } from "react-responsive";
-import { GiHamburgerMenu } from "react-icons/gi";
-import { CgCloseO } from "react-icons/cg";
+import { createRootRoute, Link, Outlet } from '@tanstack/react-router';
+import { createContext, useEffect, useState } from 'react';
+import { MdOutlineDarkMode } from 'react-icons/md';
+import { MdDarkMode } from 'react-icons/md';
+import { useMediaQuery } from 'react-responsive';
+import { GiHamburgerMenu } from 'react-icons/gi';
+import { CgCloseO } from 'react-icons/cg';
 
 //import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 
 const colors_light = {
-  background: "#F2E9E4",
-  accent: "#C9ADA7",
-  text: "#22223B",
-  primary: "#9A8C98",
-  secondary: "#C9ADA7",
-  heapmapBackground: "#2e2e4b",
+  background: '#F2E9E4',
+  accent: '#C9ADA7',
+  text: '#22223B',
+  primary: '#9A8C98',
+  secondary: '#C9ADA7',
+  heapmapBackground: '#2e2e4b',
   heatmap: {
-    0: "#dcd6d0",
-    1: "#cbbfb7",
-    4: "#a99890",
-    8: "#a48b81",
-    10: "#5e4b44",
+    0: '#dcd6d0',
+    1: '#cbbfb7',
+    4: '#a99890',
+    8: '#a48b81',
+    10: '#5e4b44',
   },
 };
 const colors_dark = {
-  background: "#22223B",
-  accent: "#C9ADA7",
-  text: "#F2E9E4",
-  primary: "#4A4E69",
-  secondary: "#9A8C98",
-  heapmapBackground: "#2e2e4b",
+  background: '#22223B',
+  accent: '#C9ADA7',
+  text: '#F2E9E4',
+  primary: '#4A4E69',
+  secondary: '#9A8C98',
+  heapmapBackground: '#2e2e4b',
   heatmap: {
-    0: "#3a3a5c",
-    1: "#66667a",
-    4: "#9999aa",
-    8: "#cccccc",
-    10: "#ffffff",
+    0: '#3a3a5c',
+    1: '#66667a',
+    4: '#9999aa',
+    8: '#cccccc',
+    10: '#ffffff',
   },
 };
 
 const init_theme: {
   vals: {
-    theme: "light" | "dark";
+    theme: 'light' | 'dark';
     mobile: boolean;
     colors: typeof colors_dark;
   };
@@ -49,7 +49,7 @@ const init_theme: {
   toggleMobile: () => void;
 } = {
   vals: {
-    theme: "light",
+    theme: 'light',
     mobile: false,
     colors: colors_dark,
   },
@@ -62,35 +62,35 @@ export const ThemeContext = createContext(init_theme);
 //context
 export const Route = createRootRoute({
   component: () => {
-    const isBigScreen = useMediaQuery({ query: "(min-width: 1824px)" });
-    const isTabletOrMobile = useMediaQuery({ query: "(max-width: 1224px)" });
+    const isBigScreen = useMediaQuery({ query: '(min-width: 1824px)' });
+    const isTabletOrMobile = useMediaQuery({ query: '(max-width: 1224px)' });
     const [toggleDropDown, setToggleDropDown] = useState(false);
     useEffect(() => {
       setToggleDropDown(false);
     }, [isTabletOrMobile]);
 
     const [theme, setTheme] = useState<{
-      theme: "light" | "dark";
+      theme: 'light' | 'dark';
       mobile: boolean;
       colors: typeof colors_dark;
     }>({
-      theme: "dark",
+      theme: 'dark',
       mobile: false,
       colors: colors_dark,
     });
     useEffect(() => {
-      let x = localStorage.getItem("theme");
-      if (x && x === "light") {
+      let x = localStorage.getItem('theme');
+      if (x && x === 'light') {
         setTheme({
           ...theme,
-          theme: "light",
+          theme: 'light',
           mobile: false,
           colors: colors_light,
         });
       } else {
         setTheme({
           ...theme,
-          theme: "dark",
+          theme: 'dark',
           mobile: false,
           colors: colors_dark,
         });
@@ -99,12 +99,12 @@ export const Route = createRootRoute({
 
     const toggleTheme = () => {
       console.log(theme.theme);
-      if (theme.theme === "light") {
-        setTheme({ ...theme, theme: "dark", colors: colors_dark });
-        localStorage.setItem("theme", "dark");
+      if (theme.theme === 'light') {
+        setTheme({ ...theme, theme: 'dark', colors: colors_dark });
+        localStorage.setItem('theme', 'dark');
       } else {
-        setTheme({ ...theme, theme: "light", colors: colors_light });
-        localStorage.setItem("theme", "light");
+        setTheme({ ...theme, theme: 'light', colors: colors_light });
+        localStorage.setItem('theme', 'light');
       }
     };
     const toggleMobile = () => {
@@ -112,21 +112,21 @@ export const Route = createRootRoute({
     };
 
     const linkStyle: React.CSSProperties = {
-      textDecoration: "none",
+      textDecoration: 'none',
       color: theme.colors.text,
       fontSize: 20,
     };
     const menuLinks = (
       <>
         <Link
-          to="/"
+          to='/'
           style={{ ...linkStyle, fontSize: 14 }}
           onClick={() => setToggleDropDown(false)}
         >
           HOME
         </Link>
         <Link
-          to="/arrays"
+          to='/arrays'
           style={{ ...linkStyle, fontSize: 14 }}
           onClick={() => setToggleDropDown(false)}
         >
@@ -138,12 +138,12 @@ export const Route = createRootRoute({
       <div
         style={{
           backgroundColor: theme.colors.background,
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          flex: "1 1 auto",
-          textDecoration: "none",
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          flex: '1 1 auto',
+          textDecoration: 'none',
           color: theme.colors.text,
           fontSize: 18,
         }}
@@ -153,11 +153,11 @@ export const Route = createRootRoute({
         >
           <div
             style={{
-              display: "flex",
-              flexDirection: "row",
+              display: 'flex',
+              flexDirection: 'row',
               color: theme.colors.text,
-              justifyContent: isBigScreen ? "center" : "space-between",
-              alignItems: "center",
+              justifyContent: isBigScreen ? 'center' : 'space-between',
+              alignItems: 'center',
               borderBottom: `1px solid ${theme.colors.text}`,
               padding: 30,
               paddingLeft: 60,
@@ -166,25 +166,25 @@ export const Route = createRootRoute({
           >
             <div
               style={{
-                width: "100%",
-                display: "flex",
+                width: '100%',
+                display: 'flex',
                 maxWidth: 1824,
-                flexDirection: "row",
+                flexDirection: 'row',
                 color: theme.colors.text,
-                alignItems: "center",
-                justifyContent: "space-between",
+                alignItems: 'center',
+                justifyContent: 'space-between',
               }}
             >
               <div
                 style={{
-                  width: isTabletOrMobile ? "100%" : "min-content",
-                  display: "flex",
-                  alignItems: "center",
+                  width: isTabletOrMobile ? '100%' : 'min-content',
+                  display: 'flex',
+                  alignItems: 'center',
                 }}
               >
                 {isTabletOrMobile && (
                   <div
-                    style={{ width: "min-content", cursor: "pointer" }}
+                    style={{ width: 'min-content', cursor: 'pointer' }}
                     onClick={() => {
                       setToggleDropDown(!toggleDropDown);
                     }}
@@ -198,12 +198,12 @@ export const Route = createRootRoute({
                 )}
 
                 <Link
-                  to="/"
+                  to='/'
                   style={{
                     ...linkStyle,
-                    width: "100%",
-                    display: "flex",
-                    justifyContent: "center",
+                    width: '100%',
+                    display: 'flex',
+                    justifyContent: 'center',
                   }}
                 >
                   BusyTutor
@@ -213,12 +213,12 @@ export const Route = createRootRoute({
               {!isTabletOrMobile && (
                 <div
                   style={{
-                    display: "flex",
+                    display: 'flex',
                     flex: 1,
-                    justifyContent: "center",
+                    justifyContent: 'center',
                     columnGap: 20,
-                    width: "max-content",
-                    textDecoration: "underline",
+                    width: 'max-content',
+                    textDecoration: 'underline',
                     textUnderlineOffset: 4,
                   }}
                 >
@@ -229,9 +229,9 @@ export const Route = createRootRoute({
                 onClick={() => {
                   toggleTheme();
                 }}
-                style={{ cursor: "pointer", width: "min-content" }}
+                style={{ cursor: 'pointer', width: 'min-content' }}
               >
-                {theme.theme === "dark" ? (
+                {theme.theme === 'dark' ? (
                   <MdDarkMode size={30} />
                 ) : (
                   <MdOutlineDarkMode size={30} />
@@ -244,13 +244,13 @@ export const Route = createRootRoute({
             <div>
               <div
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
+                  display: 'flex',
+                  flexDirection: 'column',
                   backgroundColor: theme.colors.background,
                   rowGap: 20,
-                  position: "absolute",
-                  width: "100%",
-                  height: "100%",
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
                   left: 0,
                   borderRadius: 10,
                   padding: 10,
@@ -263,23 +263,23 @@ export const Route = createRootRoute({
 
           <div
             style={{
-              height: "100%",
-              width: "100%",
-              flexDirection: "column",
-              display: "flex",
-              flex: "1 1 auto",
-              justifyContent: "center",
-              alignItems: "center",
+              height: '100%',
+              width: '100%',
+              flexDirection: 'column',
+              display: 'flex',
+              flex: '1 1 auto',
+              justifyContent: 'center',
+              alignItems: 'center',
             }}
           >
             <div
               style={{
-                display: "flex",
-                height: "100%",
-                flexDirection: "column",
+                display: 'flex',
+                height: '100%',
+                flexDirection: 'column',
                 maxWidth: 1824,
-                flex: "1 1 auto",
-                width: isTabletOrMobile ? "100%" : "100%",
+                flex: '1 1 auto',
+                width: isTabletOrMobile ? '100%' : '100%',
               }}
             >
               <Outlet />

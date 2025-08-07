@@ -2,8 +2,8 @@
    v2.0 | 20110126
    License: none (public domain)
 */
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 /* ---break---
 */
 @custom-variant dark (&:is(.dark *));
@@ -24,7 +24,6 @@ body {
   display: flex;
   flex-direction: column;
 }
-
 
 /* ---break---
 */
