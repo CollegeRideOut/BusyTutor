@@ -39,7 +39,9 @@
 - [x] Arrow / visual link: Draw an arrow from the source to the target for chain indexing.
 - [x] Path finding scaffold
 
-### Aug 8
+### Aug 8 - skipped
+
+### Aug 9
 
 - [ ] Basic pathfinding: Ensure arrows avoid overlapping other boxes for clarity.
 - [ ] Highlight current code line – show Lua line triggering access
