@@ -32,11 +32,15 @@
   - [ ] Visual effect based on operation type (e.g., +, -, \*)
   - [ ] Simple animation or highlight can indicate the action being performed
 
-#### Aug 7 plan
+### Aug 7
 
 - [x] Layout & spacing: Wrap environment elements using flex + flex-wrap with proper spacing.
 - [x] Box highlighting: When indexing a variable, highlight the source box and the target box.
 - [x] Arrow / visual link: Draw an arrow from the source to the target for chain indexing.
+- [x] Path finding scaffold
+
+### Aug 8
+
 - [ ] Basic pathfinding: Ensure arrows avoid overlapping other boxes for clarity.
 - [ ] Highlight current code line – show Lua line triggering access
 - [ ] Improved arrow styling – rounded corners, subtle animation, glow
@@ -45,8 +49,5 @@
 - [ ] Operation-aware visual feedback – color/effect depending on operation (+, -, \*, assignment)
 - [ ] Simple animations for assignments – animate variables/tables when updated or accessed
 - [ ] Add all tables to a heap with unique IDs for clean visualization, leaving cycle handling and arrow layout as a later enhancement.
-
-### next
-
 - [ ] Can support multiple paths simultaneously (for statements like a[1] === b[1])
 - [ ] chaing indexing
