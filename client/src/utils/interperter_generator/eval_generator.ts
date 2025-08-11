@@ -48,7 +48,10 @@ export function* evalChunk(
 > {
   //TODO
   let gen = evalStatementsArray(node.body, environment);
-  let p: ReturnType<typeof gen.next> = { done: true, value: [null, Lua_Null] };
+  let p: ReturnType<typeof gen.next> = {
+    done: true,
+    value: [{ loc: node.loc }, Lua_Null],
+  };
   do {
     p = gen.next();
     if (!p.value) continue;
@@ -61,8 +64,8 @@ export function* evalStatementsArray(
   node: luaparser.Statement[],
   environment: Lua_Environment,
 ): Generator<
-  [Lua_Object_Visualizer | null, Lua_Object],
-  [Lua_Object_Visualizer | null, Lua_Object],
+  [Lua_Object_Visualizer, Lua_Object],
+  [Lua_Object_Visualizer, Lua_Object],
   [Lua_Object_Visualizer, Lua_Object] | undefined
 > {
   //TODO multiple statements now lets just assume one
@@ -71,7 +74,7 @@ export function* evalStatementsArray(
 
     let lua: ReturnType<typeof gen.next> = {
       done: true,
-      value: [null, Lua_Null],
+      value: [{ loc: statement.loc }, Lua_Null],
     };
     do {
       lua = gen.next();
@@ -80,7 +83,7 @@ export function* evalStatementsArray(
 
     let obj = lua.value[1];
     if (obj.kind === 'return' || obj.kind === 'error') {
-      return [null, obj];
+      return [{}, obj];
     }
   }
 
@@ -90,9 +93,9 @@ export function* evalStatements(
   node: luaparser.Statement,
   environment: Lua_Environment,
 ): Generator<
-  [Lua_Object_Visualizer | null, Lua_Object],
-  [Lua_Object_Visualizer | null, Lua_Object],
-  [Lua_Object_Visualizer | null, Lua_Object]
+  [Lua_Object_Visualizer, Lua_Object],
+  [Lua_Object_Visualizer, Lua_Object],
+  [Lua_Object_Visualizer, Lua_Object]
 > {
   let id = `${node.loc!.start.line}-${node.loc!.end.line} | ${node.loc!.start.column}-${node.loc!.end.column}`;
   void id;
@@ -103,7 +106,7 @@ export function* evalStatements(
         const gen = evalExpression(exp, environment);
         let visualiser: ReturnType<typeof gen.next> = {
           done: true,
-          value: [null, Lua_Null],
+          value: [{ loc: node.loc }, Lua_Null],
         };
         do {
           visualiser = gen.next();
@@ -114,9 +117,8 @@ export function* evalStatements(
         if (obj.kind === 'return') vals.push(...obj.value);
         else vals.push(obj);
       }
-
       return [
-        null,
+        { loc: node.loc },
         {
           id: crypto.randomUUID(),
           kind: 'return',
@@ -129,7 +131,7 @@ export function* evalStatements(
         const gen = evalClause(clause, environment);
         let visual_obj: ReturnType<typeof gen.next> = {
           done: true,
-          value: [null, [false, Lua_Null]],
+          value: [{ loc: node.loc }, [false, Lua_Null]],
         };
         do {
           visual_obj = gen.next();
@@ -142,7 +144,7 @@ export function* evalStatements(
         if (obj.kind === 'error') return [visual_obj.value[0], obj];
         if (t) return [visual_obj.value[0], obj];
       }
-      return [null, Lua_Null];
+      return [{ loc: node.loc }, Lua_Null];
     }
 
     // TODO some visuals
@@ -152,14 +154,14 @@ export function* evalStatements(
         const gen = evalExpression(v, environment);
         let visual_obj: ReturnType<typeof gen.next> = {
           done: true,
-          value: [null, Lua_Null],
+          value: [{ loc: node.loc }, Lua_Null],
         };
         do {
           visual_obj = gen.next();
           yield visual_obj.value;
         } while (!visual_obj.done);
         let val = visual_obj.value[1];
-        if (val.kind === 'error') return [null, val];
+        if (val.kind === 'error') return [{ loc: node.loc }, val];
         if (val.kind === 'return') vals.push(...val.value);
         else vals.push(val);
       }
@@ -177,17 +179,17 @@ export function* evalStatements(
         );
         let value_obj: ReturnType<typeof gen.next> = {
           done: true,
-          value: [null, Lua_Null],
+          value: [{ loc: node.loc }, Lua_Null],
         };
         do {
           value_obj = gen.next();
         } while (!value_obj.done);
 
         const e = value_obj.value[1];
-        if (e.kind === 'error') return [null, e];
+        if (e.kind === 'error') return [{ loc: node.loc }, e];
       }
 
-      return [null, Lua_Null];
+      return [{ loc: node.loc }, Lua_Null];
     }
 
     case 'AssignmentStatement': {
@@ -196,14 +198,14 @@ export function* evalStatements(
         const gen_val = evalExpression(v, environment);
         let visual_val: ReturnType<typeof gen_val.next> = {
           done: true,
-          value: [null, Lua_Null],
+          value: [{ loc: node.loc }, Lua_Null],
         };
         do {
           visual_val = gen_val.next();
           yield visual_val.value;
         } while (!visual_val.done);
         let val = visual_val.value[1];
-        if (val.kind === 'error') return [null, val];
+        if (val.kind === 'error') return [{ loc: node.loc }, val];
         // TODO idk if this is good unwrapping return
         if (val.kind === 'return') vals.push(...val.value);
         else vals.push(val);
@@ -222,7 +224,7 @@ export function* evalStatements(
         );
         let visual_e: ReturnType<typeof gen_e.next> = {
           done: true,
-          value: [null, Lua_Null],
+          value: [{ loc: node.loc }, Lua_Null],
         };
         do {
           visual_e = gen_e.next();
@@ -230,10 +232,10 @@ export function* evalStatements(
         } while (!visual_e.done);
 
         let e = visual_e.value[1];
-        if (e.kind === 'error') return [null, e];
+        if (e.kind === 'error') return [{ loc: node.loc }, e];
       }
 
-      return [null, Lua_Null];
+      return [{ loc: node.loc }, Lua_Null];
     }
 
     case 'FunctionDeclaration': {
@@ -249,21 +251,21 @@ export function* evalStatements(
         let gen = evalAssignment(node.identifier, func, environment, false);
         let visual_obj: ReturnType<typeof gen.next> = {
           done: true,
-          value: [null, Lua_Null],
+          value: [{ loc: node.loc }, Lua_Null],
         };
         do {
           visual_obj = gen.next();
           yield visual_obj.value;
         } while (!visual_obj.done);
       }
-      return [null, func];
+      return [{ loc: node.loc }, func];
     }
 
     case 'CallStatement': {
       let gen = evalExpression(node.expression, environment);
       let visual_obj: ReturnType<typeof gen.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: node.loc }, Lua_Null],
       };
       do {
         visual_obj = gen.next();
@@ -276,7 +278,7 @@ export function* evalStatements(
       let gen_start = evalExpression(node.start, environment);
       let visual_start: ReturnType<typeof gen_start.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: node.loc }, Lua_Null],
       };
       do {
         visual_start = gen_start.next();
@@ -285,10 +287,10 @@ export function* evalStatements(
 
       let start = visual_start.value[1];
       if (start.kind === 'return') start = start.value[0] || Lua_Null;
-      if (start.kind === 'error') return [null, start];
+      if (start.kind === 'error') return [{ loc: node.loc }, start];
       if (start.kind !== 'number') {
         return [
-          null,
+          { loc: node.loc },
           {
             id: crypto.randomUUID(),
             kind: 'error',
@@ -300,7 +302,7 @@ export function* evalStatements(
       let gen_obj = evalAssignment(node.variable, start, environment, false);
       let visual_obj: ReturnType<typeof gen_obj.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: node.loc }, Lua_Null],
       };
       do {
         visual_obj = gen_obj.next();
@@ -310,7 +312,7 @@ export function* evalStatements(
       let [start_obj, exist] = environment.get(node.variable.name);
       if (!exist) {
         return [
-          null,
+          { loc: node.loc },
           {
             id: crypto.randomUUID(),
             kind: 'error',
@@ -318,10 +320,10 @@ export function* evalStatements(
           } satisfies Lua_Error,
         ];
       }
-      if (start_obj.kind === 'error') return [null, start_obj];
+      if (start_obj.kind === 'error') return [{ loc: node.loc }, start_obj];
       if (start_obj.kind !== 'number') {
         return [
-          null,
+          { loc: node.loc },
           {
             id: crypto.randomUUID(),
             kind: 'error',
@@ -333,7 +335,7 @@ export function* evalStatements(
       let gen_end = evalExpression(node.end, environment);
       let visual_end: ReturnType<typeof gen_end.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: node.loc }, Lua_Null],
       };
       do {
         visual_end = gen_end.next();
@@ -341,10 +343,10 @@ export function* evalStatements(
       } while (!visual_end.done);
       let end = visual_end.value[1];
       if (end.kind === 'return') end = end.value[0] || Lua_Null;
-      if (end.kind === 'error') return [null, end];
+      if (end.kind === 'error') return [{ loc: node.loc }, end];
       if (end.kind !== 'number') {
         return [
-          null,
+          { loc: node.loc },
           {
             id: crypto.randomUUID(),
             kind: 'error',
@@ -362,7 +364,7 @@ export function* evalStatements(
         const gen_step = evalExpression(node.step, environment);
         let visual_step: ReturnType<typeof gen_step.next> = {
           done: true,
-          value: [null, Lua_Null],
+          value: [{ loc: node.loc }, Lua_Null],
         };
         do {
           visual_step = gen_step.next();
@@ -372,10 +374,10 @@ export function* evalStatements(
       }
 
       if (step.kind === 'return') step = step.value[0] || Lua_Null;
-      if (step.kind === 'error') return [null, step];
+      if (step.kind === 'error') return [{ loc: node.loc }, step];
       if (step.kind !== 'number') {
         return [
-          null,
+          { loc: node.loc },
           {
             id: crypto.randomUUID(),
             kind: 'error',
@@ -399,7 +401,7 @@ export function* evalStatements(
         const gen_body = evalStatementsArray(node.body, environment);
         let visual_body: ReturnType<typeof gen_body.next> = {
           done: true,
-          value: [null, Lua_Null],
+          value: [{ loc: node.loc }, Lua_Null],
         };
         do {
           visual_body = gen_body.next();
@@ -408,15 +410,15 @@ export function* evalStatements(
         const body = visual_body.value[1];
 
         if (body.kind === 'error' || body.kind === 'return')
-          return [null, body];
+          return [{ loc: node.loc }, body];
         i += step.value;
       }
-      return [null, Lua_Null];
+      return [{ loc: node.loc }, Lua_Null];
     }
 
     default: {
       return [
-        null,
+        { loc: node.loc },
         {
           id: crypto.randomUUID(),
           kind: 'error',
@@ -431,9 +433,8 @@ export function* evalClause(
   clause: luaparser.IfClause | luaparser.ElseifClause | luaparser.ElseClause,
   environment: Lua_Environment,
 ): Generator<
-  | [Lua_Object_Visualizer, Lua_Object]
-  | [Lua_Object_Visualizer | null, Lua_Object],
-  [Lua_Object_Visualizer | null, [boolean, Lua_Object]],
+  [Lua_Object_Visualizer, Lua_Object] | [Lua_Object_Visualizer, Lua_Object],
+  [Lua_Object_Visualizer, [boolean, Lua_Object]],
   any
 > {
   //TODO some visuals
@@ -444,7 +445,7 @@ export function* evalClause(
       const gen = evalStatementsArray(clause.body, environment);
       let visuals: ReturnType<typeof gen.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: clause.loc }, Lua_Null],
       };
       do {
         visuals = gen.next();
@@ -460,21 +461,22 @@ export function* evalClause(
       const gen = evalExpression(clause.condition, environment);
       let visuals: ReturnType<typeof gen.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: clause.loc }, Lua_Null],
       };
       do {
         visuals = gen.next();
-        yield visuals.value || [null, Lua_Null];
+        yield visuals.value;
       } while (!visuals.done);
       let condition = visuals.value[1];
-      if (condition.kind === 'error') return [null, [false, condition]];
+      if (condition.kind === 'error')
+        return [{ loc: clause.loc }, [false, condition]];
       if (isThruthy(condition).value === false)
-        return [null, [false, Lua_Null]];
+        return [{ loc: clause.loc }, [false, Lua_Null]];
       else {
         let gen_statement = evalStatementsArray(clause.body, environment);
         let visuals_statement: ReturnType<typeof gen_statement.next> = {
           done: true,
-          value: [null, Lua_Null],
+          value: [{ loc: clause.loc }, Lua_Null],
         };
         do {
           visuals_statement = gen_statement.next();
@@ -507,8 +509,8 @@ export function* evalExpression(
   exp: luaparser.Expression,
   environment: Lua_Environment,
 ): Generator<
-  [Lua_Object_Visualizer | null, Lua_Object],
-  [Lua_Object_Visualizer | null, Lua_Object],
+  [Lua_Object_Visualizer, Lua_Object],
+  [Lua_Object_Visualizer, Lua_Object],
   Lua_Object_Visualizer
 > {
   void environment;
@@ -518,7 +520,7 @@ export function* evalExpression(
   switch (exp.type) {
     case 'NumericLiteral': {
       return [
-        null,
+        { loc: exp.loc },
         {
           id: crypto.randomUUID(),
           kind: 'number',
@@ -528,7 +530,7 @@ export function* evalExpression(
     }
 
     case 'BooleanLiteral': {
-      return [null, exp.value ? Lua_True : Lua_False];
+      return [{ loc: exp.loc }, exp.value ? Lua_True : Lua_False];
     }
 
     case 'StringLiteral': {
@@ -541,7 +543,7 @@ export function* evalExpression(
         val = parseLongString(exp.raw);
       }
       return [
-        null,
+        { loc: exp.loc },
         {
           id: crypto.randomUUID(),
           kind: 'string',
@@ -550,28 +552,28 @@ export function* evalExpression(
       ];
     }
     case 'NilLiteral': {
-      return [null, Lua_Null];
+      return [{ loc: exp.loc }, Lua_Null];
     }
     case 'UnaryExpression': {
       const gen_arg = evalExpression(exp.argument, environment);
       let visual_arg: ReturnType<typeof gen_arg.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: exp.loc }, Lua_Null],
       };
       do {
         visual_arg = gen_arg.next();
         yield visual_arg.value;
       } while (!visual_arg.done);
       const arg = visual_arg.value[1];
-      if (arg.kind === 'error') return [null, arg];
+      if (arg.kind === 'error') return [{ loc: exp.loc }, arg];
 
-      return [null, evalUnaryExpression(exp.operator, arg)];
+      return [{ loc: exp.loc }, evalUnaryExpression(exp.operator, arg)];
     }
     case 'BinaryExpression': {
       const gen_left = evalExpression(exp.left, environment);
       let visual_left: ReturnType<typeof gen_left.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: exp.loc }, Lua_Null],
       };
       do {
         visual_left = gen_left.next();
@@ -579,12 +581,12 @@ export function* evalExpression(
       } while (!visual_left.done);
       let left = visual_left.value[1];
       if (left.kind === 'return') left = left.value[0] || Lua_Null;
-      if (left.kind === 'error') return [null, left];
+      if (left.kind === 'error') return [{ loc: exp.loc }, left];
 
       const gen_right = evalExpression(exp.right, environment);
       let visual_right: ReturnType<typeof gen_right.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: exp.loc }, Lua_Null],
       };
       do {
         visual_right = gen_right.next();
@@ -592,9 +594,12 @@ export function* evalExpression(
       } while (!visual_right.done);
       let right = visual_right.value[1];
       if (right.kind === 'return') right = right.value[0] || Lua_Null;
-      if (right.kind === 'error') return [null, right];
+      if (right.kind === 'error') return [{ loc: exp.loc }, right];
 
-      return [null, evalBinaryExpression(exp.operator, left, right)];
+      return [
+        { loc: exp.loc },
+        evalBinaryExpression(exp.operator, left, right),
+      ];
     }
 
     // TODO visuals?
@@ -620,25 +625,25 @@ export function* evalExpression(
       if (exist) return [v, val];
 
       let val_builtin = builtin.get(exp.name);
-      if (!val_builtin) return [null, Lua_Null];
-      return [null, val_builtin];
+      if (!val_builtin) return [{ loc: exp.loc }, Lua_Null];
+      return [{ loc: exp.loc }, val_builtin];
     }
 
     case 'CallExpression': {
       const gen_func = evalExpression(exp.base, environment);
       let visual_func: ReturnType<typeof gen_func.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: exp.loc }, Lua_Null],
       };
       do {
         visual_func = gen_func.next();
         yield visual_func.value;
       } while (!visual_func.done);
       let func = visual_func.value[1];
-      if (func.kind === 'error') return [null, func];
+      if (func.kind === 'error') return [{ loc: exp.loc }, func];
       if (func.kind !== 'function' && func.kind !== 'builtin')
         return [
-          null,
+          { loc: exp.loc },
           {
             id: crypto.randomUUID(),
             kind: 'error',
@@ -655,14 +660,14 @@ export function* evalExpression(
         const gen_arg = evalExpression(a, environment);
         let visual_arg: ReturnType<typeof gen_arg.next> = {
           done: true,
-          value: [null, Lua_Null],
+          value: [{ loc: exp.loc }, Lua_Null],
         };
         do {
           visual_arg = gen_arg.next();
           yield visual_arg.value;
         } while (!visual_arg.done);
         const arg = visual_arg.value[1];
-        if (arg.kind === 'error') return [null, arg];
+        if (arg.kind === 'error') return [{ loc: exp.loc }, arg];
         args.push(arg);
       }
 
@@ -673,7 +678,7 @@ export function* evalExpression(
       const gen_obj = applyFunction(func, args);
       let visual_obj: ReturnType<typeof gen_obj.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: exp.loc }, Lua_Null],
       };
       do {
         visual_obj = gen_obj.next();
@@ -696,14 +701,14 @@ export function* evalExpression(
         const gen_obj = evalAssignment(exp.identifier, func, environment, true);
         let visual_obj: ReturnType<typeof gen_obj.next> = {
           done: true,
-          value: [null, Lua_Null],
+          value: [{ loc: exp.loc }, Lua_Null],
         };
         do {
           visual_obj = gen_obj.next();
           yield visual_obj.value;
         } while (!visual_obj.value);
       }
-      return [null, func];
+      return [{ loc: exp.loc }, func];
     }
 
     case 'TableConstructorExpression': {
@@ -712,7 +717,7 @@ export function* evalExpression(
         const gen_key_val = evalTableField(field, environment);
         let visual_key_val: ReturnType<typeof gen_key_val.next> = {
           done: true,
-          value: [null, [Lua_Null, Lua_Null]],
+          value: [{ loc: exp.loc }, [Lua_Null, Lua_Null]],
         };
         do {
           visual_key_val = gen_key_val.next();
@@ -721,29 +726,29 @@ export function* evalExpression(
           }
         } while (!visual_key_val.done);
         const [key, val] = visual_key_val.value[1];
-        if (key.kind === 'error') return [null, key];
-        if (val.kind === 'error') return [null, val];
+        if (key.kind === 'error') return [{ loc: exp.loc }, key];
+        if (val.kind === 'error') return [{ loc: exp.loc }, val];
         if (key.kind === 'null') t.setValue(val);
         else t.set(key, val);
       }
-      return [null, t];
+      return [{ loc: exp.loc }, t];
     }
 
     case 'IndexExpression': {
       const gen_identifier = evalExpression(exp.base, environment);
       let visual_identifier: ReturnType<typeof gen_identifier.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: exp.loc }, Lua_Null],
       };
       do {
         visual_identifier = gen_identifier.next();
-        yield [null, Lua_Null];
+        yield [{ loc: exp.loc }, Lua_Null];
       } while (!visual_identifier.done);
       const identifier = visual_identifier.value[1];
-      if (identifier.kind === 'error') return [null, identifier];
+      if (identifier.kind === 'error') return [{ loc: exp.loc }, identifier];
       if (identifier.kind !== 'table') {
         return [
-          null,
+          { loc: exp.loc },
           {
             id: crypto.randomUUID(),
             kind: 'error',
@@ -755,20 +760,20 @@ export function* evalExpression(
       let gen_idx = evalExpression(exp.index, environment);
       let visual_idx: ReturnType<typeof gen_idx.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: exp.loc }, Lua_Null],
       };
       do {
         visual_idx = gen_idx.next();
-        yield [null, Lua_Null];
+        yield [{ loc: exp.loc }, Lua_Null];
       } while (!visual_idx.done);
 
       let idx = visual_idx.value[1];
 
       if (idx.kind === 'return') idx = idx.value[0] || Lua_Null;
-      if (idx.kind === 'error') return [null, idx];
+      if (idx.kind === 'error') return [{ loc: exp.loc }, idx];
       if (idx.kind === 'null') {
         return [
-          null,
+          { loc: exp.loc },
           {
             id: crypto.randomUUID(),
             kind: 'error',
@@ -776,10 +781,10 @@ export function* evalExpression(
           } satisfies Lua_Error,
         ];
       }
-      let v = null;
+      let v: Lua_Object_Visualizer = { loc: exp.loc };
 
       const val = identifier.get(idx);
-      if (visual_idx.value[0] && visual_identifier.value[0]) {
+      if (visual_idx.value[0] && visual_identifier.value[0] &&visual_idx.value[0].indexer && visual_identifier.value[0].indexer) {
         v = {
           identifier: {
             id: visual_identifier.value[0]!.indexer!.id,
@@ -803,7 +808,7 @@ export function* evalExpression(
       const gen_identifier = evalExpression(exp.base, environment);
       let visual_identifier: ReturnType<typeof gen_identifier.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: exp.loc }, Lua_Null],
       };
       do {
         visual_identifier = gen_identifier.next();
@@ -811,10 +816,10 @@ export function* evalExpression(
       } while (!visual_identifier.done);
 
       const identifier = visual_identifier.value[1];
-      if (identifier.kind === 'error') return [null, identifier];
+      if (identifier.kind === 'error') return [{ loc: exp.loc }, identifier];
       if (identifier.kind !== 'table') {
         return [
-          null,
+          { loc: exp.loc },
           {
             id: crypto.randomUUID(),
             kind: 'error',
@@ -829,8 +834,9 @@ export function* evalExpression(
           kind: 'string',
           value: exp.identifier.name,
         } satisfies Lua_String);
-        if (val.kind !== 'null') return [null, val];
-        if (identifier.metatable.kind !== 'table') return [null, val];
+        if (val.kind !== 'null') return [{ loc: exp.loc }, val];
+        if (identifier.metatable.kind !== 'table')
+          return [{ loc: exp.loc }, val];
 
         const __index = identifier.metatable.get({
           id: crypto.randomUUID(),
@@ -838,7 +844,7 @@ export function* evalExpression(
           value: '__index',
         } satisfies Lua_String);
 
-        if (__index.kind === 'null') return [null, Lua_Null];
+        if (__index.kind === 'null') return [{ loc: exp.loc }, Lua_Null];
 
         if (__index.kind === 'function') {
           let gen_obj = applyFunction(__index, [
@@ -851,7 +857,7 @@ export function* evalExpression(
           ]);
           let visual_obj: ReturnType<typeof gen_obj.next> = {
             done: true,
-            value: [null, Lua_Null],
+            value: [{ loc: exp.loc }, Lua_Null],
           };
           do {
             visual_obj = gen_obj.next();
@@ -862,7 +868,7 @@ export function* evalExpression(
         }
         if (__index.kind !== 'table')
           return [
-            null,
+            { loc: exp.loc },
             {
               id: crypto.randomUUID(),
               kind: 'error',
@@ -871,7 +877,7 @@ export function* evalExpression(
           ];
 
         return [
-          null,
+          { loc: exp.loc },
           __index.get({
             id: crypto.randomUUID(),
             kind: 'string',
@@ -887,7 +893,7 @@ export function* evalExpression(
 
         if (val.kind !== 'function' && val.kind !== 'null') {
           return [
-            null,
+            { loc: exp.loc },
             {
               id: crypto.randomUUID(),
               kind: 'error',
@@ -897,25 +903,26 @@ export function* evalExpression(
         }
         if (val.kind === 'function') {
           val.self = identifier;
-          return [null, val];
+          return [{ loc: exp.loc }, val];
         }
 
-        if (identifier.metatable.kind !== 'table') return [null, val];
+        if (identifier.metatable.kind !== 'table')
+          return [{ loc: exp.loc }, val];
         const __index = identifier.metatable.get({
           id: crypto.randomUUID(),
           kind: 'string',
           value: '__index',
         } satisfies Lua_String);
 
-        if (__index.kind === 'null') return [null, Lua_Null];
+        if (__index.kind === 'null') return [{ loc: exp.loc }, Lua_Null];
         if (__index.kind === 'function') {
           __index.self = identifier;
           // TODO should not have to call the function since idxer : always come from call expression
-          return [null, __index];
+          return [{ loc: exp.loc }, __index];
         }
         if (__index.kind !== 'table')
           return [
-            null,
+            { loc: exp.loc },
             {
               id: crypto.randomUUID(),
               kind: 'error',
@@ -931,7 +938,7 @@ export function* evalExpression(
 
         if (func.kind !== 'function' && func.kind !== 'null') {
           return [
-            null,
+            { loc: exp.loc },
             {
               id: crypto.randomUUID(),
               kind: 'error',
@@ -939,16 +946,16 @@ export function* evalExpression(
             } satisfies Lua_Error,
           ];
         }
-        if (func.kind === 'null') return [null, Lua_Null];
+        if (func.kind === 'null') return [{ loc: exp.loc }, Lua_Null];
         func.self = identifier;
-        return [null, func];
+        return [{ loc: exp.loc }, func];
       }
       //return { kind: 'error', message: `indexer : not implemented` } as Lua_Error
     }
 
     default: {
       return [
-        null,
+        { loc: exp.loc },
         {
           id: crypto.randomUUID(),
           kind: 'error',
@@ -968,19 +975,22 @@ export function* evalAssignment(
   environment: Lua_Environment,
   global: boolean,
 ): Generator<
-  [Lua_Object_Visualizer | null, Lua_Null | Lua_Object],
-  [Lua_Object_Visualizer | null, Lua_Null | Lua_Error],
+  [Lua_Object_Visualizer, Lua_Null | Lua_Object],
+  [Lua_Object_Visualizer, Lua_Null | Lua_Error],
   any
 > {
   //TODO add viuals. Here we can do an animation
   switch (exp.type) {
     case 'Identifier':
-      return [null, evalIdentiferAssignment(exp, val, environment, global)];
+      return [
+        { loc: exp.loc },
+        evalIdentiferAssignment(exp, val, environment, global),
+      ];
     case 'IndexExpression':
       const gen = evalExpression(exp.base, environment);
       let visual_obj: ReturnType<typeof gen.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: exp.loc }, Lua_Null],
       };
       do {
         visual_obj = gen.next();
@@ -988,10 +998,10 @@ export function* evalAssignment(
       } while (!visual_obj.done);
       const identifier = visual_obj.value[1];
 
-      if (identifier.kind === 'error') return [null, identifier];
+      if (identifier.kind === 'error') return [{ loc: exp.loc }, identifier];
       if (identifier.kind !== 'table')
         return [
-          null,
+          { loc: exp.loc },
           {
             id: crypto.randomUUID(),
             kind: 'error',
@@ -1002,7 +1012,7 @@ export function* evalAssignment(
       const gen_idx = evalExpression(exp.index, environment);
       let visual_obj_idx: ReturnType<typeof gen_idx.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: exp.loc }, Lua_Null],
       };
       do {
         visual_obj_idx = gen_idx.next();
@@ -1012,10 +1022,10 @@ export function* evalAssignment(
       let idx = visual_obj_idx.value[1];
 
       if (idx.kind === 'return') idx = idx.value[0] || Lua_Null;
-      if (idx.kind === 'error') return [null, idx];
+      if (idx.kind === 'error') return [{ loc: exp.loc }, idx];
       if (idx.kind === 'null') {
         return [
-          null,
+          { loc: exp.loc },
           {
             id: crypto.randomUUID(),
             kind: 'error',
@@ -1025,12 +1035,12 @@ export function* evalAssignment(
       }
       //
       identifier.set(idx, val);
-      return [null, Lua_Null];
+      return [{ loc: exp.loc }, Lua_Null];
     case 'MemberExpression': {
       const gen_identifier = evalExpression(exp.base, environment);
       let visual_identifier: ReturnType<typeof gen_identifier.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: exp.loc }, Lua_Null],
       };
       do {
         visual_identifier = gen_identifier.next();
@@ -1038,10 +1048,10 @@ export function* evalAssignment(
       } while (!visual_identifier.done);
 
       const identifier = visual_identifier.value[1];
-      if (identifier.kind === 'error') return [null, identifier];
+      if (identifier.kind === 'error') return [{ loc: exp.loc }, identifier];
       if (identifier.kind !== 'table') {
         return [
-          null,
+          { loc: exp.loc },
           {
             id: crypto.randomUUID(),
             kind: 'error',
@@ -1053,7 +1063,7 @@ export function* evalAssignment(
       if (exp.indexer === ':') {
         if (val.kind !== 'function') {
           return [
-            null,
+            { loc: exp.loc },
             {
               id: crypto.randomUUID(),
               kind: 'error',
@@ -1081,12 +1091,12 @@ export function* evalAssignment(
         );
       }
 
-      return [null, Lua_Null];
+      return [{ loc: exp.loc }, Lua_Null];
     }
 
     default: {
       return [
-        null,
+        {},
         {
           id: crypto.randomUUID(),
           kind: 'error',
@@ -1394,9 +1404,9 @@ export function* applyFunction(
   func: Lua_Function | Lua_Builtin,
   args: Lua_Object[],
 ): Generator<
-  [Lua_Object_Visualizer | null, Lua_Object],
-  [Lua_Object_Visualizer | null, Lua_Object],
-  [Lua_Object_Visualizer | null, Lua_Object]
+  [Lua_Object_Visualizer, Lua_Object],
+  [Lua_Object_Visualizer, Lua_Object],
+  [Lua_Object_Visualizer, Lua_Object]
 > {
   switch (func.kind) {
     case 'function': {
@@ -1404,17 +1414,17 @@ export function* applyFunction(
       const gen_evaluated = evalStatementsArray(func.body, extendedEnv);
       let visual_evaluated: ReturnType<typeof gen_evaluated.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{}, Lua_Null],
       };
       do {
         visual_evaluated = gen_evaluated.next();
         yield visual_evaluated.value;
       } while (!visual_evaluated.done);
       const evaulated = visual_evaluated.value[1];
-      return [null, evaulated];
+      return [{}, evaulated];
     }
     case 'builtin': {
-      return [null, func.fn(...args)];
+      return [{}, func.fn(...args)];
     }
   }
 }
@@ -1445,16 +1455,16 @@ export function* evalTableField(
   field: luaparser.TableKey | luaparser.TableKeyString | luaparser.TableValue,
   environment: Lua_Environment,
 ): Generator<
-  [Lua_Object_Visualizer | null, Lua_Object],
-  [Lua_Object_Visualizer | null, [Lua_Object, Lua_Object]],
-  [Lua_Object_Visualizer | null, [Lua_Object, Lua_Object]]
+  [Lua_Object_Visualizer, Lua_Object],
+  [Lua_Object_Visualizer, [Lua_Object, Lua_Object]],
+  [Lua_Object_Visualizer, [Lua_Object, Lua_Object]]
 > {
   switch (field.type) {
     case 'TableKey': {
       const gen_key = evalExpression(field.key, environment);
       let visual_key: ReturnType<typeof gen_key.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: field.loc }, Lua_Null],
       };
       do {
         visual_key = gen_key.next();
@@ -1463,7 +1473,7 @@ export function* evalTableField(
       const key = visual_key.value[1];
       if (key.kind === 'null')
         return [
-          null,
+          { loc: field.loc },
           [
             {
               id: crypto.randomUUID(),
@@ -1477,20 +1487,20 @@ export function* evalTableField(
       const gen_val = evalExpression(field.value, environment);
       let visual_val: ReturnType<typeof gen_val.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: field.loc }, Lua_Null],
       };
       do {
         visual_val = gen_val.next();
         yield visual_val.value;
       } while (!visual_val.done);
       const val = visual_val.value[1];
-      return [null, [key, val]];
+      return [{ loc: field.loc }, [key, val]];
     }
     case 'TableKeyString': {
       const gen_val = evalExpression(field.value, environment);
       let visual_val: ReturnType<typeof gen_val.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: field.loc }, Lua_Null],
       };
       do {
         visual_val = gen_val.next();
@@ -1499,7 +1509,7 @@ export function* evalTableField(
       const val = visual_val.value[1];
 
       return [
-        null,
+        { loc: field.loc },
         [
           {
             id: crypto.randomUUID(),
@@ -1514,14 +1524,14 @@ export function* evalTableField(
       const gen_val = evalExpression(field.value, environment);
       let visual_val: ReturnType<typeof gen_val.next> = {
         done: true,
-        value: [null, Lua_Null],
+        value: [{ loc: field.loc }, Lua_Null],
       };
       do {
         visual_val = gen_val.next();
         yield visual_val.value;
       } while (!visual_val.done);
       const val = visual_val.value[1];
-      return [null, [Lua_Null, val]];
+      return [{ loc: field.loc }, [Lua_Null, val]];
     }
   }
 }

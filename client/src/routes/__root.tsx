@@ -25,10 +25,10 @@ const colors_light = {
 };
 const colors_dark = {
   background: '#22223B',
-  accent: '#C9ADA7',
+  accent: '#9A8C98',
   text: '#F2E9E4',
   primary: '#4A4E69',
-  secondary: '#9A8C98',
+  secondary: '#C9ADA7',
   heapmapBackground: '#2e2e4b',
   heatmap: {
     0: '#3a3a5c',

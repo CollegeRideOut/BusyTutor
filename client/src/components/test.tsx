@@ -1,32 +1,34 @@
-//import { GoPackageDependencies } from "react-icons/go";
-import { createFileRoute } from '@tanstack/react-router';
 import { useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ThemeContext } from '../__root';
+import { ThemeContext } from '../routes/__root';
 import luaparser from 'luaparse';
+
+import { RiResetLeftFill } from 'react-icons/ri';
+import { VscDebugStepOver } from 'react-icons/vsc';
 //import { evalChunk } from '../../utils/interperter_generator/eval_generator'
-import { Lua_Environment, Lua_Table } from '../../utils/interperter/lua_types';
+import { Lua_Environment, Lua_Table } from '../utils/interperter/lua_types';
 //import type { Lua_Object } from '../../utils/interperter/lua_types'
-import { Button } from '../../components/ui/button';
+import { Button } from '../components/ui/button';
 import {
   ResizablePanel,
   ResizableHandle,
   ResizablePanelGroup,
-} from '../../components/ui/resizable';
-import type { Lua_Object_Visualizer } from '../../utils/interperter_generator/generator_types';
+} from '../components/ui/resizable';
+import type { Lua_Object_Visualizer } from '../utils/interperter_generator/generator_types';
 import {
   evalChunk,
   Lua_Global_Environment,
   setGLobalEnvironmentGenerator,
-} from '../../utils/interperter_generator/eval_generator';
+} from '../utils/interperter_generator/eval_generator';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '../../components/ui/tooltip';
-import { parseLongString } from '../../utils/interperter/eval';
+} from '../components/ui/tooltip';
+import { parseLongString } from '../utils/interperter/eval';
 import * as motion from 'motion/react-client';
 
+type Theme = typeof ThemeContext extends React.Context<infer U> ? U : never;
 export function VisualizerTool({
   title,
   description,
@@ -39,6 +41,7 @@ export function VisualizerTool({
   testString: {
     args: [{ name: string; value: string }];
     resultString: string;
+    testToAddToCode: string;
   }[];
 }) {
   const [code, setCode] = useState('');
@@ -80,7 +83,6 @@ export function VisualizerTool({
     if (envVisual.length < 1) return;
     let current = envVisual.pop();
 
-    console.log('hello', envVisual);
     const rect1 = visualEnvironmentRef.current
       .get(current!.indexer!.name)!
       .getBoundingClientRect();
@@ -230,6 +232,24 @@ export function VisualizerTool({
   return (
     <ResizablePanelGroup direction='horizontal' className='flex grow w-full'>
       <ResizablePanel className='flex flex-col w-1/2 p-4'>
+        <div>
+          {
+            //  <Button
+            //  onClick={() => {
+            //    if (!ast) {
+            //      console.log('no ast');
+            //      return;
+            //    }
+            //    console.log(ast);
+            //    console.log(visual);
+            //    console.log(envVisual);
+            //  }}
+            //>
+            //  print ast
+            //</Button>
+          }
+        </div>
+
         {!gen ? (
           <textarea
             onChange={(e) => setCode(e.target.value)}
@@ -251,96 +271,75 @@ export function VisualizerTool({
             {visCode}
           </div>
         )}
-
-        <div>
-          <Button
-            onClick={() => {
-              const _ast = luaparser.parse(code, { locations: true });
-              setAst(_ast);
-              let env = new Lua_Environment();
-              let globalEnvironment = new Lua_Environment();
-              setEnvironment(env);
-              setGLobalEnvironmentGenerator(globalEnvironment);
-              setGlobalEnvironment(globalEnvironment);
-              setGen(evalChunk(_ast, env));
-            }}
-          >
-            Crete Generator
-          </Button>
-
-          <Button
-            onClick={() => {
-              if (!gen) {
-                console.log('no Generator');
-                return;
-              }
-              const val = gen.next();
-              if (val.done) {
-                setGen(undefined);
-              } else {
-                //if (!val.value) return;
-                //setVisual([...visual, val.value])
-                //
-                let v = val.value[1];
-
-                let visual = val.value[0];
-                if (visual) {
-                  if (visual.identifier && visual.indexer) {
-                    setEnviVisual([...envVisual, visual]);
-                    console.log('env visual hapened');
-                  } else if (visual.loc) {
-                    setCodeLocaltion(visual);
-                  }
-                }
-                setEnvironment(
-                  JSON.parse(
-                    JSON.stringify(v, replacer),
-                    reviver,
-                  ) as Lua_Environment,
-                );
-                setGlobalEnvironment(
-                  JSON.parse(
-                    JSON.stringify(Lua_Global_Environment, replacer),
-                    reviver,
-                  ) as Lua_Environment,
-                );
-              }
-              //console.log('hello', environement!.store);
-            }}
-          >
-            Next
-          </Button>
-
-          <Button
-            onClick={() => {
-              setAst(null);
-              setVisCode([]);
-              setGen(undefined);
-            }}
-          >
-            reset
-          </Button>
-
-          <Button
-            onClick={() => {
-              if (!ast) {
-                console.log('no ast');
-                return;
-              }
-              console.log(ast);
-              console.log(visual);
-              console.log(envVisual);
-            }}
-          >
-            print ast
-          </Button>
-        </div>
       </ResizablePanel>
 
       <ResizableHandle />
       <ResizablePanel className='flex flex-col w-1/2 border-solid border-l-1 border-black '>
         {gen ? (
           <div className='h-full w-full p-4 overflow-y-scroll'>
+            <div className='flex gap-x-8 justify-center rounded p-4'>
+              <VscDebugStepOver
+                className={`cursor-pointer hover:bg-[var(--bg-hover)] bg-[var(--bg)] rounded  active:bg-[var(--active)]`}
+                style={{
+                  '--bg': theme.vals.colors.background,
+                  '--active': theme.vals.colors.primary,
+                  '--bg-hover': theme.vals.colors.accent,
+                }}
+                size={30}
+                onClick={() => {
+                  if (!gen) {
+                    console.log('no Generator');
+                    return;
+                  }
+                  const val = gen.next();
+                  if (val.done) {
+                    setGen(undefined);
+                  } else {
+                    //if (!val.value) return;
+                    //setVisual([...visual, val.value])
+                    //
+                    let v = val.value[1];
+
+                    let visual = val.value[0];
+                    if (visual) {
+                      if (visual.identifier && visual.indexer) {
+                        setEnviVisual([...envVisual, visual]);
+                        console.log('env visual hapened');
+                      } else if (visual.loc) {
+                        setCodeLocaltion(visual);
+                      }
+                    }
+                    setEnvironment(
+                      JSON.parse(
+                        JSON.stringify(v, replacer),
+                        reviver,
+                      ) as Lua_Environment,
+                    );
+                    setGlobalEnvironment(
+                      JSON.parse(
+                        JSON.stringify(Lua_Global_Environment, replacer),
+                        reviver,
+                      ) as Lua_Environment,
+                    );
+                  }
+                  //console.log('hello', environement!.store);
+                }}
+              />
+              <RiResetLeftFill
+                className={`cursor-pointer hover:bg-[var(--bg-hover)] bg-[var(--bg)] rounded  active:bg-[var(--active)]`}
+                style={{
+                  '--bg': theme.vals.colors.background,
+                  '--active': theme.vals.colors.primary,
+                  '--bg-hover': theme.vals.colors.accent,
+                }}
+                size={30}
+                onClick={() => {
+                  setAst(null);
+                  setVisCode([]);
+                  setGen(undefined);
+                }}
+              />
+            </div>
             <div className='flex flex-col flex-wrap w full'>
               local
               {
@@ -368,19 +367,45 @@ export function VisualizerTool({
             <div className='w-full items-center flex flex-col  gap-y-3'>
               <div className='font-bold text-[20px]'>Tests</div>
               <div className='w-full'>
-                <div className='flex items-center gap-y-3'>
-                  <div className='flex flex-col gap-y-3'>
+                <div className='flex items-center gap-y-3 w-full'>
+                  <div className='flex flex-col gap-y-3 w-full'>
                     {testString.map((t) => {
-                      t.args.map((arg) => {
+                      let args = t.args.map((arg) => {
                         return (
                           <div>
-                            <b>{arg.name}</b>arg.value
+                            <b>{arg.name}: </b>
+                            {arg.value}
                           </div>
                         );
                       });
                       return (
-                        <div>
-                          <b>Result:</b> t.resultString
+                        <div
+                          className={`flex flex-col gap-y-3 cursor-pointer w-full hover:bg-[var(--bg-hover)] bg-[var(--bg)] rounded p-2 active:bg-[var(--active)]`}
+                          style={{
+                            '--active': theme.vals.colors.primary,
+                            '--bg-hover': theme.vals.colors.accent,
+                            '--bg': theme.vals.colors.background,
+                          }}
+                          onClick={() => {
+                            const _ast = luaparser.parse(
+                              t.testToAddToCode + '\n' + code,
+                              {
+                                locations: true,
+                              },
+                            );
+                            setAst(_ast);
+                            let env = new Lua_Environment();
+                            let globalEnvironment = new Lua_Environment();
+                            setEnvironment(env);
+                            setGLobalEnvironmentGenerator(globalEnvironment);
+                            setGlobalEnvironment(globalEnvironment);
+                            setGen(evalChunk(_ast, env));
+                          }}
+                        >
+                          <div>{args}</div>
+                          <div>
+                            <b>Result:</b> {t.resultString}
+                          </div>
                         </div>
                       );
                     })}
@@ -394,8 +419,6 @@ export function VisualizerTool({
     </ResizablePanelGroup>
   );
 }
-
-type Theme = typeof ThemeContext extends React.Context<infer U> ? U : never;
 
 function environmentVisual(
   env: Lua_Environment,
@@ -1005,7 +1028,6 @@ export function evalAssignment(
       : `${visuals.loc.start.line}-${visuals.loc.end.line} | ${visuals.loc.start.column}-${visuals.loc.end.column}`;
   let backgroundColor = visualid === id ? theme.vals.colors.primary : '';
   console.log(visuals);
-  console.log('heeeeyyyy', visualid, visualid === id, id);
   switch (exp.type) {
     case 'Identifier':
       return (
@@ -1066,6 +1088,8 @@ export function evalTableField(
     visuals.loc === undefined
       ? ''
       : `${visuals.loc.start.line}-${visuals.loc.end.line} | ${visuals.loc.start.column}-${visuals.loc.end.column}`;
+
+  let backgroundColor = visualid === id ? theme.vals.colors.primary : '';
   let render: ReactNode = null;
   switch (field.type) {
     case 'TableKey': {
@@ -1102,7 +1126,7 @@ export function evalTableField(
       key={id}
       className='flex gap-x-0.5'
       style={{
-        backgroundColor: visualid === id ? 'white' : '',
+        backgroundColor,
       }}
     >
       {render}
