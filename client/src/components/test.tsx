@@ -126,6 +126,7 @@ export function VisualizerTool({
     the_rest.forEach((el) => {
       grid[Math.floor(el.y / 50)][Math.floor(el.x / 50)] = el;
     });
+    // now we have to find a path
 
     setSvg(
       <svg
@@ -283,7 +284,7 @@ export function VisualizerTool({
                 style={{
                   '--bg': theme.vals.colors.background,
                   '--active': theme.vals.colors.primary,
-                  '--bg-hover': theme.vals.colors.accent,
+                  '--bg-hover': theme.vals.colors.primary,
                 }}
                 size={30}
                 onClick={() => {
