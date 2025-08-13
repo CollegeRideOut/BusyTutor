@@ -2,6 +2,11 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ThemeContext } from '../routes/__root';
 import luaparser from 'luaparse';
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from './ui/collapsible';
 
 import { RiResetLeftFill } from 'react-icons/ri';
 import { VscDebugStepOver } from 'react-icons/vsc';
@@ -90,69 +95,158 @@ export function VisualizerTool({
       .get(current!.identifier!.value)!
       .getBoundingClientRect();
 
-    let the_rest = [...visualEnvironmentRef.current.entries()].map(([_, x]) =>
-      x.getBoundingClientRect(),
-    );
+    //let the_rest = [...visualEnvironmentRef.current.entries()].map(([_, x]) =>
+    //  x.getBoundingClientRect(),
+    //);
 
-    let min_x = -1;
-    let min_y = -1;
-
-    // only care about the top left  get min tops
-    the_rest.forEach((e) => {
-      if (min_x === -1 || e.x < min_x) min_x = e.x;
-      if (min_y === -1 || e.y < min_y) min_y = e.y;
-    });
-    // normilize
-    the_rest.forEach((el) => {
-      el.x -= min_x;
-      el.y -= min_y;
-    });
-
-    // get max
-    let max_x = -1;
-    let max_y = -1;
-    the_rest.forEach((el) => {
-      if (max_x === -1 || el.x > max_x) max_x = el.x;
-      if (max_y === -1 || el.y > max_y) max_y = el.y;
-    });
-
-    // make grid
-    let grid: DOMRect[][] | null = Array.from(
-      { length: Math.floor(max_y / 50) + 1 },
-      () => {
-        return Array(Math.floor(max_x / 50) + 1).fill(null);
-      },
-    );
-    the_rest.forEach((el) => {
-      grid[Math.floor(el.y / 50)][Math.floor(el.x / 50)] = el;
-    });
-    // now we have to find a path
-
+    //let min_x = -1;
+    //let min_y = -1;
+    //
+    //// only care about the top left  get min tops
+    //the_rest.forEach((e) => {
+    //  if (min_x === -1 || e.x < min_x) min_x = e.x;
+    //  if (min_y === -1 || e.y < min_y) min_y = e.y;
+    //});
+    //// normilize
+    //the_rest.forEach((el) => {
+    //  el.x -= min_x;
+    //  el.y -= min_y;
+    //});
+    //
+    //// get max
+    //let max_x = -1;
+    //let max_y = -1;
+    //the_rest.forEach((el) => {
+    //  if (max_x === -1 || el.x > max_x) max_x = el.x;
+    //  if (max_y === -1 || el.y > max_y) max_y = el.y;
+    //});
+    //
+    //// make grid
+    //let grid: DOMRect[][] | null = Array.from(
+    //  { length: Math.floor(max_x / 50) + 1 },
+    //  () => {
+    //    return Array(Math.floor(max_y / 50) + 1).fill(null);
+    //  },
+    //);
+    //
+    //let start = { i: 0, j: 0 };
+    //let end = { i: 0, j: 0 };
+    //the_rest.forEach((el) => {
+    //  let el_i = Math.floor(el.x / 50);
+    //  let el_j = Math.floor(el.y / 50);
+    //
+    //  grid[el_i][el_j] = el;
+    //
+    //  el.x += min_x;
+    //  el.y += min_y;
+    //
+    //  if (el.x === rect1.x && el.y === rect1.y) {
+    //    start.i = el_i;
+    //    start.j = el_j;
+    //  }
+    //  if (el.x === rect2.x && el.y === rect2.y) {
+    //    end.i = el_i;
+    //    end.j = el_j;
+    //  }
+    //});
+    //// now we have to find a path
+    //let vistited_parent: Map<string, string> = new Map();
+    //vistited_parent.set(`${start.i}-${start.j}`, `${start.i}-${start.j}`);
+    //let dirs = [
+    //  { i: 1, j: 0 },
+    //  { i: -1, j: 0 },
+    //  { i: 0, j: 1 },
+    //  { i: 0, j: -1 },
+    //];
+    //let q = [start];
+    //// shortest path
+    //parent: while (q.length > 0) {
+    //  let n = q.length;
+    //  for (let i = 0; i < n; i++) {
+    //    let curr = q.shift();
+    //    if (curr === undefined) {
+    //      console.log('error');
+    //      break;
+    //    }
+    //    if (curr.i === end.i && curr.j === end.j) {
+    //      console.log('found it');
+    //      break parent;
+    //    }
+    //    for (let dir of dirs) {
+    //      let new_node = { i: curr.i + dir.i, j: curr.j + dir.j };
+    //      if (
+    //        new_node.i < 0 ||
+    //        new_node.j < 0 ||
+    //        new_node.i >= grid.length ||
+    //        new_node.j > grid[0].length ||
+    //        (grid[new_node.i][new_node.j] !== null &&
+    //          new_node.i !== end.i &&
+    //          new_node.j !== end.j) ||
+    //        vistited_parent.has(`${new_node.i}-${new_node.j}`)
+    //      ) {
+    //        continue;
+    //      } else {
+    //        vistited_parent.set(
+    //          `${new_node.i}-${new_node.j}`,
+    //          `${curr.i}-${curr.j}`,
+    //        );
+    //        q.push(new_node);
+    //      }
+    //    }
+    //  }
+    //}
+    //
+    //// TODO give grid values?
+    //
+    //let path: { i: number; j: number }[] = [];
+    //let last = `${end.i}-${end.j}`;
+    //let parent_v = vistited_parent.get(last);
+    //
+    //while (last !== parent_v) {
+    //  let split = last.split('-');
+    //  path.push({ i: parseInt(split[0]), j: parseInt(split[1]) });
+    //  last = parent_v!;
+    //  parent_v = vistited_parent.get(parent_v!);
+    //}
+    //
+    //path = path;
+    //let new_grid: { x: number; y: number }[][] = [];
+    //for (let i = 0; i < grid.length; i++) {
+    //  let row: { x: number; y: number }[] = [];
+    //  for (let j = 0; j < grid[0].length; j++) {
+    //    if (grid[i][j] === null) {
+    //      row.push({ x: min_x + 50 * i, y: min_y + 50 * j });
+    //    } else {
+    //      row.push({ x: grid[i][j].x, y: grid[i][j].y });
+    //    }
+    //  }
+    //  new_grid.push(row);
+    //}
+    //console.log(new_grid, rect1);
+    //console.log(`rect 1 ${rect1.y}`);
+    //let svg_path = `M${rect1.x} ${rect1.y}`;
+    //console.log(svg_path);
+    //
+    //let other = path
+    //  .map(({ i, j }) => {
+    //    return `L${new_grid[i][j].x} ${new_grid[i][j].y}`;
+    //  })
+    //  .join(' ');
+    //svg_path += other;
+    //
+    //console.log(svg_path);
+    //
     setSvg(
       <svg
         style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
         width={window.innerWidth}
         height={window.innerHeight}
       >
-        <marker
-          id='arrow'
-          viewBox='0 0 10 10'
-          refX='5'
-          refY='5'
-          markerWidth='4'
-          markerHeight='3'
-          orient='auto-start-reverse'
-        >
-          <polygon points='0 0, 10 3.5, 0 7' fill='black' />
-        </marker>
-        <line
-          x1={rect1.x}
-          y1={rect1.y}
-          x2={rect2.x}
-          y2={rect2.y}
+        <path
+          d={svg_path}
           stroke={`${theme.vals.colors.primary}`}
+          fill='none'
           strokeWidth={4}
-          markerEnd='url(#arrow)'
         />
 
         {/* rect1 box*/}
@@ -435,7 +529,6 @@ function environmentVisual(
         return (
           <motion.div
             className=' flex p-1 items-center h-[50px] w-[50px] justify-center'
-            animate={{ height: 'auto', width: 'auto' }}
             ref={(el) => {
               el && ref.current.set(identifier, el);
             }}
@@ -446,10 +539,7 @@ function environmentVisual(
       }
       case 'table': {
         return (
-          <motion.div
-            animate={{ height: 'auto', width: 'auto' }}
-            className=' flex p-1 gap-2 items-center justify-center'
-          >
+          <motion.div className=' flex p-1 gap-2 items-center justify-center'>
             {identifier} {tableVisualizer(obj, ref)}
           </motion.div>
         );
@@ -486,7 +576,6 @@ export function tableVisualizer(
       case 'boolean': {
         return (
           <motion.div
-            animate={{ height: 'auto', width: 'auto' }}
             className='flex gap-3 p-1 h-[50px] w-[50px] justify-center items-center'
             ref={(el) => {
               el && ref.current.set(obj.id, el);
@@ -499,7 +588,6 @@ export function tableVisualizer(
       case 'function': {
         return (
           <motion.div
-            animate={{ height: 'auto', width: 'auto' }}
             className='flex gap-3 p-1 h-[50px] w-[50px]'
             ref={(el) => {
               el && ref.current.set(obj.id, el);
@@ -511,10 +599,7 @@ export function tableVisualizer(
       }
       case 'table': {
         return (
-          <motion.div
-            animate={{ height: 'auto', width: 'auto' }}
-            className='flex gap-3 p-1'
-          >
+          <motion.div className='flex gap-3 p-1'>
             {key.toString()}: {tableVisualizer(obj, ref)}
           </motion.div>
         );
@@ -531,10 +616,7 @@ export function tableVisualizer(
     }
   });
   return (
-    <motion.div
-      animate={{ height: 'auto', width: 'auto' }}
-      className='flex gap-3 p-1 items-center justify-center'
-    >
+    <motion.div className='flex gap-3 p-1 items-center justify-center'>
       {...rc}
     </motion.div>
   );
@@ -1028,7 +1110,6 @@ export function evalAssignment(
       ? ''
       : `${visuals.loc.start.line}-${visuals.loc.end.line} | ${visuals.loc.start.column}-${visuals.loc.end.column}`;
   let backgroundColor = visualid === id ? theme.vals.colors.primary : '';
-  console.log(visuals);
   switch (exp.type) {
     case 'Identifier':
       return (
