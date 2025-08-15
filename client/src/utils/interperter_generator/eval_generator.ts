@@ -597,7 +597,7 @@ export function* evalExpression(
       if (right.kind === 'error') return [{ loc: exp.loc }, right];
 
       return [
-        { loc: exp.loc },
+        { loc: exp.loc, clear_indexed: true },
         evalBinaryExpression(exp.operator, left, right),
       ];
     }
@@ -784,8 +784,14 @@ export function* evalExpression(
       let v: Lua_Object_Visualizer = { loc: exp.loc };
 
       const val = identifier.get(idx);
-      if (visual_idx.value[0] && visual_identifier.value[0] &&visual_idx.value[0].indexer && visual_identifier.value[0].indexer) {
+      if (
+        visual_idx.value[0] &&
+        visual_identifier.value[0] &&
+        visual_idx.value[0].indexer &&
+        visual_identifier.value[0].indexer
+      ) {
         v = {
+          loc: exp.loc,
           identifier: {
             id: visual_identifier.value[0]!.indexer!.id,
             type: 'identifier',
@@ -1034,8 +1040,33 @@ export function* evalAssignment(
         ];
       }
       //
+
+      let v: Lua_Object_Visualizer = { loc: exp.loc };
+      if (
+        visual_obj_idx.value[0] &&
+        visual_obj.value[0] &&
+        visual_obj_idx.value[0].indexer &&
+        visual_obj.value[0].indexer
+      ) {
+        v = {
+          loc: exp.loc,
+          identifier: {
+            id: visual_obj.value[0]!.indexer!.id,
+            type: 'identifier',
+            name: visual_obj.value[0]!.indexer!.name,
+            value: identifier.get(idx).id,
+          },
+          indexer: {
+            id: visual_obj_idx.value[0]!.indexer!.id,
+            type: 'identifier',
+            name: visual_obj_idx.value[0]!.indexer!.name,
+            value: visual_obj_idx.value[0]!.indexer!.value,
+          },
+        } satisfies Lua_Object_Visualizer;
+      }
+
       identifier.set(idx, val);
-      return [{ loc: exp.loc }, Lua_Null];
+      return [v, Lua_Null];
     case 'MemberExpression': {
       const gen_identifier = evalExpression(exp.base, environment);
       let visual_identifier: ReturnType<typeof gen_identifier.next> = {

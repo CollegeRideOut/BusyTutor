@@ -66,8 +66,8 @@ export function VisualizerTool({
   >([]);
   const visualEnvironmentRef = useRef<Map<string, HTMLElement>>(new Map());
   const visualParentRef = useRef<HTMLDivElement>(null);
-  const [svg, setSvg] = useState<ReactNode>(null);
-  const [bs, setBs] = useState<ReactNode[]>([]);
+  const [svg, setSvg] = useState<ReactNode[]>([]);
+  //const [bs, setBs] = useState<ReactNode[]>([]);
   //    const [history, setHistory] = useState<Lua_Object_Visualizer[]>([]);
 
   useEffect(() => {
@@ -88,274 +88,298 @@ export function VisualizerTool({
   useEffect(() => {
     if (!envVisual) return;
     if (envVisual.length < 1) return;
-    let current = envVisual.pop();
+    let indexing = [envVisual.at(-1), envVisual.at(-2)];
+    let id = '';
 
-    const rect1 = visualEnvironmentRef.current
-      .get(current!.indexer!.name)!
-      .getBoundingClientRect();
-    const rect2 = visualEnvironmentRef.current
-      .get(current!.identifier!.value)!
-      .getBoundingClientRect();
+    // TODO get rasterizing out and we gotta refactor sooon this looks to bad
+    let svgs: ReactNode = [];
+    console.log(indexing);
+    for (let current of indexing) {
+      if (!current) {
+        continue;
+      }
 
-    // TODO look into rasterizing
-    let x_lines: Set<number> = new Set();
-    let y_lines: Set<number> = new Set();
-    let elements = [...visualEnvironmentRef.current.values()].map((e) => {
-      let rect = e.getBoundingClientRect();
-      x_lines.add(rect.left);
-      x_lines.add(rect.right);
-      y_lines.add(rect.top);
-      y_lines.add(rect.bottom);
-      return rect;
-    });
+      let new_id = `${current.loc!.start.line}-${current.loc!.end.line} | ${current.loc!.start.column}-${current.loc!.end.column}`;
+      if (id === new_id) {
+        continue;
+      }
+      id = new_id;
+      const rect1 = visualEnvironmentRef.current
+        .get(current!.indexer!.name)!
+        .getBoundingClientRect();
 
-    type cell = {
-      left: number;
-      right: number;
-      top: number;
-      bottom: number;
-      occupied: boolean;
-      start: boolean;
-      end: boolean;
-    };
-    //    let parent_ref = visualParentRef.current!.getBoundingClientRect();
+      const rect2 = visualEnvironmentRef.current
+        .get(current!.identifier!.value)!
+        .getBoundingClientRect();
 
-    // rasterizing gpt code need to understand this better dynamc grid
-    const x_sorted = Array.from(x_lines).sort((a, b) => a - b);
-    const y_sorted = Array.from(y_lines).sort((a, b) => a - b);
-    const grid: cell[][] = [];
-    for (let i = 0; i < x_sorted.length - 1; i++) {
-      let row_cells: cell[] = [];
-      for (let j = 0; j < y_sorted.length - 1; j++) {
-        const cell: cell = {
-          left: x_sorted[i],
-          right: x_sorted[i + 1],
-          top: y_sorted[j],
-          bottom: y_sorted[j + 1],
-          occupied: false,
-          start: false,
-          end: false,
-        };
+      // TODO look into rasterizing
+      let x_lines: Set<number> = new Set();
+      let y_lines: Set<number> = new Set();
+      let elements = [...visualEnvironmentRef.current.values()].map((e) => {
 
-        // check if occupied
+        let rect = e.getBoundingClientRect();
+        x_lines.add(rect.left);
+        x_lines.add(rect.right);
+        y_lines.add(rect.top);
+        y_lines.add(rect.bottom);
+        return rect;
+      });
 
-        for (const rect of elements) {
-          if (
-            !(
-              cell.right <= rect.left ||
-              cell.left >= rect.right ||
-              cell.bottom <= rect.top ||
-              cell.top >= rect.bottom
-            )
-          ) {
-            cell.occupied = true;
-            if (cell.left === rect1.left && cell.top === rect1.top) {
-              cell.occupied = false;
-              cell.start = true;
+      type cell = {
+        left: number;
+        right: number;
+        top: number;
+        bottom: number;
+        occupied: boolean;
+        start: boolean;
+        end: boolean;
+      };
+      //    let parent_ref = visualParentRef.current!.getBoundingClientRect();
+
+      // rasterizing gpt code need to understand this better dynamc grid
+      const x_sorted = Array.from(x_lines).sort((a, b) => a - b);
+      const y_sorted = Array.from(y_lines).sort((a, b) => a - b);
+      const grid: cell[][] = [];
+      for (let i = 0; i < x_sorted.length - 1; i++) {
+        let row_cells: cell[] = [];
+        for (let j = 0; j < y_sorted.length - 1; j++) {
+          const cell: cell = {
+            left: x_sorted[i],
+            right: x_sorted[i + 1],
+            top: y_sorted[j],
+            bottom: y_sorted[j + 1],
+            occupied: false,
+            start: false,
+            end: false,
+          };
+
+          // check if occupied
+
+          for (const rect of elements) {
+            if (
+              !(
+                cell.right <= rect.left ||
+                cell.left >= rect.right ||
+                cell.bottom <= rect.top ||
+                cell.top >= rect.bottom
+              )
+            ) {
+              cell.occupied = true;
+              if (cell.left === rect1.left && cell.top === rect1.top) {
+                cell.occupied = false;
+                cell.start = true;
+              }
+              if (cell.left === rect2.left && cell.top === rect2.top) {
+                cell.occupied = false;
+                cell.end = true;
+              }
+              break;
             }
-            if (cell.left === rect2.left && cell.top === rect2.top) {
-              cell.occupied = false;
-              cell.end = true;
-            }
+          }
+          //cell.left -= parent_ref.left;
+          //cell.right -= parent_ref.left;
+          //cell.top -= parent_ref.top;
+          //cell.bottom -= parent_ref.top;
+
+          row_cells.push(cell);
+        }
+        grid.push(row_cells);
+      }
+      //let bullshit: ReactNode[] = [];
+      //for (let y of grid) {
+      //  for (let x of y) {
+      //    if (x.occupied) continue;
+      //    bullshit.push(
+      //      <div
+      //        style={{
+      //          position: 'absolute',
+      //          left: x.left,
+      //          top: x.top,
+      //          width: x.right - x.left,
+      //          height: x.bottom - x.top,
+      //          background: 'yellow',
+      //        }}
+      //      ></div>,
+      //    );
+      //  }
+      //}
+      //setBs(bullshit);
+      //// now we have to find a path
+
+      // find start and end
+      let start = { i: -1, j: -1 };
+      let end = { i: -1, j: -1 };
+      for (let i = 0; i < grid.length; i++) {
+        for (let j = 0; j < grid[0].length; j++) {
+          if (grid[i][j].start) start = { i: i, j: j };
+          if (grid[i][j].end) end = { i: i, j: j };
+        }
+      }
+
+      let vistited_parent: Map<string, string> = new Map();
+      vistited_parent.set(`${start.i}-${start.j}`, `${start.i}-${start.j}`);
+      let dirs = [
+        { i: 1, j: 0 },
+        { i: -1, j: 0 },
+        { i: 0, j: 1 },
+        { i: 0, j: -1 },
+      ];
+      let q = [start];
+      // shortest path
+      parent: while (q.length > 0) {
+        let n = q.length;
+        for (let i = 0; i < n; i++) {
+          let curr = q.shift();
+          if (curr === undefined) {
+            console.log('error');
             break;
           }
-        }
-        //cell.left -= parent_ref.left;
-        //cell.right -= parent_ref.left;
-        //cell.top -= parent_ref.top;
-        //cell.bottom -= parent_ref.top;
-
-        row_cells.push(cell);
-      }
-      grid.push(row_cells);
-    }
-    let bullshit: ReactNode[] = [];
-    for (let y of grid) {
-      for (let x of y) {
-        if (x.occupied) continue;
-        bullshit.push(
-          <div
-            style={{
-              position: 'absolute',
-              left: x.left,
-              top: x.top,
-              width: x.right - x.left,
-              height: x.bottom - x.top,
-              background: 'yellow',
-            }}
-          ></div>,
-        );
-      }
-    }
-    setBs(bullshit);
-    //// now we have to find a path
-
-    // find start and end
-    let start = { i: -1, j: -1 };
-    let end = { i: -1, j: -1 };
-    for (let i = 0; i < grid.length; i++) {
-      for (let j = 0; j < grid[0].length; j++) {
-        if (grid[i][j].start) start = { i: i, j: j };
-        if (grid[i][j].end) end = { i: i, j: j };
-      }
-    }
-
-    let vistited_parent: Map<string, string> = new Map();
-    vistited_parent.set(`${start.i}-${start.j}`, `${start.i}-${start.j}`);
-    let dirs = [
-      { i: 1, j: 0 },
-      { i: -1, j: 0 },
-      { i: 0, j: 1 },
-      { i: 0, j: -1 },
-    ];
-    let q = [start];
-    // shortest path
-    parent: while (q.length > 0) {
-      let n = q.length;
-      for (let i = 0; i < n; i++) {
-        let curr = q.shift();
-        if (curr === undefined) {
-          console.log('error');
-          break;
-        }
-        if (curr.i === end.i && curr.j === end.j) {
-          console.log('found it');
-          break parent;
-        }
-        for (let dir of dirs) {
-          let new_node = { i: curr.i + dir.i, j: curr.j + dir.j };
-          if (
-            new_node.i < 0 ||
-            new_node.j < 0 ||
-            new_node.i >= grid.length ||
-            new_node.j >= grid[0].length ||
-            grid[new_node.i][new_node.j].occupied ||
-            vistited_parent.has(`${new_node.i}-${new_node.j}`)
-          ) {
-            continue;
-          } else {
-            vistited_parent.set(
-              `${new_node.i}-${new_node.j}`,
-              `${curr.i}-${curr.j}`,
-            );
-            q.push(new_node);
+          if (curr.i === end.i && curr.j === end.j) {
+            console.log('found it');
+            break parent;
+          }
+          for (let dir of dirs) {
+            let new_node = { i: curr.i + dir.i, j: curr.j + dir.j };
+            if (
+              new_node.i < 0 ||
+              new_node.j < 0 ||
+              new_node.i >= grid.length ||
+              new_node.j >= grid[0].length ||
+              grid[new_node.i][new_node.j].occupied ||
+              vistited_parent.has(`${new_node.i}-${new_node.j}`)
+            ) {
+              continue;
+            } else {
+              vistited_parent.set(
+                `${new_node.i}-${new_node.j}`,
+                `${curr.i}-${curr.j}`,
+              );
+              q.push(new_node);
+            }
           }
         }
       }
+      //
+      //// TODO give grid values?
+
+      let path: { i: number; j: number }[] = [];
+      let last = `${end.i}-${end.j}`;
+      let parent_v = vistited_parent.get(last);
+      //
+      while (last !== parent_v) {
+        let split = last.split('-');
+        path.push({ i: parseInt(split[0]), j: parseInt(split[1]) });
+        last = parent_v!;
+        parent_v = vistited_parent.get(parent_v!);
+      }
+
+      path = path.reverse();
+
+      let svg_path =
+        `M${rect1.left} ${rect1.top} ` +
+        path
+          .map(({ i, j }, idx) => {
+            let curr_cell = grid[i][j];
+            let x = curr_cell.left;
+            let y = curr_cell.top;
+
+            if (idx === 0) return `L${x} ${y}`;
+
+            return `L${grid[i][j].left} ${grid[i][j].top}`;
+          })
+          .join(' ');
+      console.log(svg_path);
+
+      svgs.push(
+        <svg
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            pointerEvents: 'none',
+          }}
+          width={window.innerWidth}
+          height={window.innerHeight}
+        >
+          <path
+            d={svg_path}
+            stroke={`${theme.vals.colors.primary}`}
+            fill='none'
+            strokeWidth={4}
+          />
+
+          {/* rect1 box*/}
+          <line
+            x1={rect1.x}
+            y1={rect1.y}
+            x2={rect1.x}
+            y2={rect1.bottom}
+            stroke={`${theme.vals.colors.primary}`}
+            strokeWidth={4}
+          />
+          <line
+            x1={rect1.right}
+            y1={rect1.y}
+            x2={rect1.right}
+            y2={rect1.bottom}
+            stroke={`${theme.vals.colors.primary}`}
+            strokeWidth={4}
+          />
+          <line
+            x1={rect1.left}
+            y1={rect1.y}
+            x2={rect1.right}
+            y2={rect1.y}
+            stroke={`${theme.vals.colors.primary}`}
+            strokeWidth={4}
+          />
+          <line
+            x1={rect1.left}
+            y1={rect1.bottom}
+            x2={rect1.right}
+            y2={rect1.bottom}
+            stroke={`${theme.vals.colors.primary}`}
+            strokeWidth={4}
+          />
+
+          {/*rect2 box*/}
+          <line
+            x1={rect2.x}
+            y1={rect2.y}
+            x2={rect2.x}
+            y2={rect2.bottom}
+            stroke={`${theme.vals.colors.primary}`}
+            strokeWidth={4}
+          />
+          <line
+            x1={rect2.right}
+            y1={rect2.y}
+            x2={rect2.right}
+            y2={rect2.bottom}
+            stroke={`${theme.vals.colors.primary}`}
+            strokeWidth={4}
+          />
+          <line
+            x1={rect2.left}
+            y1={rect2.y}
+            x2={rect2.right}
+            y2={rect2.y}
+            stroke={`${theme.vals.colors.primary}`}
+            strokeWidth={4}
+          />
+          <line
+            x1={rect2.left}
+            y1={rect2.bottom}
+            x2={rect2.right}
+            y2={rect2.bottom}
+            stroke={`${theme.vals.colors.primary}`}
+            strokeWidth={4}
+          />
+        </svg>,
+      );
     }
-    //
-    //// TODO give grid values?
 
-    let path: { i: number; j: number }[] = [];
-    let last = `${end.i}-${end.j}`;
-    let parent_v = vistited_parent.get(last);
-    //
-    while (last !== parent_v) {
-      let split = last.split('-');
-      path.push({ i: parseInt(split[0]), j: parseInt(split[1]) });
-      last = parent_v!;
-      parent_v = vistited_parent.get(parent_v!);
-    }
-
-    path = path.reverse();
-
-    let svg_path =
-      `M${rect1.left} ${rect1.top} ` +
-      path
-        .map(({ i, j }, idx) => {
-          let curr_cell = grid[i][j];
-          let x = curr_cell.left;
-          let y = curr_cell.top;
-
-          if (idx === 0) return `L${x} ${y}`;
-
-          return `L${grid[i][j].left} ${grid[i][j].top}`;
-        })
-        .join(' ');
-    console.log(svg_path);
-
-    setSvg(
-      <svg
-        style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
-        width={window.innerWidth}
-        height={window.innerHeight}
-      >
-        <path
-          d={svg_path}
-          stroke={`${theme.vals.colors.primary}`}
-          fill='none'
-          strokeWidth={4}
-        />
-
-        {/* rect1 box*/}
-        <line
-          x1={rect1.x}
-          y1={rect1.y}
-          x2={rect1.x}
-          y2={rect1.bottom}
-          stroke={`${theme.vals.colors.primary}`}
-          strokeWidth={4}
-        />
-        <line
-          x1={rect1.right}
-          y1={rect1.y}
-          x2={rect1.right}
-          y2={rect1.bottom}
-          stroke={`${theme.vals.colors.primary}`}
-          strokeWidth={4}
-        />
-        <line
-          x1={rect1.left}
-          y1={rect1.y}
-          x2={rect1.right}
-          y2={rect1.y}
-          stroke={`${theme.vals.colors.primary}`}
-          strokeWidth={4}
-        />
-        <line
-          x1={rect1.left}
-          y1={rect1.bottom}
-          x2={rect1.right}
-          y2={rect1.bottom}
-          stroke={`${theme.vals.colors.primary}`}
-          strokeWidth={4}
-        />
-
-        {/*rect2 box*/}
-        <line
-          x1={rect2.x}
-          y1={rect2.y}
-          x2={rect2.x}
-          y2={rect2.bottom}
-          stroke={`${theme.vals.colors.primary}`}
-          strokeWidth={4}
-        />
-        <line
-          x1={rect2.right}
-          y1={rect2.y}
-          x2={rect2.right}
-          y2={rect2.bottom}
-          stroke={`${theme.vals.colors.primary}`}
-          strokeWidth={4}
-        />
-        <line
-          x1={rect2.left}
-          y1={rect2.y}
-          x2={rect2.right}
-          y2={rect2.y}
-          stroke={`${theme.vals.colors.primary}`}
-          strokeWidth={4}
-        />
-        <line
-          x1={rect2.left}
-          y1={rect2.bottom}
-          x2={rect2.right}
-          y2={rect2.bottom}
-          stroke={`${theme.vals.colors.primary}`}
-          strokeWidth={4}
-        />
-      </svg>,
-    );
+    setSvg(svgs);
   }, [envVisual]);
 
   function createVisCode() {
@@ -433,6 +457,12 @@ export function VisualizerTool({
                     //
                     let v = val.value[1];
 
+                    setEnvironment(
+                      JSON.parse(
+                        JSON.stringify(v, replacer),
+                        reviver,
+                      ) as Lua_Environment,
+                    );
                     let visual = val.value[0];
                     if (visual) {
                       if (visual.identifier && visual.indexer) {
@@ -442,12 +472,6 @@ export function VisualizerTool({
                         setCodeLocaltion(visual);
                       }
                     }
-                    setEnvironment(
-                      JSON.parse(
-                        JSON.stringify(v, replacer),
-                        reviver,
-                      ) as Lua_Environment,
-                    );
                     setGlobalEnvironment(
                       JSON.parse(
                         JSON.stringify(Lua_Global_Environment, replacer),
@@ -481,7 +505,6 @@ export function VisualizerTool({
                   ref={visualParentRef}
                 >
                   {visualEnvironment}
-                  {bs}
                 </div>
               }
             </div>

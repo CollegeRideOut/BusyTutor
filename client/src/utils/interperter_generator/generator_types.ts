@@ -16,6 +16,7 @@ export type Lua_Object_Visualizer = {
       column: number;
     };
   };
+  clear_indexed?: boolean;
   indexer?: { id: string; type: string; name: string; value: string | number };
   identifier?: { id: string; type: string; name: string; value: any };
 };

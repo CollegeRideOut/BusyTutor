@@ -17,7 +17,12 @@
 - [x] rasterizing
 - [x] Basic pathfinding: Ensure arrows avoid overlapping other boxes for clarity.
 
-## Aug 15
+### Aug 15
+
+- [x] Can support multiple paths simultaneously (for statements like a[1] === b[1])
+- [x] supportin left hand assigment
+
+### Aug 16
 
 - [ ] Collapsible & scrollable: Make tables/nested objects collapsible and scrollable to handle large data.
 - [ ] Improved arrow styling – rounded corners, subtle animation, glow
@@ -25,7 +30,6 @@
 - [ ] Operation-aware visual feedback – color/effect depending on operation (+, -, \*, assignment)
 - [ ] Simple animations for assignments – animate variables/tables when updated or accessed
 - [ ] Add all tables to a heap with unique IDs for clean visualization, leaving cycle handling and arrow layout as a later enhancement.
-- [ ] Can support multiple paths simultaneously (for statements like a[1] === b[1])
 - [ ] chaing indexing
 - [ ] cache layout
 
