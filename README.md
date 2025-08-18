@@ -2,15 +2,15 @@
 
 ### Aug 7
 
-- [x] Layout & spacing: Wrap environment elements using flex + flex-wrap with proper spacing.
-- [x] Box highlighting: When indexing a variable, highlight the source box and the target box.
-- [x] Arrow / visual link: Draw an arrow from the source to the target for chain indexing.
-- [x] Path finding scaffold
+- Layout & spacing: Wrap environment elements using flex + flex-wrap with proper spacing.
+- Box highlighting: When indexing a variable, highlight the source box and the target box.
+- Arrow / visual link: Draw an arrow from the source to the target for chain indexing.
+- Path finding scaffold
 
 ### Aug 13
 
-- [x] Highlight current code line – show Lua line triggering access
-- [x] gotta look into rasterizng
+- Highlight current code line – show Lua line triggering access
+- gotta look into rasterizng
 
 ### Aug 14
 
