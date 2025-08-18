@@ -24,12 +24,12 @@
 
 ### Aug 18
 
-- [ ] Mini refactor to many names are the same  test.tsx
-- 
+- [x] take front ast visualizer out
+- [ ] Collapsible Make tables/nested objects collapsible to handle large data.
 
-### Up Next 
+### Up Next
 
-- [ ] Collapsible & scrollable: Make tables/nested objects collapsible and scrollable to handle large data.
+- [ ] Scrollable Make tables/nested objects scrollable to handle large data. maybe have a maximum size
 - [ ] Improved arrow styling – rounded corners, subtle animation, glow
 - [ ] Mini tooltips – show variable info (type, value, key) on hover
 - [ ] Operation-aware visual feedback – color/effect depending on operation (+, -, \*, assignment)

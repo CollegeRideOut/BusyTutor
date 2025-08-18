@@ -18,6 +18,12 @@ import {
 import luaparser from 'luaparse';
 import * as motion from 'motion/react-client';
 import { evalChunkFront } from './ast_visualizer';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from './ui/collapsible';
+import { table } from 'console';
 
 export function VisualizerTool({
   title,
@@ -39,7 +45,6 @@ export function VisualizerTool({
   const theme = useContext(ThemeContext);
   const [gen, setGen] = useState<ReturnType<typeof evalChunk>>();
   const [codeLocation, setCodeLocaltion] = useState<Lua_Object_Visualizer>();
-  const [visual, setVisual] = useState<Lua_Object_Visualizer[]>([]);
   const [envVisual, setEnviVisual] = useState<Lua_Object_Visualizer[]>([]);
   const [ast, setAst] = useState<luaparser.Chunk | null>(null);
   const [environment, setEnvironment] = useState<Lua_Environment | null>(null);
@@ -52,6 +57,9 @@ export function VisualizerTool({
   const visualEnvironmentRef = useRef<Map<string, HTMLElement>>(new Map());
   const visualParentRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<ReactNode[]>([]);
+  const [heapHelper, setHeapHelper] = useState<
+    { id: string; is_open: boolean }[]
+  >([]);
   //const [bs, setBs] = useState<ReactNode[]>([]);
   //    const [history, setHistory] = useState<Lua_Object_Visualizer[]>([]);
 
@@ -59,24 +67,23 @@ export function VisualizerTool({
     if (!ast) return;
     createVisCode();
   }, [ast, codeLocation, theme]);
-  useEffect(() => {
-    if (!environment) return;
-    setVisualEnvironment(environmentVisual(environment, visualEnvironmentRef));
-  }, [environment]);
+  useEffect(() => {}, [environment]);
 
-  useEffect(() => {
-    if (!globalEnvironment) return;
-    setVisualGlobalEnvironment(
-      environmentVisual(globalEnvironment, visualEnvironmentRef),
-    );
-  }, [globalEnvironment]);
+  //useEffect(() => {
+  //  if (!globalEnvironment) return;
+  //  setVisualGlobalEnvironment(
+  //    environmentVisual(globalEnvironment, visualEnvironmentRef),
+  //  );
+  //}, [globalEnvironment]);
+
+  //TODO REFAAACCTOOOOR
   useEffect(() => {
     if (!envVisual) return;
     if (envVisual.length < 1) return;
     let indexing = [envVisual.at(-1), envVisual.at(-2)];
     let id = '';
 
-    // TODO get rasterizing out and we gotta refactor sooon this looks to bad
+    // TODO get rasterizing out and we gotta refactor sooon this looks tooo bad
     let svgs: ReactNode[] = [];
     console.log(indexing);
     for (let current of indexing) {
@@ -243,8 +250,7 @@ export function VisualizerTool({
           }
         }
       }
-      //
-      //// TODO give grid values?
+      // TODO give grid values?
 
       let path: { i: number; j: number }[] = [];
       let last = `${end.i}-${end.j}`;
@@ -488,7 +494,14 @@ export function VisualizerTool({
                   className='flex flex-wrap w-full justify-between gap-y-3 relative'
                   ref={visualParentRef}
                 >
-                  {visualEnvironment}
+                  {environment && (
+                    <VisualEnvironment
+                      env={environment}
+                      ref={visualEnvironmentRef}
+                      heapHelper={heapHelper}
+                      setHeapHelper={setHeapHelper}
+                    />
+                  )}
                 </div>
               }
             </div>
@@ -563,11 +576,20 @@ export function VisualizerTool({
     </ResizablePanelGroup>
   );
 }
-
-function environmentVisual(
-  env: Lua_Environment,
-  ref: React.RefObject<Map<string, HTMLElement>>,
-) {
+type VisualEnvironmentProps = {
+  env: Lua_Environment;
+  ref: React.RefObject<Map<string, HTMLElement>>;
+  heapHelper: { id: string; is_open: boolean }[];
+  setHeapHelper: React.Dispatch<
+    React.SetStateAction<{ id: string; is_open: boolean }[]>
+  >;
+};
+function VisualEnvironment({
+  env,
+  ref,
+  heapHelper,
+  setHeapHelper,
+}: VisualEnvironmentProps) {
   if (!env) return [];
   if (!env.store) return [];
   let rc = [...env.store.entries()].map(([identifier, obj]) => {
@@ -587,10 +609,43 @@ function environmentVisual(
         );
       }
       case 'table': {
+        setHeapHelper((prev) => {
+          if (prev.some((h) => h.id === obj.id)) {
+            return prev;
+          } else {
+            return [...prev, { id: obj.id, is_open: true }];
+          }
+        });
         return (
-          <motion.div className=' flex p-1 gap-2 items-center justify-center'>
-            {identifier} {tableVisualizer(obj, ref)}
-          </motion.div>
+          <Collapsible
+            open={(() => {
+              const found = heapHelper.find((h) => h.id === obj.id);
+              if (!found) {
+                console.log('wtf error handle it broski heap helper not found');
+              }
+              return found === undefined ? true : found.is_open;
+            })()}
+            onOpenChange={() => {
+              const heap_clone: typeof heapHelper = JSON.parse(
+                JSON.stringify(heapHelper),
+              );
+              const found = heap_clone.find((h) => h.id === obj.id);
+              if (found) {
+                found.is_open = !found.is_open;
+              } else {
+                console.log(
+                  'wtf error handle it broski heap helper not found onOpenChange',
+                );
+              }
+              setHeapHelper(heap_clone);
+            }}
+            className=' flex p-1 gap-2 items-center justify-center'
+          >
+            <CollapsibleTrigger asChild>
+              <div>{identifier}</div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>{tableVisualizer(obj, ref)}</CollapsibleContent>
+          </Collapsible>
         );
       }
       case 'return':
@@ -670,6 +725,7 @@ export function tableVisualizer(
     </motion.div>
   );
 }
+// TODO this are utils maybe take it out
 function replacer(_key: any, value: any) {
   if (value instanceof Map) {
     return {
