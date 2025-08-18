@@ -22,7 +22,12 @@
 - [x] Can support multiple paths simultaneously (for statements like a[1] === b[1])
 - [x] supportin left hand assigment
 
-### Aug 16
+### Aug 18
+
+- [ ] Mini refactor to many names are the same  test.tsx
+- 
+
+### Up Next 
 
 - [ ] Collapsible & scrollable: Make tables/nested objects collapsible and scrollable to handle large data.
 - [ ] Improved arrow styling – rounded corners, subtle animation, glow
