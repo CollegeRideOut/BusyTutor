@@ -14,29 +14,29 @@
 
 ### Aug 14
 
-- [x] rasterizing
-- [x] Basic pathfinding: Ensure arrows avoid overlapping other boxes for clarity.
+- rasterizing
+- Basic pathfinding: Ensure arrows avoid overlapping other boxes for clarity.
 
 ### Aug 15
 
-- [x] Can support multiple paths simultaneously (for statements like a[1] === b[1])
-- [x] supportin left hand assigment
+- Can support multiple paths simultaneously (for statements like a[1] === b[1])
+- supportin left hand assigment
 
 ### Aug 18
 
-- [x] take front ast visualizer out
-- [ ] Collapsible Make tables/nested objects collapsible to handle large data.
+- take front ast visualizer out
+- Collapsible Make tables/nested objects collapsible to handle large data.
 
 ### Up Next
 
-- [ ] Scrollable Make tables/nested objects scrollable to handle large data. maybe have a maximum size
-- [ ] Improved arrow styling – rounded corners, subtle animation, glow
-- [ ] Mini tooltips – show variable info (type, value, key) on hover
-- [ ] Operation-aware visual feedback – color/effect depending on operation (+, -, \*, assignment)
-- [ ] Simple animations for assignments – animate variables/tables when updated or accessed
-- [ ] Add all tables to a heap with unique IDs for clean visualization, leaving cycle handling and arrow layout as a later enhancement.
-- [ ] chaing indexing
-- [ ] cache layout
+- Scrollable Make tables/nested objects scrollable to handle large data. maybe have a maximum size
+- Improved arrow styling – rounded corners, subtle animation, glow
+- Mini tooltips – show variable info (type, value, key) on hover
+- Operation-aware visual feedback – color/effect depending on operation (+, -, \*, assignment)
+- Simple animations for assignments – animate variables/tables when updated or accessed
+- Add all tables to a heap with unique IDs for clean visualization, leaving cycle handling and arrow layout as a later enhancement.
+- chaing indexing
+- cache layout
 
 ## Features to Include in MVP
 
