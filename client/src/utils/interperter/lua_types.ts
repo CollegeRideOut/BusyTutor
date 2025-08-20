@@ -11,11 +11,13 @@ export type Lua_Object =
   | Lua_Table;
 
 export class Lua_Environment {
+  public id: string;
   public kind: 'environment' = 'environment';
   public store: Map<string, Lua_Object>;
   public outer: Lua_Environment | null;
 
   constructor(outer: Lua_Environment | null = null) {
+    this.id = crypto.randomUUID();
     this.store = new Map();
     this.outer = outer;
   }

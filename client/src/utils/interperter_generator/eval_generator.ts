@@ -37,6 +37,8 @@ export function evalChunkTestHelper(
   } while (!v.done);
   return v.value;
 }
+// more global functions to the rescue yay
+let current_environement: Lua_Environment;
 
 export function* evalChunk(
   node: luaparser.Chunk,
@@ -47,6 +49,7 @@ export function* evalChunk(
   [Lua_Object_Visualizer | null, Lua_Environment]
 > {
   //TODO
+  current_environement = environment;
   let gen = evalStatementsArray(node.body, environment);
   let p: ReturnType<typeof gen.next> = {
     done: true,
@@ -55,7 +58,7 @@ export function* evalChunk(
   do {
     p = gen.next();
     if (!p.value) continue;
-    yield [p.value[0], environment];
+    yield [p.value[0], current_environement];
   } while (!p.done);
   return p.value![1];
 }
@@ -1442,6 +1445,9 @@ export function* applyFunction(
   switch (func.kind) {
     case 'function': {
       const extendedEnv = extendeFunctionEnv(func, args);
+      // GLOBAL mutation
+      let prev_env = current_environement;
+      current_environement = extendedEnv;
       const gen_evaluated = evalStatementsArray(func.body, extendedEnv);
       let visual_evaluated: ReturnType<typeof gen_evaluated.next> = {
         done: true,
@@ -1452,6 +1458,7 @@ export function* applyFunction(
         yield visual_evaluated.value;
       } while (!visual_evaluated.done);
       const evaulated = visual_evaluated.value[1];
+      current_environement = prev_env;
       return [{}, evaulated];
     }
     case 'builtin': {

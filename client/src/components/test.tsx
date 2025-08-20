@@ -443,13 +443,13 @@ export function VisualizerTool({
                     //setVisual([...visual, val.value])
                     //
                     let v = val.value[1];
-
                     setEnvironment(
                       JSON.parse(
-                        JSON.stringify(v, replacer),
+                        JSON.stringify(v, make_replacer()),
                         reviver,
                       ) as Lua_Environment,
                     );
+                    console.log(v)
                     let visual = val.value[0];
                     if (visual) {
                       if (visual.identifier && visual.indexer) {
@@ -459,12 +459,12 @@ export function VisualizerTool({
                         setCodeLocaltion(visual);
                       }
                     }
-                    setGlobalEnvironment(
-                      JSON.parse(
-                        JSON.stringify(Lua_Global_Environment, replacer),
-                        reviver,
-                      ) as Lua_Environment,
-                    );
+                    //setGlobalEnvironment(
+                    //  JSON.parse(
+                    //    JSON.stringify(Lua_Global_Environment, replacer),
+                    //    reviver,
+                    //  ) as Lua_Environment,
+                    //);
                   }
                   //console.log('hello', environement!.store);
                 }}
@@ -548,12 +548,11 @@ export function VisualizerTool({
                               },
                             );
                             setAst(_ast);
-                            let env = new Lua_Environment();
                             let globalEnvironment = new Lua_Environment();
-                            setEnvironment(env);
+                            setEnvironment(globalEnvironment);
                             setGLobalEnvironmentGenerator(globalEnvironment);
                             setGlobalEnvironment(globalEnvironment);
-                            setGen(evalChunk(_ast, env));
+                            setGen(evalChunk(_ast, globalEnvironment));
                           }}
                         >
                           <div>{args}</div>
@@ -583,6 +582,7 @@ type VisualEnvironmentProps = {
   >;
 };
 
+let global_env = 0;
 // TODO fix this bs
 function VisualEnvironment({
   env,
@@ -592,7 +592,19 @@ function VisualEnvironment({
 }: VisualEnvironmentProps) {
   if (!env) return [];
   if (!env.store) return [];
-  let rc = [...env.store.entries()].map(([identifier, obj]) => {
+  let rc: ReactNode[] = [];
+  global_env++;
+  if (env.outer) {
+    rc.push(
+      VisualEnvironment({
+        env: env.outer,
+        ref,
+        heapHelper,
+        setHeapHelper,
+      }),
+    );
+  }
+  let curr = [...env.store.entries()].map(([identifier, obj]) => {
     switch (obj.kind) {
       case 'string':
       case 'number':
@@ -643,7 +655,7 @@ function VisualEnvironment({
                 }
                 setHeapHelper(heap_clone);
               }}
-              className=' flex p-1 gap-2 items-center justify-center'
+              className='flex p-1 gap-2 items-center justify-center'
             >
               <CollapsibleTrigger asChild>
                 <div>{identifier}</div>
@@ -683,7 +695,14 @@ function VisualEnvironment({
       }
     }
   });
-  return rc;
+  rc.push(curr);
+  global_env--;
+  return (
+    <div>
+      Env: #{global_env}
+      {rc}
+    </div>
+  );
 }
 export function tableVisualizer(
   t: Lua_Table,
@@ -742,21 +761,30 @@ export function tableVisualizer(
     }
   });
   return (
-    <motion.div className='flex gap-3 p-1 items-center justify-center'>
+    <motion.div drag className='flex gap-3 p-1 items-center justify-center'>
       {...rc}
     </motion.div>
   );
 }
 // TODO this are utils maybe take it out
-function replacer(_key: any, value: any) {
-  if (value instanceof Map) {
-    return {
-      dataType: 'Map',
-      value: Array.from(value.entries()), // or with spread: value: [...value]
-    };
-  } else {
-    return value;
-  }
+function make_replacer() {
+  const seen = new WeakSet();
+  return (_key: any, value: any) => {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) {
+        return '[Circular]';
+      }
+      seen.add(value)
+    }
+    if (value instanceof Map) {
+      return {
+        dataType: 'Map',
+        value: Array.from(value.entries()), // or with spread: value: [...value]
+      };
+    } else {
+      return value;
+    }
+  };
 }
 function reviver(_key: any, value: any) {
   if (typeof value === 'object' && value !== null) {
