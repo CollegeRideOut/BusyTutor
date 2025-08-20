@@ -23,7 +23,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from './ui/collapsible';
-import { table } from 'console';
+
+import { ScrollArea, ScrollBar } from './ui/scroll-area';
 
 export function VisualizerTool({
   title,
@@ -50,10 +51,6 @@ export function VisualizerTool({
   const [environment, setEnvironment] = useState<Lua_Environment | null>(null);
   const [globalEnvironment, setGlobalEnvironment] =
     useState<Lua_Environment | null>(null);
-  const [visualEnvironment, setVisualEnvironment] = useState<ReactNode[]>([]);
-  const [visualGlobalEnvironment, setVisualGlobalEnvironment] = useState<
-    ReactNode[]
-  >([]);
   const visualEnvironmentRef = useRef<Map<string, HTMLElement>>(new Map());
   const visualParentRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<ReactNode[]>([]);
@@ -576,6 +573,7 @@ export function VisualizerTool({
     </ResizablePanelGroup>
   );
 }
+
 type VisualEnvironmentProps = {
   env: Lua_Environment;
   ref: React.RefObject<Map<string, HTMLElement>>;
@@ -584,6 +582,8 @@ type VisualEnvironmentProps = {
     React.SetStateAction<{ id: string; is_open: boolean }[]>
   >;
 };
+
+// TODO fix this bs
 function VisualEnvironment({
   env,
   ref,
@@ -616,6 +616,7 @@ function VisualEnvironment({
             return [...prev, { id: obj.id, is_open: true }];
           }
         });
+        // TODO fix this bs
         return (
           <Collapsible
             open={(() => {
@@ -644,7 +645,12 @@ function VisualEnvironment({
             <CollapsibleTrigger asChild>
               <div>{identifier}</div>
             </CollapsibleTrigger>
-            <CollapsibleContent>{tableVisualizer(obj, ref)}</CollapsibleContent>
+            <CollapsibleContent>
+              <ScrollArea className='w-[200px] rounded-md border p-4'>
+                {tableVisualizer(obj, ref)}
+                <ScrollBar className='bg-black' orientation='horizontal' />
+              </ScrollArea>
+            </CollapsibleContent>
           </Collapsible>
         );
       }
