@@ -618,47 +618,56 @@ function VisualEnvironment({
         });
         // TODO fix this bs
         return (
-          <Collapsible
-            open={(() => {
-              const found = heapHelper.find((h) => h.id === obj.id);
-              if (!found) {
-                console.log('wtf error handle it broski heap helper not found');
-              }
-              return found === undefined ? true : found.is_open;
-            })()}
-            onOpenChange={() => {
-              const heap_clone: typeof heapHelper = JSON.parse(
-                JSON.stringify(heapHelper),
-              );
-              const found = heap_clone.find((h) => h.id === obj.id);
-              if (found) {
-                found.is_open = !found.is_open;
-              } else {
-                console.log(
-                  'wtf error handle it broski heap helper not found onOpenChange',
+          <motion.div drag>
+            <Collapsible
+              open={(() => {
+                const found = heapHelper.find((h) => h.id === obj.id);
+                if (!found) {
+                  console.log(
+                    'wtf error handle it broski heap helper not found',
+                  );
+                }
+                return found === undefined ? true : found.is_open;
+              })()}
+              onOpenChange={() => {
+                const heap_clone: typeof heapHelper = JSON.parse(
+                  JSON.stringify(heapHelper),
                 );
-              }
-              setHeapHelper(heap_clone);
-            }}
-            className=' flex p-1 gap-2 items-center justify-center'
-          >
-            <CollapsibleTrigger asChild>
-              <div>{identifier}</div>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <ResizablePanelGroup direction='horizontal' className='flex flex-row max-w-fit'>
-                <ResizablePanel className='w-2/3 flex flex-row' >
-                  <ScrollArea className='w-full rounded-md border p-4 flex flex-row'>
-                    {tableVisualizer(obj, ref)}
-                    <ScrollBar className='bg-black' orientation='horizontal' />
-                  </ScrollArea>
-                </ResizablePanel>
-                    <ResizableHandle withHandle/>
-                <ResizablePanel>
-                </ResizablePanel>
-              </ResizablePanelGroup>
-            </CollapsibleContent>
-          </Collapsible>
+                const found = heap_clone.find((h) => h.id === obj.id);
+                if (found) {
+                  found.is_open = !found.is_open;
+                } else {
+                  console.log(
+                    'wtf error handle it broski heap helper not found onOpenChange',
+                  );
+                }
+                setHeapHelper(heap_clone);
+              }}
+              className=' flex p-1 gap-2 items-center justify-center'
+            >
+              <CollapsibleTrigger asChild>
+                <div>{identifier}</div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <ResizablePanelGroup
+                  direction='horizontal'
+                  className='flex flex-row max-w-fit'
+                >
+                  <ResizablePanel className='w-2/3 flex flex-row'>
+                    <ScrollArea className='w-full rounded-md border p-4 flex flex-row'>
+                      {tableVisualizer(obj, ref)}
+                      <ScrollBar
+                        className='bg-black'
+                        orientation='horizontal'
+                      />
+                    </ScrollArea>
+                  </ResizablePanel>
+                  <ResizableHandle withHandle />
+                  <ResizablePanel></ResizablePanel>
+                </ResizablePanelGroup>
+              </CollapsibleContent>
+            </Collapsible>
+          </motion.div>
         );
       }
       case 'return':

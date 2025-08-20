@@ -31,6 +31,7 @@
 
 - Scrollable Make tables/nested objects scrollable to handle large data. maybe have a maximum size
 - extendable table
+- movable table
 
 ### Up Next
 
@@ -38,7 +39,6 @@
 - collapsible environment
 - scrollable environment environment
 - extenable environment
-- movable table
 - Improved arrow styling – rounded corners, subtle animation, glow
 - stack "history"
 - Mini tooltips – show variable info (type, value, key) on hover
