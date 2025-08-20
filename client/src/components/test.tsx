@@ -449,7 +449,7 @@ export function VisualizerTool({
                         reviver,
                       ) as Lua_Environment,
                     );
-                    console.log(v)
+                    console.log(v);
                     let visual = val.value[0];
                     if (visual) {
                       if (visual.identifier && visual.indexer) {
@@ -604,7 +604,7 @@ function VisualEnvironment({
       }),
     );
   }
-  let curr = [...env.store.entries()].map(([identifier, obj]) => {
+  let curr: ReactNode[] = [...env.store.entries()].map(([identifier, obj]) => {
     switch (obj.kind) {
       case 'string':
       case 'number':
@@ -695,12 +695,14 @@ function VisualEnvironment({
       }
     }
   });
-  rc.push(curr);
   global_env--;
   return (
     <div>
-      Env: #{global_env}
-      {rc}
+      <Collapsible>
+        {rc}
+        <CollapsibleTrigger>Env: #{global_env}</CollapsibleTrigger>
+        <CollapsibleContent>{curr}</CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
@@ -774,7 +776,7 @@ function make_replacer() {
       if (seen.has(value)) {
         return '[Circular]';
       }
-      seen.add(value)
+      seen.add(value);
     }
     if (value instanceof Map) {
       return {
