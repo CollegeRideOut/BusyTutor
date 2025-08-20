@@ -30,10 +30,17 @@
 ### Aug 20
 
 - Scrollable Make tables/nested objects scrollable to handle large data. maybe have a maximum size
+- extendable table
 
 ### Up Next
 
+- layered environemnts
+- collapsible environment
+- scrollable environment environment
+- extenable environment
+- movable table
 - Improved arrow styling – rounded corners, subtle animation, glow
+- stack "history"
 - Mini tooltips – show variable info (type, value, key) on hover
 - Operation-aware visual feedback – color/effect depending on operation (+, -, \*, assignment)
 - Simple animations for assignments – animate variables/tables when updated or accessed

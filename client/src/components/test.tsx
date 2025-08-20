@@ -646,10 +646,17 @@ function VisualEnvironment({
               <div>{identifier}</div>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <ScrollArea className='w-[200px] rounded-md border p-4'>
-                {tableVisualizer(obj, ref)}
-                <ScrollBar className='bg-black' orientation='horizontal' />
-              </ScrollArea>
+              <ResizablePanelGroup direction='horizontal' className='flex flex-row max-w-fit'>
+                <ResizablePanel className='w-2/3 flex flex-row' >
+                  <ScrollArea className='w-full rounded-md border p-4 flex flex-row'>
+                    {tableVisualizer(obj, ref)}
+                    <ScrollBar className='bg-black' orientation='horizontal' />
+                  </ScrollArea>
+                </ResizablePanel>
+                    <ResizableHandle withHandle/>
+                <ResizablePanel>
+                </ResizablePanel>
+              </ResizablePanelGroup>
             </CollapsibleContent>
           </Collapsible>
         );
