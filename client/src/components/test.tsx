@@ -449,7 +449,6 @@ export function VisualizerTool({
                         reviver,
                       ) as Lua_Environment,
                     );
-                    console.log(v);
                     let visual = val.value[0];
                     if (visual) {
                       if (visual.identifier && visual.indexer) {
@@ -701,7 +700,11 @@ function VisualEnvironment({
       <Collapsible>
         {rc}
         <CollapsibleTrigger>Env: #{global_env}</CollapsibleTrigger>
-        <CollapsibleContent>{curr}</CollapsibleContent>
+
+        <ScrollArea className='h-[50px]'>
+          <CollapsibleContent>{curr}</CollapsibleContent>
+          <ScrollBar className='bg-black' orientation='vertical' />
+        </ScrollArea>
       </Collapsible>
     </div>
   );

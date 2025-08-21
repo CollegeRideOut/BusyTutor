@@ -34,12 +34,13 @@
 - movable table
 - layered environemnts
 - collapsible environment
+- scrollable environment
 
 ### Up Next
 
-- scrollable environment environment
 - extenable environment
 - Improved arrow styling – rounded corners, subtle animation, glow
+- branching
 - stack "history"
 - Mini tooltips – show variable info (type, value, key) on hover
 - Operation-aware visual feedback – color/effect depending on operation (+, -, \*, assignment)
