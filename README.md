@@ -36,14 +36,18 @@
 - collapsible environment
 - scrollable environment
 
+### Sep 2
+
+- N-arry tree
+
 ### Up Next
 
-- extenable environment
+- stack "history"
 - Improved arrow styling – rounded corners, subtle animation, glow
 - branching
-- stack "history"
 - Mini tooltips – show variable info (type, value, key) on hover
 - Operation-aware visual feedback – color/effect depending on operation (+, -, \*, assignment)
+- extenable environment
 - Simple animations for assignments – animate variables/tables when updated or accessed
 - Add all tables to a heap with unique IDs for clean visualization, leaving cycle handling and arrow layout as a later enhancement.
 - chaing indexing
