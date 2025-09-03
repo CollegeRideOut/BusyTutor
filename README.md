@@ -46,7 +46,8 @@
 - Tree display (gpt the great)
 - change "mode" tree view to current environment
 - can only click the current environment
-
+- when exiting goes to parent
+- button to change between Tree and Env mode
 
 ### Up Next
 

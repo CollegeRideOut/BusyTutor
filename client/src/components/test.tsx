@@ -464,10 +464,13 @@ export function VisualizerTool({
 
                     if (b === 'new') {
                       let curr = new TreeNode<Lua_Environment>(env);
+                      curr.parent = currentNode;
                       currentNode!.children.push(curr);
                       setCurrentNode(curr);
                       // wtf is this bs code
                       setHistory(history);
+                    } else if (b === 'exit') {
+                      setCurrentNode(currentNode!.parent);
                     }
                     if (visual) {
                       if (visual.identifier && visual.indexer) {
@@ -503,7 +506,10 @@ export function VisualizerTool({
               />
             </div>
             <div className='flex flex-col flex-wrap w full'>
-              local
+              <div onClick={() => setMode(mode === 'tree' ? 'env' : 'tree')}>
+                {mode === 'tree' ? 'env' : 'tree'}
+              </div>
+
               {
                 <div
                   className='flex flex-wrap w-full justify-between gap-y-3 relative'
