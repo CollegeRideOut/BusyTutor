@@ -40,9 +40,16 @@
 
 - N-arry tree
 
+### Sep 3
+
+- stack "history" no going back yet
+- Tree display (gpt the great)
+- change "mode" tree view to current environment
+- can only click the current environment
+
+
 ### Up Next
 
-- stack "history"
 - Improved arrow styling – rounded corners, subtle animation, glow
 - branching
 - Mini tooltips – show variable info (type, value, key) on hover

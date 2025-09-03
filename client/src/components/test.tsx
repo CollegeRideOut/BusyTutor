@@ -25,6 +25,8 @@ import {
 } from './ui/collapsible';
 
 import { ScrollArea, ScrollBar } from './ui/scroll-area';
+import { Tree, TreeNode } from './tree';
+import { Environment } from 'vite';
 
 export function VisualizerTool({
   title,
@@ -41,7 +43,13 @@ export function VisualizerTool({
     testToAddToCode: string;
   }[];
 }) {
+  const [mode, setMode] = useState<'tree' | 'env'>('tree');
   const [code, setCode] = useState('');
+  const [history, setHistory] = useState<Tree<Lua_Environment>>(
+    new Tree<Lua_Environment>(),
+  );
+  const [currentNode, setCurrentNode] =
+    useState<TreeNode<Lua_Environment> | null>(null);
   const [visCode, setVisCode] = useState<ReactNode[]>([]);
   const theme = useContext(ThemeContext);
   const [gen, setGen] = useState<ReturnType<typeof evalChunk>>();
@@ -436,20 +444,31 @@ export function VisualizerTool({
                     return;
                   }
                   const val = gen.next();
+
                   if (val.done) {
                     setGen(undefined);
                   } else {
                     //if (!val.value) return;
                     //setVisual([...visual, val.value])
                     //
+                    //TODO god dammit this is really bad repretive code after branching i think i should really do some refactoring but for now....
                     let v = val.value[1];
-                    setEnvironment(
-                      JSON.parse(
-                        JSON.stringify(v, make_replacer()),
-                        reviver,
-                      ) as Lua_Environment,
-                    );
+                    let b = val.value[2];
+
+                    let env = JSON.parse(
+                      JSON.stringify(v, make_replacer()),
+                      reviver,
+                    ) as Lua_Environment;
+                    setEnvironment(env);
                     let visual = val.value[0];
+
+                    if (b === 'new') {
+                      let curr = new TreeNode<Lua_Environment>(env);
+                      currentNode!.children.push(curr);
+                      setCurrentNode(curr);
+                      // wtf is this bs code
+                      setHistory(history);
+                    }
                     if (visual) {
                       if (visual.identifier && visual.indexer) {
                         setEnviVisual([...envVisual, visual]);
@@ -490,13 +509,21 @@ export function VisualizerTool({
                   className='flex flex-wrap w-full justify-between gap-y-3 relative'
                   ref={visualParentRef}
                 >
-                  {environment && (
-                    <VisualEnvironment
-                      env={environment}
-                      ref={visualEnvironmentRef}
-                      heapHelper={heapHelper}
-                      setHeapHelper={setHeapHelper}
+                  {mode === 'tree' ? (
+                    <NAryTree
+                      tree={history.root!}
+                      currentId={currentNode?.id}
+                      onCurrentClick={() => setMode('env')}
                     />
+                  ) : (
+                    environment && (
+                      <VisualEnvironment
+                        env={environment}
+                        ref={visualEnvironmentRef}
+                        heapHelper={heapHelper}
+                        setHeapHelper={setHeapHelper}
+                      />
+                    )
                   )}
                 </div>
               }
@@ -552,6 +579,12 @@ export function VisualizerTool({
                             setGLobalEnvironmentGenerator(globalEnvironment);
                             setGlobalEnvironment(globalEnvironment);
                             setGen(evalChunk(_ast, globalEnvironment));
+                            let curr: TreeNode<Lua_Environment> = new TreeNode(
+                              globalEnvironment,
+                            );
+                            setCurrentNode(curr);
+                            history.root = curr;
+                            setHistory(history);
                           }}
                         >
                           <div>{args}</div>
@@ -580,6 +613,110 @@ type VisualEnvironmentProps = {
     React.SetStateAction<{ id: string; is_open: boolean }[]>
   >;
 };
+
+export default function NAryTree({
+  tree,
+  currentId,
+  onCurrentClick,
+}: {
+  tree: TreeNode<Lua_Environment>;
+  currentId?: string;
+  onCurrentClick?: (node: TreeNode<Lua_Environment>) => void;
+}) {
+  return (
+    <div className='w-full min-h-[50vh] overflow-auto py-6 flex justify-center'>
+      {/* Pseudo-element helpers for vertical drops from the bar to each child */}
+      <style>{css}</style>
+      <Node
+        node={tree}
+        depth={0}
+        currentId={currentId}
+        onCurrentClick={onCurrentClick}
+      />
+    </div>
+  );
+}
+
+function Node({
+  node,
+  depth,
+  currentId,
+  onCurrentClick,
+}: {
+  node: TreeNode<Lua_Environment>;
+  depth: number;
+  currentId?: string;
+  onCurrentClick?: (node: TreeNode<Lua_Environment>) => void;
+}) {
+  const kids = node.children?.length ? node.children : [];
+  const isCurrent = currentId === node.id;
+
+  return (
+    <div className='inline-flex flex-col items-center relative'>
+      {/* Card */}
+      <button
+        type='button'
+        onClick={isCurrent ? () => onCurrentClick?.(node) : undefined}
+        className={[
+          'rounded-xl border px-4 py-2 min-w-[96px] text-center shadow-md select-none',
+          'bg-slate-800 border-slate-700 text-slate-100',
+          isCurrent
+            ? 'ring-4 ring-indigo-500/50 shadow-indigo-700/30'
+            : 'hover:bg-slate-750/50',
+        ].join(' ')}
+        aria-current={isCurrent || undefined}
+        data-node-id={node.id}
+      >
+        <div className='text-sm font-semibold truncate max-w-[140px]'>
+          {node.id}
+        </div>
+        <div className='text-[10px] text-slate-400'>depth {depth}</div>
+      </button>
+
+      {/* Connectors + children */}
+      {kids.length > 0 && (
+        <>
+          {/* vertical stem */}
+          <div className='w-0.5 h-6 bg-slate-600 my-1' />
+
+          {/* children row + horizontal bar */}
+          <div className='relative flex gap-6 pt-6'>
+            <div className='absolute left-0 right-0 top-0 h-0.5 bg-slate-600' />
+            {kids.map((child) => (
+              <div
+                key={child.id}
+                className='relative flex flex-col items-center pt-3 child-drop'
+              >
+                <Node
+                  node={child}
+                  depth={depth + 1}
+                  currentId={currentId}
+                  onCurrentClick={onCurrentClick}
+                />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+const css = `
+/* draw a short vertical line from the connectors bar to each child card */
+.child-drop::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 12px;
+  background: rgb(71 85 105); /* slate-600 */
+}
+`;
+
+// --- Demo usage (optional) ---
 
 let global_env = 0;
 // TODO fix this bs
@@ -697,11 +834,11 @@ function VisualEnvironment({
   global_env--;
   return (
     <div>
-      <Collapsible>
+      <Collapsible className='h-fit'>
         {rc}
         <CollapsibleTrigger>Env: #{global_env}</CollapsibleTrigger>
 
-        <ScrollArea className='h-[50px]'>
+        <ScrollArea className='h-fit'>
           <CollapsibleContent>{curr}</CollapsibleContent>
           <ScrollBar className='bg-black' orientation='vertical' />
         </ScrollArea>
