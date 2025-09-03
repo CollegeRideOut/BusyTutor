@@ -51,6 +51,13 @@
 
 ### Up Next
 
+- Environment visuals: polish node cards, spacing, and shadows
+- Movable layout: allow dragging nodes/groups
+- Collapsible nodes: toggle children open/closed with indicator
+- Connector fix: reroute SVG links if target is off-screen/hidden
+- Scroll & collapse logic: links attach to visible ancestor or viewport edge
+- End-state indicator: show banner + color ring for correct/incorrect runs
+- Demo capture: quick screen recording of expand/collapse, drag, reroute, and end badge
 - Improved arrow styling – rounded corners, subtle animation, glow
 - branching
 - Mini tooltips – show variable info (type, value, key) on hover
