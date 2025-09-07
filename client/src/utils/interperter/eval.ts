@@ -6,6 +6,7 @@ import {
   Lua_True,
   Lua_False,
   builtin,
+  Lua_Break,
 } from './lua_types';
 import type {
   Lua_Number,
@@ -36,7 +37,7 @@ export function Inspect(obj: Lua_Object) {
 export function evalChunk(node: luaparser.Chunk, environment: Lua_Environment) {
   //TODO
   Lua_Global_Environment = new Lua_Environment();
-  return evalStatementsArray(node.body, environment);
+  return evalStatementsArray(node.body, Lua_Global_Environment);
 }
 
 export function evalStatementsArray(
@@ -46,7 +47,7 @@ export function evalStatementsArray(
   //TODO multiple statements now lets just assume one
   for (let statement of node) {
     let lua = evalStatements(statement, environment);
-    if (lua.kind === 'return' || lua.kind === 'error') {
+    if (lua.kind === 'return' || lua.kind === 'error' || lua.kind === 'break') {
       return lua;
     }
   }
@@ -207,14 +208,17 @@ export function evalStatements(
           value: i,
         } satisfies Lua_Number);
         const body = evalStatementsArray(node.body, environment);
+        if (body.kind === 'break') break;
         if (body.kind === 'error' || body.kind === 'return') return body;
         i += step.value;
       }
       return Lua_Null;
     }
     //TODO
+    case 'BreakStatement': {
+      return Lua_Break;
+    }
     case 'LabelStatement':
-    case 'BreakStatement':
     case 'GotoStatement':
     case 'WhileStatement':
     case 'DoStatement':

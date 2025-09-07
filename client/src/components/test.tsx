@@ -505,14 +505,14 @@ export function VisualizerTool({
                 }}
               />
             </div>
-            <div className='flex flex-col flex-wrap w full'>
+            <div className='flex flex-wrap w-full h-full'>
               <div onClick={() => setMode(mode === 'tree' ? 'env' : 'tree')}>
                 {mode === 'tree' ? 'env' : 'tree'}
               </div>
 
               {
                 <div
-                  className='flex flex-wrap w-full justify-between gap-y-3 relative'
+                  className='flex h-full flex-wrap w-full justify-between gap-y-3 relative'
                   ref={visualParentRef}
                 >
                   {mode === 'tree' ? (
@@ -753,12 +753,13 @@ function VisualEnvironment({
       case 'boolean': {
         return (
           <motion.div
+            drag
             className=' flex p-1 items-center h-[50px] w-[50px] justify-center'
             ref={(el) => {
               el && ref.current.set(identifier, el);
             }}
           >
-            {identifier} {String(obj.value)}
+            {identifier} : {String(obj.value)}
           </motion.div>
         );
       }
@@ -808,7 +809,7 @@ function VisualEnvironment({
                   className='flex flex-row max-w-fit'
                 >
                   <ResizablePanel className='w-2/3 flex flex-row'>
-                    <ScrollArea className='w-full rounded-md border p-4 flex flex-row'>
+                    <ScrollArea className='w-full h-full rounded-md border p-4 flex flex-row'>
                       {tableVisualizer(obj, ref)}
                       <ScrollBar
                         className='bg-black'
@@ -839,12 +840,12 @@ function VisualEnvironment({
   });
   global_env--;
   return (
-    <div>
-      <Collapsible className='h-fit'>
+    <div className={`${global_env === 0 ? 'h-full' : 'h-fit' }`}>
+      <Collapsible className='h-full'>
         {rc}
         <CollapsibleTrigger>Env: #{global_env}</CollapsibleTrigger>
 
-        <ScrollArea className='h-fit'>
+        <ScrollArea className='h-full'>
           <CollapsibleContent>{curr}</CollapsibleContent>
           <ScrollBar className='bg-black' orientation='vertical' />
         </ScrollArea>

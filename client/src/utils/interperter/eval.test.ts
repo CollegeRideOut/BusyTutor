@@ -1460,6 +1460,49 @@ test('ForNumericStatement', () => {
   }
 });
 
+test('break staement', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+local sum = 0
+for i = 1, 5 do
+  if i == 3 then
+    break
+  end
+  sum = sum + i
+end
+return sum
+                `),
+        new Lua_Environment(),
+      ),
+      value: [3],
+    },
+  ];
+
+  for (const test of tests) {
+    expect(test.exp).toBeDefined();
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(`${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`);
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.exp.value.length; i++) {
+      const val = test.exp.value[i];
+      if (val.kind === 'null') expect(test.value[i]).toBe(null);
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` should be a number ${val.kind}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
 function generateNumericLiteral(n: number): luaparser.Expression {
   return {
     type: 'NumericLiteral',

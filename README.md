@@ -49,8 +49,13 @@
 - when exiting goes to parent
 - button to change between Tree and Env mode
 
+### Sep 7
+- Break statement
+- Using Global env as the frist env. cause it makes sense... for now
+
 ### Up Next
 
+- Waiting on desing
 - Environment visuals: polish node cards, spacing, and shadows
 - Movable layout: allow dragging nodes/groups
 - Collapsible nodes: toggle children open/closed with indicator
