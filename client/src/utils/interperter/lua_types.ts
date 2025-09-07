@@ -17,6 +17,16 @@ export class Lua_Environment {
   public store: Map<string, Lua_Object>;
   public outer: Lua_Environment | null;
 
+  findEnvCotaining(name: string): Lua_Environment | false {
+    let val = this.store.get(name);
+    let exist = !!val;
+
+    if (!exist) return false;
+    if (!exist && this.outer) return this.outer?.findEnvCotaining(name);
+
+    return this;
+  }
+
   constructor(outer: Lua_Environment | null = null) {
     this.id = crypto.randomUUID();
     this.store = new Map();

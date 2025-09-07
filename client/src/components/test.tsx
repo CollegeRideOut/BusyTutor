@@ -27,6 +27,7 @@ import {
 import { ScrollArea, ScrollBar } from './ui/scroll-area';
 import { Tree, TreeNode } from './tree';
 import { Environment } from 'vite';
+import { testInterperter } from '../utils/interperter';
 
 export function VisualizerTool({
   title,
@@ -43,6 +44,7 @@ export function VisualizerTool({
     testToAddToCode: string;
   }[];
 }) {
+testInterperter()
   const [mode, setMode] = useState<'tree' | 'env'>('tree');
   const [code, setCode] = useState('');
   const [history, setHistory] = useState<Tree<Lua_Environment>>(

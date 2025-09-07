@@ -114,12 +114,14 @@ export function evalStatements(
         if (val.kind === 'return') vals.push(...val.value);
         else vals.push(val);
       }
+      // console
       while (true) {
         if (vals.length >= node.variables.length) break;
         vals.push(Lua_Null);
       }
 
       for (let i = 0; i < node.variables.length; i++) {
+        // check if variable exist
         let e = evalAssignment(node.variables[i], vals[i], environment, true);
         if (e.kind === 'error') return e;
       }
@@ -371,9 +373,14 @@ export function evalIdentiferAssignment(
       return val;
     }
     default: {
-      if (global) Lua_Global_Environment.set(id.name, val);
-      else environment.set(id.name, val);
+      if (global) {
+        // if exist find it find env
+        let env = environment.findEnvCotaining(id.name);
+        if (env == false) Lua_Global_Environment.set(id.name, val);
+        else env.set(id.name, val);
 
+        //console
+      } else environment.set(id.name, val);
       return Lua_Null;
     }
   }
@@ -449,6 +456,7 @@ export function evalExpression(
     }
     case 'Identifier': {
       let [val, exist] = environment.get(exp.name);
+      //console.log('hehre', val, 'name = ', exp.name);
       if (exist) return val;
 
       [val, exist] = Lua_Global_Environment.get(exp.name);
@@ -644,10 +652,58 @@ export function evalExpression(
       }
       //return { kind: 'error', message: `indexer : not implemented` } as Lua_Error
     }
-    case 'VarargLiteral':
+
+    case 'TableCallExpression': {
+      let func = evalExpression(exp.base, environment);
+      if (func.kind === 'error') return func;
+      if (func.kind !== 'function' && func.kind !== 'builtin')
+        return {
+          id: crypto.randomUUID(),
+          kind: 'error',
+          message: `${func.kind} is supposed to be a function`,
+        } satisfies Lua_Error;
+
+      const args: Lua_Object[] = [];
+      if (func.kind === 'function') {
+        if (func.self) args.push(func.self);
+      }
+
+      const arg = evalExpression(exp.arguments, environment);
+      if (arg.kind === 'error') return arg;
+      args.push(arg);
+
+      if (func.kind === 'function') {
+        if (func.self) func.self = false;
+      }
+      return applyFunction(func, args);
+    }
+    case 'StringCallExpression': {
+      let func = evalExpression(exp.base, environment);
+      if (func.kind === 'error') return func;
+      if (func.kind !== 'function' && func.kind !== 'builtin')
+        return {
+          id: crypto.randomUUID(),
+          kind: 'error',
+          message: `${func.kind} is supposed to be a function`,
+        } satisfies Lua_Error;
+
+      const args: Lua_Object[] = [];
+      if (func.kind === 'function') {
+        if (func.self) args.push(func.self);
+      }
+
+      const arg = evalExpression(exp.argument, environment);
+      if (arg.kind === 'error') return arg;
+      args.push(arg);
+
+      if (func.kind === 'function') {
+        if (func.self) func.self = false;
+      }
+      return applyFunction(func, args);
+    }
+
     case 'LogicalExpression':
-    case 'TableCallExpression':
-    case 'StringCallExpression':
+    case 'VarargLiteral':
 
     default: {
       return {

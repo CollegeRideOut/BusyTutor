@@ -1576,8 +1576,6 @@ return x
   }
 });
 
-
-
 test('WhileStement', () => {
   const tests = [
     {
@@ -1634,6 +1632,210 @@ return x
   }
 });
 
+test('tableCallExpression', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+-- function that sums elements of a table
+function sum(tbl)
+  local s = 0
+  for i = 1, #tbl do
+    s = s + tbl[i]
+  end
+  return s
+end
+
+-- sugar call
+local a = sum {1, 2, 3}
+
+-- normal call
+local b = sum({1, 2, 3})
+
+return a, b
+                `),
+        new Lua_Environment(),
+      ),
+      value: [6, 6],
+    },
+  ];
+
+  for (const test of tests) {
+    expect(test.exp).toBeDefined();
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.exp.value.length; i++) {
+      const val = test.exp.value[i];
+      if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` should be a number  is ${val.kind}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('StringCallExpression', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+function shout(s)
+  return s .. "!"
+end
+
+-- sugar call
+local a = shout "hey"
+
+-- normal call
+local b = shout("hey")
+
+return a, b
+                `),
+        new Lua_Environment(),
+      ),
+      value: ['hey!', 'hey!'],
+    },
+  ];
+
+  for (const test of tests) {
+    expect(test.exp).toBeDefined();
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.exp.value.length; i++) {
+      const val = test.exp.value[i];
+      if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` should be a number  is ${val.kind}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('Environemnt testing', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+a = 0        
+local mid_final
+local inner_final
+
+-- nested blocks (lexical scopes)
+do
+  local a = 10         -- middle scope
+  do
+    local a = 20       -- inner scope
+    a = a + 1          -- should update INNER a -> 21
+    inner_final = a    -- writes to top-level local (found by lookup)
+  end
+  a = a + 1            -- should update MIDDLE a -> 11
+  mid_final = a
+end
+
+a = a + 1              -- no local in scope -> updates GLOBAL a -> 1
+
+-- upvalue test: function closes over its defining 'b'
+local b = 100
+local function inc()
+  b = b + 5            -- always updates the upvalue 'b' from its definition scope
+end
+
+inc()                  -- b = 105
+do
+  local b = 999        -- shadows name, but inc() still touches the upvalue b=105
+  inc()                -- b = 110 (outer), NOT 1004
+end
+inc()                  -- b = 115
+
+return a, mid_final, inner_final, b
+
+                `),
+        new Lua_Environment(),
+      ),
+      value: [1, 11, 21, 115],
+    },
+
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+a = 0                -- global
+local outer = 1
+
+for i = 1, 2 do
+  local loopVar = i
+  loopVar = loopVar + 10   -- updates local loopVar in this iteration
+
+  if i == 2 then
+    outer = outer + loopVar   -- updates outer local, not global
+  end
+
+  do
+    local shadow = 99
+    shadow = shadow + loopVar  -- stays in inner block
+  end
+end
+
+local function bump()
+  a = a + 5      -- updates GLOBAL a
+  outer = outer + 100  -- updates OUTER local (captured upvalue)
+end
+
+bump()
+bump()
+
+return a, outer
+
+                `),
+        new Lua_Environment(),
+      ),
+      value: [10, 213],
+    },
+  ];
+
+  for (const test of tests) {
+    expect(test.exp).toBeDefined();
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.exp.value.length; i++) {
+      const val = test.exp.value[i];
+      if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` should be a number  is ${val.kind}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
 test('RepeatStament', () => {
   const tests = [
     {
@@ -1649,7 +1851,6 @@ return x
       ),
       value: [4],
     },
-
   ];
 
   for (const test of tests) {
