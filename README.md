@@ -54,6 +54,7 @@
 - Break statement
 - Using Global env as the frist env. cause it makes sense... for now
 - While Statement
+- Repeat Statement
 
 ### Up Next
 

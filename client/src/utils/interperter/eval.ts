@@ -239,7 +239,21 @@ export function evalStatements(
       }
       return Lua_Null;
     }
-    case 'RepeatStatement':
+    case 'RepeatStatement': {
+      let condition = evalExpression(node.condition, environment);
+      if (condition.kind === 'error') return condition;
+      let is_true = isThruthy(condition).value;
+      do {
+        let body = evalStatementsArray(node.body, environment);
+        if (body.kind === 'break') break;
+        if (body.kind === 'error' || body.kind === 'return') return body;
+
+        condition = evalExpression(node.condition, environment);
+        if (condition.kind === 'error') return condition;
+        is_true = isThruthy(condition).value;
+      } while (!is_true);
+      return Lua_Null;
+    }
     case 'ForGenericStatement':
     case 'LabelStatement':
     case 'GotoStatement':
