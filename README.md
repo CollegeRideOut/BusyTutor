@@ -50,8 +50,10 @@
 - button to change between Tree and Env mode
 
 ### Sep 7
+
 - Break statement
 - Using Global env as the frist env. cause it makes sense... for now
+- While Statement
 
 ### Up Next
 

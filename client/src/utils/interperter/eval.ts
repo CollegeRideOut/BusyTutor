@@ -36,6 +36,7 @@ export function Inspect(obj: Lua_Object) {
 
 export function evalChunk(node: luaparser.Chunk, environment: Lua_Environment) {
   //TODO
+  void environment; // TODO remove this bs
   Lua_Global_Environment = new Lua_Environment();
   return evalStatementsArray(node.body, Lua_Global_Environment);
 }
@@ -218,12 +219,30 @@ export function evalStatements(
     case 'BreakStatement': {
       return Lua_Break;
     }
-    case 'LabelStatement':
-    case 'GotoStatement':
-    case 'WhileStatement':
-    case 'DoStatement':
+    case 'DoStatement': {
+      const env = new Lua_Environment(environment);
+      return evalStatementsArray(node.body, env);
+    }
+
+    case 'WhileStatement': {
+      let condition = evalExpression(node.condition, environment);
+      if (condition.kind === 'error') return condition;
+      let is_true = isThruthy(condition).value;
+      while (is_true) {
+        let body = evalStatementsArray(node.body, environment);
+        if (body.kind === 'break') break;
+        if (body.kind === 'error' || body.kind === 'return') return body;
+
+        condition = evalExpression(node.condition, environment);
+        if (condition.kind === 'error') return condition;
+        is_true = isThruthy(condition).value;
+      }
+      return Lua_Null;
+    }
     case 'RepeatStatement':
     case 'ForGenericStatement':
+    case 'LabelStatement':
+    case 'GotoStatement':
     default: {
       return {
         id: crypto.randomUUID(),
@@ -945,6 +964,12 @@ export function isThruthy(arg: Lua_Object) {
     case 'boolean': {
       return arg.value ? Lua_True : Lua_False;
     }
+    case 'return': {
+      let val = arg.value.at(0);
+      if (val === undefined) return Lua_False;
+      return isThruthy(val);
+    }
+
     case 'null': {
       return Lua_False;
     }
