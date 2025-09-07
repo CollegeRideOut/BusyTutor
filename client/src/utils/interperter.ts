@@ -1,9 +1,11 @@
 import luaparser from 'luaparse';
 
 let code = `
-local obj = {} 
-obj.name = 'a'
-return 'a' 
+function g(b, ...)
+  local x = ...
+  return x
+end
+return g(10, 20, 30)
 `;
 
 export function testInterperter() {

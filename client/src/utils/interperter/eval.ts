@@ -7,6 +7,7 @@ import {
   Lua_False,
   builtin,
   Lua_Break,
+  Lua_Vargs,
 } from './lua_types';
 import type {
   Lua_Number,
@@ -719,13 +720,17 @@ export function evalExpression(
       if (exp.operator === 'or') return isThruthy(left).value ? left : right;
       else return isThruthy(left).value ? right : left;
     }
-    case 'VarargLiteral':
+    case 'VarargLiteral': {
+      const [val, exist] = environment.get('...varg');
+      if(!exist) return Lua_Null;
+      return val
+    }
 
     default: {
       return {
         id: crypto.randomUUID(),
         kind: 'error',
-        message: `${exp.type} not implemented`,
+        message: ` not implemented`,
       } satisfies Lua_Error;
     }
   }
@@ -795,7 +800,12 @@ export function extendeFunctionEnv(
         break;
       }
       case 'VarargLiteral': {
-        throw Error(`TODO impelement vargLitereal`);
+        let varg: Lua_Return = {
+          id: crypto.randomUUID(),
+          kind: 'return',
+          value: args.slice(paramIdx),
+        };
+        env.set('...varg', varg);
       }
     }
   }

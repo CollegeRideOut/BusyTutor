@@ -9,7 +9,9 @@ export type Lua_Object =
   | Lua_String
   | Lua_Builtin
   | Lua_Table
-  | Lua_Break;
+  | Lua_Break
+  | Lua_Vargs
+  ;
 
 export class Lua_Environment {
   public id: string;
@@ -252,6 +254,8 @@ export type Lua_Null = { id: string; kind: 'null' };
 
 export type Lua_Break = { id: string; kind: 'break' };
 
+export type Lua_Vargs = { id: string; kind: 'varg' };
+
 // constants
 export const Lua_True: Lua_Boolean = {
   id: crypto.randomUUID(),
@@ -265,6 +269,7 @@ export const Lua_False: Lua_Boolean = {
 };
 export const Lua_Null: Lua_Null = { id: crypto.randomUUID(), kind: 'null' };
 export const Lua_Break: Lua_Break = { id: crypto.randomUUID(), kind: 'break' };
+export const Lua_Vargs: Lua_Vargs = { id: crypto.randomUUID(), kind: 'varg' };
 
 //TODO delete if value is set to null and do something about the idx is suppsed to be contiguos numeric values
 export class Lua_Table {

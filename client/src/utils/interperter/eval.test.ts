@@ -1686,6 +1686,127 @@ return a, b, c, d, e, f_, g_, h_
   }
 });
 
+test('VargLitereal', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+function test(...)
+  -- single-value context (only first value)
+  local a = ...
+  
+  -- multi-assignment (expands to multiple values)
+  local b, c, d = ...
+  
+  -- return in list context (expands fully)
+  return a, b, c, d, ...
+end
+
+-- call with three args
+local r1, r2, r3, r4, r5, r6, r7 = test(10, 20, 30)
+
+-- call with one arg
+local s1, s2, s3 = test(42)
+
+-- call with no args
+local t1, t2 = test()
+
+return r1, r2, r3, r4, r5, r6, r7, s1, s2, s3, t1, t2
+                `),
+        new Lua_Environment(),
+      ),
+      value: [10, 10, 20, 30, 10, 20, 30, 42, 42, null, null, null],
+    },
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+function test(a, b, ...)
+  -- single-value context: only first vararg
+  local first = ...
+
+  -- multi-assign: expands across variables
+  local x, y, z = ...
+
+  -- simple checksum using named + first few varargs
+  local sum = (a or 0) + (b or 0) + (x or 0) + (y or 0) + (z or 0)
+
+  -- return named, inspected pieces, checksum, then full vararg expansion
+  return a, b, first, x, y, z, sum, ...
+end
+
+-- Call with more than named params (two varargs)
+local A1, B1, C1, D1, E1, F1, S1, V1, V2 = test(1, 2, 3, 4)
+-- Call with fewer (no varargs)
+local A2, B2, C2, D2, E2, F2, S2, V3, V4 = test(5)
+-- Call with exactly one vararg
+local A3, B3, C3, D3, E3, F3, S3, V5, V6 = test(7, 8, 9)
+
+return
+  A1, B1, C1, D1, E1, F1, S1, V1, V2,
+  A2, B2, C2, D2, E2, F2, S2, V3, V4,
+  A3, B3, C3, D3, E3, F3, S3, V5, V6
+                `),
+        new Lua_Environment(),
+      ),
+      value: [
+        1,
+        2,
+        3,
+        3,
+        4,
+        null,
+        10,
+        3,
+        4,
+        5,
+        null,
+        null,
+        null,
+        null,
+        null,
+        5,
+        null,
+        null,
+        7,
+        8,
+        9,
+        9,
+        null,
+        null,
+        24,
+        9,
+        null,
+      ],
+    },
+  ];
+
+  for (const test of tests) {
+    expect(test.exp).toBeDefined();
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.exp.value.length; i++) {
+      const val = test.exp.value[i];
+      if (test.value[i] === null) expect(val.kind).toBe('null');
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(
+          ` should be a value is ${val.kind} should be value = ${test.value[i]}`,
+        );
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
 test('tableCallExpression', () => {
   const tests = [
     {
