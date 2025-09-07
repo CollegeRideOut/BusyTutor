@@ -1632,6 +1632,60 @@ return x
   }
 });
 
+test('LogicalExpressions', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+-- multi-return: only first value counts
+function f() return nil, 111, 222 end
+function g() return "hi", 123 end
+function h() end  -- returns nothing
+
+local a = f() or 99      -- nil → falsey → picks 99
+local b = g() or 99      -- "hi" → truthy → picks "hi"
+local c = g() and 42     -- "hi" → truthy → picks right side 42
+local d = f() and 42     -- nil → falsey → returns nil
+local e = h() or 77      -- no return → treated as nil → picks 77
+local f_ = h() and 88    -- no return → treated as nil → returns nil
+local g_ = 0 or 55       -- 0 is truthy → returns 0
+local h_ = false or 66   -- false → falsey → picks 66
+
+return a, b, c, d, e, f_, g_, h_
+                `),
+        new Lua_Environment(),
+      ),
+      value: [99, 'hi', 42, null, 77, null, 0, 66],
+    },
+  ];
+
+  for (const test of tests) {
+    expect(test.exp).toBeDefined();
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.exp.value.length; i++) {
+      const val = test.exp.value[i];
+      if (test.value[i] === null) expect(val.kind).toBe('null');
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(
+          ` should be a value is ${val.kind} should be value = ${test.value[i]}`,
+        );
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
 test('tableCallExpression', () => {
   const tests = [
     {

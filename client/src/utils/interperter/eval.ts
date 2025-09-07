@@ -702,7 +702,23 @@ export function evalExpression(
       return applyFunction(func, args);
     }
 
-    case 'LogicalExpression':
+    case 'LogicalExpression': {
+      let left: Lua_Object = evalExpression(exp.left, environment);
+      if (left.kind === 'error') return left;
+      if (left.kind === 'return')
+        left = left.value.at(0) ? left.value[0] : Lua_Null;
+      console.log(left);
+
+      let right: Lua_Object = evalExpression(exp.right, environment);
+      if (right.kind === 'error') return right;
+      if (right.kind === 'return')
+        right = right.value.at(0) ? right.value[0] : Lua_Null;
+
+      console.log(right);
+
+      if (exp.operator === 'or') return isThruthy(left).value ? left : right;
+      else return isThruthy(left).value ? right : left;
+    }
     case 'VarargLiteral':
 
     default: {

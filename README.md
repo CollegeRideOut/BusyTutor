@@ -59,6 +59,7 @@
 - StringCallExpression
 - Fixing Environment issuue
     - When assigning we look for the enviroment up the stack and return if found set the value in that environment
+- LogicalExpressions
 
 ### Up Next
 
