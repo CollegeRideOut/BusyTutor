@@ -41,6 +41,7 @@ export function evalChunkTestHelper(
 let current_environement: Lua_Environment;
 let branching: 'new' | 'exit' | 'curr' = 'curr';
 
+// TODO should be identical to original one
 export function* evalChunk(
   node: luaparser.Chunk,
   environment: Lua_Environment,

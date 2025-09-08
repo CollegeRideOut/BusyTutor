@@ -722,8 +722,8 @@ export function evalExpression(
     }
     case 'VarargLiteral': {
       const [val, exist] = environment.get('...varg');
-      if(!exist) return Lua_Null;
-      return val
+      if (!exist) return Lua_Null;
+      return val;
     }
 
     default: {
