@@ -28,6 +28,7 @@ import { ScrollArea, ScrollBar } from './ui/scroll-area';
 import { Tree, TreeNode } from './tree';
 import { Environment } from 'vite';
 import { testInterperter } from '../utils/interperter';
+import { controller, History } from '../utils/interperter_generator/controller';
 
 export function VisualizerTool({
   title,
@@ -44,14 +45,15 @@ export function VisualizerTool({
     testToAddToCode: string;
   }[];
 }) {
-testInterperter()
+  const [controls, setControls] = useState<ReturnType<
+    typeof controller
+  > | null>(null);
   const [mode, setMode] = useState<'tree' | 'env'>('tree');
   const [code, setCode] = useState('');
-  const [history, setHistory] = useState<Tree<Lua_Environment>>(
-    new Tree<Lua_Environment>(),
+  const [history, setHistory] = useState<Tree<History>>(new Tree<History>());
+  const [currentNode, setCurrentNode] = useState<TreeNode<History> | null>(
+    null,
   );
-  const [currentNode, setCurrentNode] =
-    useState<TreeNode<Lua_Environment> | null>(null);
   const [visCode, setVisCode] = useState<ReactNode[]>([]);
   const theme = useContext(ThemeContext);
   const [gen, setGen] = useState<ReturnType<typeof evalChunk>>();
@@ -92,7 +94,6 @@ testInterperter()
 
     // TODO get rasterizing out and we gotta refactor sooon this looks tooo bad
     let svgs: ReactNode[] = [];
-    console.log(indexing);
     for (let current of indexing) {
       if (!current) {
         continue;
@@ -445,7 +446,14 @@ testInterperter()
                     console.log('no Generator');
                     return;
                   }
-                  const val = gen.next();
+                  if (!controls) throw Error('controls should not be null');
+                  let values = controls.next();
+                  let info = controls.info();
+                  if (info === null) throw Error('info should not be null');
+                  console.log(info.tree);
+
+                  const val = values;
+                  if (val === undefined) throw Error('should not be undefined');
 
                   if (val.done) {
                     setGen(undefined);
@@ -454,26 +462,19 @@ testInterperter()
                     //setVisual([...visual, val.value])
                     //
                     //TODO god dammit this is really bad repretive code after branching i think i should really do some refactoring but for now....
-                    let v = val.value[1];
-                    let b = val.value[2];
 
                     let env = JSON.parse(
-                      JSON.stringify(v, make_replacer()),
+                      JSON.stringify(info.curr_env, make_replacer()),
                       reviver,
                     ) as Lua_Environment;
                     setEnvironment(env);
                     let visual = val.value[0];
 
-                    if (b === 'new') {
-                      let curr = new TreeNode<Lua_Environment>(env);
-                      curr.parent = currentNode;
-                      currentNode!.children.push(curr);
-                      setCurrentNode(curr);
-                      // wtf is this bs code
-                      setHistory(history);
-                    } else if (b === 'exit') {
-                      setCurrentNode(currentNode!.parent);
-                    }
+                    setHistory(info.tree);
+
+                    console.log('whats up ',info.curr_node)
+                    setCurrentNode(info.curr_node);
+                    console.log(info.tree.root!.id);
                     if (visual) {
                       if (visual.identifier && visual.indexer) {
                         setEnviVisual([...envVisual, visual]);
@@ -581,18 +582,29 @@ testInterperter()
                                 locations: true,
                               },
                             );
+
+                            // lets try using the controller
+                            let controls = controller(_ast);
+                            setControls(controls);
+                            controls.init();
+                            let info = controls.info();
+                            if (info === null)
+                              throw Error('should not be noot after init');
+
+                            // TODO old version
                             setAst(_ast);
-                            let globalEnvironment = new Lua_Environment();
-                            setEnvironment(globalEnvironment);
-                            setGLobalEnvironmentGenerator(globalEnvironment);
-                            setGlobalEnvironment(globalEnvironment);
-                            setGen(evalChunk(_ast, globalEnvironment));
+                            let globalEnvironment = info.global;
+                            setEnvironment(info.curr_env);
+                            setGLobalEnvironmentGenerator(info.global);
+                            setGlobalEnvironment(info.global);
+                            setGen(info.stepper);
+                            // TODO
                             let curr: TreeNode<Lua_Environment> = new TreeNode(
                               globalEnvironment,
                             );
-                            setCurrentNode(curr);
-                            history.root = curr;
-                            setHistory(history);
+
+                            setCurrentNode(info.curr_node);
+                            setHistory(info.tree);
                           }}
                         >
                           <div>{args}</div>
@@ -627,10 +639,12 @@ export default function NAryTree({
   currentId,
   onCurrentClick,
 }: {
-  tree: TreeNode<Lua_Environment>;
+  tree: TreeNode<History>;
   currentId?: string;
-  onCurrentClick?: (node: TreeNode<Lua_Environment>) => void;
+  onCurrentClick?: (node: TreeNode<History>) => void;
 }) {
+  console.log('narytree', tree.id);
+  console.log('narytree current', currentId);
   return (
     <div className='w-full min-h-[50vh] overflow-auto py-6 flex justify-center'>
       {/* Pseudo-element helpers for vertical drops from the bar to each child */}
@@ -651,10 +665,10 @@ function Node({
   currentId,
   onCurrentClick,
 }: {
-  node: TreeNode<Lua_Environment>;
+  node: TreeNode<History>;
   depth: number;
   currentId?: string;
-  onCurrentClick?: (node: TreeNode<Lua_Environment>) => void;
+  onCurrentClick?: (node: TreeNode<History>) => void;
 }) {
   const kids = node.children?.length ? node.children : [];
   const isCurrent = currentId === node.id;
@@ -842,7 +856,7 @@ function VisualEnvironment({
   });
   global_env--;
   return (
-    <div className={`${global_env === 0 ? 'h-full' : 'h-fit' }`}>
+    <div className={`${global_env === 0 ? 'h-full' : 'h-fit'}`}>
       <Collapsible className='h-full'>
         {rc}
         <CollapsibleTrigger>Env: #{global_env}</CollapsibleTrigger>

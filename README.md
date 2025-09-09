@@ -64,6 +64,7 @@
 
 ### Up Next
 
+- hisotry
 - Waiting on desing
 - Environment visuals: polish node cards, spacing, and shadows
 - Movable layout: allow dragging nodes/groups
