@@ -28,7 +28,12 @@ import { ScrollArea, ScrollBar } from './ui/scroll-area';
 import { Tree, TreeNode } from './tree';
 import { Environment } from 'vite';
 import { testInterperter } from '../utils/interperter';
-import { controller, History } from '../utils/interperter_generator/controller';
+import {
+  controller,
+  History,
+  type event,
+} from '../utils/interperter_generator/controller';
+import { make_replacer, reviver } from '../utils/jsonParser';
 
 export function VisualizerTool({
   title,
@@ -49,11 +54,16 @@ export function VisualizerTool({
     typeof controller
   > | null>(null);
   const [mode, setMode] = useState<'tree' | 'env'>('tree');
+  const [timeline, setTimeline] = useState<History['timeline']>([]);
+  const [currenTimeline, setCurrentTimeline] = useState(0);
   const [code, setCode] = useState('');
   const [history, setHistory] = useState<Tree<History>>(new Tree<History>());
   const [currentNode, setCurrentNode] = useState<TreeNode<History> | null>(
     null,
   );
+
+  const [presentingNode, setPresintingNode] =
+    useState<TreeNode<History> | null>(null);
   const [visCode, setVisCode] = useState<ReactNode[]>([]);
   const theme = useContext(ThemeContext);
   const [gen, setGen] = useState<ReturnType<typeof evalChunk>>();
@@ -472,9 +482,12 @@ export function VisualizerTool({
 
                     setHistory(info.tree);
 
-                    console.log('whats up ',info.curr_node)
                     setCurrentNode(info.curr_node);
-                    console.log(info.tree.root!.id);
+                    setPresintingNode(info.curr_node);
+                    setTimeline(info.curr_node.value.timeline);
+                    setCurrentTimeline(
+                      info.curr_node.value.currentHistoryIdx(),
+                    );
                     if (visual) {
                       if (visual.identifier && visual.indexer) {
                         setEnviVisual([...envVisual, visual]);
@@ -522,16 +535,42 @@ export function VisualizerTool({
                     <NAryTree
                       tree={history.root!}
                       currentId={currentNode?.id}
-                      onCurrentClick={() => setMode('env')}
+                      onCurrentClick={(node: TreeNode<History>) => {
+                        setMode('env');
+                        setPresintingNode(node);
+                        visualEnvironmentRef.current = new Map();
+                        setEnvironment(node.value.timeline[0].env);
+                        setTimeline(node.value.timeline);
+                        setCurrentTimeline(0);
+                        setHeapHelper([]);
+                      }}
                     />
                   ) : (
-                    environment && (
-                      <VisualEnvironment
-                        env={environment}
-                        ref={visualEnvironmentRef}
-                        heapHelper={heapHelper}
-                        setHeapHelper={setHeapHelper}
-                      />
+                    environment &&
+                    timeline && (
+                      <div className='h-full w-full flex'>
+                        <div className='p-4'>
+                          {timeline.map((e, idx) => {
+                            return (
+                              <div
+                                key={`timeline-${idx}`}
+                                onClick={() => {
+                                  setEnvironment(e.env);
+                                  setCurrentTimeline(idx);
+                                }}
+                              >
+                                {idx === currenTimeline ? `${idx} me` : idx}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <VisualEnvironment
+                          env={environment}
+                          ref={visualEnvironmentRef}
+                          heapHelper={heapHelper}
+                          setHeapHelper={setHeapHelper}
+                        />
+                      </div>
                     )
                   )}
                 </div>
@@ -604,6 +643,7 @@ export function VisualizerTool({
                             );
 
                             setCurrentNode(info.curr_node);
+                            setPresintingNode(info.curr_node);
                             setHistory(info.tree);
                           }}
                         >
@@ -641,10 +681,8 @@ export default function NAryTree({
 }: {
   tree: TreeNode<History>;
   currentId?: string;
-  onCurrentClick?: (node: TreeNode<History>) => void;
+  onCurrentClick: (node: TreeNode<History>) => void;
 }) {
-  console.log('narytree', tree.id);
-  console.log('narytree current', currentId);
   return (
     <div className='w-full min-h-[50vh] overflow-auto py-6 flex justify-center'>
       {/* Pseudo-element helpers for vertical drops from the bar to each child */}
@@ -668,7 +706,7 @@ function Node({
   node: TreeNode<History>;
   depth: number;
   currentId?: string;
-  onCurrentClick?: (node: TreeNode<History>) => void;
+  onCurrentClick: (node: TreeNode<History>) => void;
 }) {
   const kids = node.children?.length ? node.children : [];
   const isCurrent = currentId === node.id;
@@ -678,7 +716,7 @@ function Node({
       {/* Card */}
       <button
         type='button'
-        onClick={isCurrent ? () => onCurrentClick?.(node) : undefined}
+        onClick={() => onCurrentClick(node)}
         className={[
           'rounded-xl border px-4 py-2 min-w-[96px] text-center shadow-md select-none',
           'bg-slate-800 border-slate-700 text-slate-100',
@@ -857,7 +895,7 @@ function VisualEnvironment({
   global_env--;
   return (
     <div className={`${global_env === 0 ? 'h-full' : 'h-fit'}`}>
-      <Collapsible className='h-full'>
+      <Collapsible className='h-full' defaultOpen={true}>
         {rc}
         <CollapsibleTrigger>Env: #{global_env}</CollapsibleTrigger>
 
@@ -932,30 +970,3 @@ export function tableVisualizer(
   );
 }
 // TODO this are utils maybe take it out
-function make_replacer() {
-  const seen = new WeakSet();
-  return (_key: any, value: any) => {
-    if (typeof value === 'object' && value !== null) {
-      if (seen.has(value)) {
-        return '[Circular]';
-      }
-      seen.add(value);
-    }
-    if (value instanceof Map) {
-      return {
-        dataType: 'Map',
-        value: Array.from(value.entries()), // or with spread: value: [...value]
-      };
-    } else {
-      return value;
-    }
-  };
-}
-function reviver(_key: any, value: any) {
-  if (typeof value === 'object' && value !== null) {
-    if (value.dataType === 'Map') {
-      return new Map(value.value);
-    }
-  }
-  return value;
-}

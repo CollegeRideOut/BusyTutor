@@ -62,9 +62,26 @@
 - LogicalExpressions
 - VarsLieteral
 
+### Sep 9
+
+- History init
+- Controller
+- Modify front end to use Controler type
+- allow to click into any node and check the given
+- Basic visalization of curr_node stack hisotry
+- allow to click on stack history and present environment
+
 ### Up Next
 
-- hisotry
+- Allow user to move through history but (Button timeline.next) not program .next
+- basic implementations and visualization of Data Structures 
+  - 2d array
+  - Stack
+  - queue
+  - linked list
+  - double linked list
+  - binary tree / binary search tree
+  - heap <- just an array tree
 - Waiting on desing
 - Environment visuals: polish node cards, spacing, and shadows
 - Movable layout: allow dragging nodes/groups

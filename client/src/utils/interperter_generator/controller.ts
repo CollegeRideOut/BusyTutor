@@ -1,9 +1,10 @@
 import { Tree, TreeNode } from '../../components/tree';
 import { Lua_Environment } from '../interperter/lua_types';
+import { make_replacer, reviver } from '../jsonParser';
 import { evalChunk } from './eval_generator';
 import luaparser from 'luaparse';
 
-type event = {
+export type event = {
   step: number;
   env: Lua_Environment;
   type: 'curr' | 'new' | 'exit';
@@ -37,6 +38,21 @@ export class History {
 
     this.current = idx;
     return this.timeline[this.current];
+  }
+
+  hasNext(): boolean {
+    if (this.current >= this.timeline.length) return false;
+    return true;
+  }
+
+  hasPrev(): boolean {
+    if (this.current <= 0) return false;
+    return true;
+  }
+  currentHistoryIdx() {
+    if (this.current > this.timeline.length || this.current < 0)
+      throw Error('current not in range');
+    return this.current - 1;
   }
   currentHistory() {
     if (this.current > this.timeline.length || this.current < 0)
@@ -85,12 +101,15 @@ export function controller(ast: luaparser.Chunk) {
       info.steps++;
       if (values.done) return;
       let [_, curr_env, modify_env] = values.value;
-      info.curr_env = curr_env;
+      info.curr_env = JSON.parse(
+        JSON.stringify(curr_env, make_replacer()),
+        reviver,
+      ) as Lua_Environment;
 
       if (modify_env === 'exit') {
         let event: event = {
           step: info.steps,
-          env: curr_env,
+          env: info.curr_env,
           type: 'exit',
           goTo: info.curr_node.parent?.id,
         };
@@ -102,7 +121,7 @@ export function controller(ast: luaparser.Chunk) {
         new_node.parent = info.curr_node;
         let event: event = {
           step: info.steps,
-          env: curr_env,
+          env: info.curr_env,
           type: 'new',
           goTo: new_node.id,
         };
@@ -119,7 +138,7 @@ export function controller(ast: luaparser.Chunk) {
       } else if (modify_env === 'curr') {
         let event: event = {
           step: info.steps,
-          env: curr_env,
+          env: info.curr_env,
           type: 'curr',
         };
         info.curr_node.value.addHistory(event);
