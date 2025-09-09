@@ -70,10 +70,11 @@
 - allow to click into any node and check the given
 - Basic visalization of curr_node stack hisotry
 - allow to click on stack history and present environment
+- Allow user to move through foward history but (Button timeline.next) not program .next
+- Allow user to move through backword history but (Button timeline.prev) 
 
 ### Up Next
 
-- Allow user to move through history but (Button timeline.next) not program .next
 - basic implementations and visualization of Data Structures 
   - 2d array
   - Stack

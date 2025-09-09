@@ -8,7 +8,8 @@ export type event = {
   step: number;
   env: Lua_Environment;
   type: 'curr' | 'new' | 'exit';
-  goTo?: string;
+  goTo?: TreeNode<History> | null;
+  cameFrom?: {n: TreeNode<History> , eIdx: number};
 };
 
 export class History {
@@ -111,7 +112,7 @@ export function controller(ast: luaparser.Chunk) {
           step: info.steps,
           env: info.curr_env,
           type: 'exit',
-          goTo: info.curr_node.parent?.id,
+          goTo: info.curr_node.parent,
         };
         info.curr_node.value.addHistory(event);
         info.curr_node = info.curr_node.parent!;
@@ -123,13 +124,18 @@ export function controller(ast: luaparser.Chunk) {
           step: info.steps,
           env: info.curr_env,
           type: 'new',
-          goTo: new_node.id,
+          goTo: new_node,
         };
         info.curr_node.value.addHistory(event);
 
-        // modifuing event
-        event.type = 'curr';
-        event.goTo = undefined;
+        //TODO stop modifuing event
+        event = {
+          step: info.steps,
+          env: info.curr_env,
+          type: 'new',
+        cameFrom:  {n: info.curr_node, eIdx: info.curr_node.value.timeline.length - 1}
+
+        }
         new_node.value.addHistory(event);
 
         // ading children to current_node

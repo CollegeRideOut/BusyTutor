@@ -1,4 +1,7 @@
 import { useContext, useEffect, useRef, useState } from 'react';
+
+import { IoReturnDownBack } from "react-icons/io5";
+import { MdOutlineTimeline } from 'react-icons/md';
 import type { ReactNode } from 'react';
 import { ThemeContext } from '../routes/__root';
 import { RiResetLeftFill } from 'react-icons/ri';
@@ -518,6 +521,62 @@ export function VisualizerTool({
                   setAst(null);
                   setVisCode([]);
                   setGen(undefined);
+                }}
+              />
+
+              <MdOutlineTimeline
+                className={`cursor-pointer hover:bg-[var(--bg-hover)] bg-[var(--bg)] rounded  active:bg-[var(--active)]`}
+                style={{
+                  '--bg': theme.vals.colors.background,
+                  '--active': theme.vals.colors.primary,
+                  '--bg-hover': theme.vals.colors.accent,
+                }}
+                size={30}
+                onClick={() => {
+
+                  console.log(timeline)
+                  let e = timeline.at(currenTimeline + 1);
+                  if (!e) return;
+                  if (e.goTo) {
+                      console.log('yes go to?')
+                    setPresintingNode(e.goTo);
+                    visualEnvironmentRef.current = new Map();
+                    setEnvironment(e.goTo.value.timeline[0].env);
+                    setTimeline(e.goTo.value.timeline);
+                    setCurrentTimeline(0);
+                    setHeapHelper([]);
+                  } else {
+                    setEnvironment(e.env);
+                    setCurrentTimeline(currenTimeline + 1);
+                      console.log('no go to?')
+                  }
+                }}
+              />
+
+              <IoReturnDownBack
+                className={`cursor-pointer hover:bg-[var(--bg-hover)] bg-[var(--bg)] rounded  active:bg-[var(--active)]`}
+                style={{
+                  '--bg': theme.vals.colors.background,
+                  '--active': theme.vals.colors.primary,
+                  '--bg-hover': theme.vals.colors.accent,
+                }}
+                size={30}
+                onClick={() => {
+
+                  let e = timeline.at(currenTimeline - 1);
+                  if (!e) return;
+                  if (e.cameFrom) {
+                    setPresintingNode(e.cameFrom.n);
+                    visualEnvironmentRef.current = new Map();
+                    setEnvironment(e.cameFrom.n.value.timeline[e.cameFrom.eIdx].env);
+                    setTimeline(e.cameFrom.n.value.timeline);
+                    setCurrentTimeline(e.cameFrom.eIdx);
+                    setHeapHelper([]);
+                  } else {
+                    setEnvironment(e.env);
+                    setCurrentTimeline(currenTimeline + -1);
+                      console.log('no go to?')
+                  }
                 }}
               />
             </div>
