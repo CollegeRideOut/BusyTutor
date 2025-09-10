@@ -76,6 +76,9 @@
 ### Sep 10
 
 - Refacotring not operator
+- Refactor eval Binary Expression
+- metabales functions
+- __lt, __le, etc
 
 ### Up Next
 

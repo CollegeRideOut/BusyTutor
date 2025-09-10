@@ -809,11 +809,25 @@ export function extendeFunctionEnv(
 
   return env;
 }
+let MetatableOperationsLookup = {
+  '+': '__add',
+  '-': '__sub',
+  '*': '__mul',
+  '/': '__div',
+  '%': '__mod',
+  '^': '__pow',
+  '==': '__eq',
+  '~=': '__eq',
+  '<': '__lt',
+  '>': '__lt',
+  '<=': '__le',
+
+  '>=': '__le',
+  '..': '__concat',
+} as const;
 
 const ArithmeticOperators = ['+', '-', '*', '/', '%', '^', '//'] as const;
-
 const RelationalOperators = ['==', '~=', '<', '<=', '>', '>='] as const;
-
 const BitwiseOperators = ['&', '|', '<<', '>>', '~'] as const;
 const ConcatenationOperation = '..' as const;
 
@@ -847,11 +861,87 @@ export function evalBinaryExpression(
 ) {
   switch (true) {
     case isArithmeticOperators(operator): {
+      // TODO take this out and code smells
+      let metaOperator = operator in MetatableOperationsLookup;
+      if (left.kind === 'table' && right.kind === 'table' && metaOperator) {
+        let op =
+          MetatableOperationsLookup[
+            operator as keyof typeof MetatableOperationsLookup
+          ];
+        if (left.metatable.kind !== 'null') {
+          let func = left.metatable.get({
+            id: crypto.randomUUID(),
+            kind: 'string',
+            value: op,
+          } satisfies Lua_String);
+          if (func.kind !== 'null' && func.kind !== 'function')
+            return {
+              id: crypto.randomUUID(),
+              kind: 'error',
+              message: 'must be a function',
+            } satisfies Lua_Error;
+          if (func.kind === 'function') {
+            return applyFunction(func, [left, right]);
+          }
+        } else if (right.metatable.kind !== 'null') {
+          let func = right.metatable.get({
+            id: crypto.randomUUID(),
+            kind: 'string',
+            value: op,
+          } satisfies Lua_String);
+          if (func.kind !== 'null' && func.kind !== 'function')
+            return {
+              id: crypto.randomUUID(),
+              kind: 'error',
+              message: 'must be a function',
+            } satisfies Lua_Error;
+          if (func.kind === 'function') {
+            return applyFunction(func, [left, right]);
+          }
+        }
+      }
+
       let ar = evalArimaticOperator(operator, left, right);
       return ar;
     }
 
     case isRelationalOperators(operator): {
+      //TODO relational smell
+      let metaOperator = operator in MetatableOperationsLookup;
+      if (left.kind === 'table' && right.kind === 'table' && metaOperator) {
+        let op =
+          MetatableOperationsLookup[
+            operator as keyof typeof MetatableOperationsLookup
+          ];
+        if (
+          left.metatable.kind !== 'null' &&
+          left.metatable === right.metatable
+        ) {
+          let func = left.metatable.get({
+            id: crypto.randomUUID(),
+            kind: 'string',
+            value: op,
+          } satisfies Lua_String);
+          if (func.kind !== 'null' && func.kind !== 'function')
+            return {
+              id: crypto.randomUUID(),
+              kind: 'error',
+              message: 'must be a function',
+            } satisfies Lua_Error;
+          if (func.kind === 'function') {
+            if (operator === '>' || operator === '>=') {
+              return applyFunction(func, [right, left]);
+            }
+            if (operator === '~=') {
+              let v = applyFunction(func, [left, right]);
+              if (v.kind === 'error') return v;
+              return isThruthy(v).value ? Lua_False : Lua_True;
+            }
+            return applyFunction(func, [left, right]);
+          }
+        }
+      }
+
       return evalRelationalOperations(operator, left, right);
     }
     case operator === ConcatenationOperation: {
@@ -937,6 +1027,7 @@ export function evalArimaticOperator(
   left: Lua_Object,
   right: Lua_Object,
 ) {
+  // How to handle meta tables?
   let nleft = coerceToNumber(left);
   if (nleft.kind === 'error') return nleft;
   let nright = coerceToNumber(right);
@@ -992,13 +1083,13 @@ export function evalArimaticOperator(
       return {
         id: crypto.randomUUID(),
         kind: 'number',
-        value: Math.pow(nright.value, nleft.value),
+        value: Math.pow(nleft.value, nright.value),
       } satisfies Lua_Number;
     }
   }
 }
 
-function evalBitwiseOperations(
+export function evalBitwiseOperations(
   operator: (typeof BitwiseOperators)[number],
   left: Lua_Object,
   right: Lua_Object,
@@ -1018,7 +1109,7 @@ function evalRelationalOperations(
       return evalEquality(left, right);
     }
     case '~=': {
-      return evalEquality(left, right) ? Lua_False : Lua_True;
+      return evalEquality(left, right).value ? Lua_False : Lua_True;
     }
     case '<': {
       let result = evalLessThanOrEqual(left, right);
@@ -1134,12 +1225,23 @@ export function evalUnaryLengthOperator(arg: Lua_Object) {
         kind: 'number',
         value: arg.value.length,
       } satisfies Lua_Number;
-    case 'table':
+    case 'table': {
+      if (arg.metatable.kind !== 'null') {
+        let fun = arg.metatable.get({
+          id: crypto.randomUUID(),
+          kind: 'string',
+          value: '__len',
+        });
+        if (fun.kind === 'function') {
+          return applyFunction(fun, [arg]);
+        }
+      }
       return {
         id: crypto.randomUUID(),
         kind: 'number',
-        value: arg.idx,
+        value: arg.store.size,
       } satisfies Lua_Number;
+    }
     default: {
       return {
         id: crypto.randomUUID(),
@@ -1158,6 +1260,23 @@ export function evalUnaryMinuesOperator(arg: Lua_Object) {
         kind: 'number',
         value: -arg.value,
       } satisfies Lua_Number;
+    }
+    case 'table': {
+      if (arg.metatable.kind !== 'null') {
+        let fun = arg.metatable.get({
+          id: crypto.randomUUID(),
+          kind: 'string',
+          value: '__unm',
+        });
+        if (fun.kind === 'function') {
+          return applyFunction(fun, [arg]);
+        }
+      }
+      return {
+        id: crypto.randomUUID(),
+        kind: 'error',
+        message: `type missmatch -${arg.kind}`,
+      } satisfies Lua_Error;
     }
     //TODO string are coerced into integers
     default: {

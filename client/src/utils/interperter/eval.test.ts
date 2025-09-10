@@ -1316,11 +1316,142 @@ return p:get_name()
   });
 });
 
-test('ForNumericStatement', () => {
-  const tests = [
-    {
-      exp: evalChunk(
-        luaparser.parse(`
+(describe('Metable Operatons', () => {
+  test('all arimethic', () => {
+    const tests = [
+      {
+        exp: evalChunk(
+          luaparser.parse(`
+-- arithmetic metamethods test
+
+local mt_add = {
+  __add = function(a, b) return a.x + b.x end
+}
+local mt_sub = {
+  __sub = function(a, b) return a.x - b.x end
+}
+local mt_mul = {
+  __mul = function(a, b) return a.x * b.x end
+}
+local mt_div = {
+  __div = function(a, b) return a.x / b.x end
+}
+local mt_mod = {
+  __mod = function(a, b) return a.x % b.x end
+}
+local mt_pow = {
+  __pow = function(a, b) return a.x ^ b.x end
+}
+local mt_unm = {
+  __unm = function(a) return -(a.x) end
+}
+
+local a = setmetatable({ x = 10 }, mt_add)
+local b = setmetatable({ x = 3 }, mt_add)
+local c = setmetatable({ x = 10 }, mt_sub)
+local d = setmetatable({ x = 3 }, mt_sub)
+local e = setmetatable({ x = 10 }, mt_mul)
+local f = setmetatable({ x = 3 }, mt_mul)
+local g = setmetatable({ x = 10 }, mt_div)
+local h = setmetatable({ x = 2 }, mt_div)
+local i = setmetatable({ x = 10 }, mt_mod)
+local j = setmetatable({ x = 6 }, mt_mod)
+local k = setmetatable({ x = 2 }, mt_pow)
+local l = setmetatable({ x = 3 }, mt_pow)
+local m = setmetatable({ x = 7 }, mt_unm)
+
+return
+  a + b,    -- expect 13
+  c - d,    -- expect 7
+  e * f,    -- expect 30
+  g / h,    -- expect 5
+  i % j,    -- expect 4
+  k ^ l,    -- expect 8
+  -m        -- expect -7
+                `),
+          new Lua_Environment(),
+        ),
+        value: [13, 7, 30, 5, 4, 8, -7],
+      },
+    ];
+
+    for (const test of tests) {
+      expect(test.exp).toBeDefined();
+      if (!test.exp) throw Error('Return should be defined');
+      if (test.exp.kind !== 'return')
+        throw Error(`${test.exp.kind === 'error' ? test.exp.message : 'null'}`);
+      expect(test.exp.kind).toBe('return');
+
+      for (let i = 0; i < test.exp.value.length; i++) {
+        const val = test.exp.value[i];
+        if (val.kind === 'null') expect(test.value[i]).toBe(null);
+        else if (val.kind === 'error') throw Error('should not be an error');
+        else if (
+          val.kind !== 'number' &&
+          val.kind !== 'boolean' &&
+          val.kind !== 'string'
+        )
+          throw Error(` should be a number ${val.kind}`);
+        else expect(val.value).toBe(test.value[i]);
+      }
+    }
+  });
+
+  test('all relation', () => {
+    const tests = [
+      {
+        exp: evalChunk(
+          luaparser.parse(`
+local mt = {
+  __eq = function(a, b) return a.id == b.id end,
+  __lt = function(a, b) return a.id < b.id end,
+  __le = function(a, b) return a.id <= b.id end,
+}
+
+local t1 = setmetatable({ id = 1 }, mt)
+local t2 = setmetatable({ id = 1 }, mt)
+local t3 = setmetatable({ id = 2 }, mt)
+
+return
+ t1 == t2,   -- expect true  (ids equal)
+  t1 == t3,   -- expect false (ids differ)
+  t1 ~= t3,   -- expect true  (negation of __eq)
+  t1 < t3,    -- expect true  (1 < 2)
+  t3 > t1    -- expect true  (rewritten as t1 < t3)
+                `),
+          new Lua_Environment(),
+        ),
+        value: [true, false, true, true, true],
+      },
+    ];
+
+    for (const test of tests) {
+      expect(test.exp).toBeDefined();
+      if (!test.exp) throw Error('Return should be defined');
+      if (test.exp.kind !== 'return')
+        throw Error(`${test.exp.kind === 'error' ? test.exp.message : 'null'}`);
+      expect(test.exp.kind).toBe('return');
+
+      for (let i = 0; i < test.exp.value.length; i++) {
+        const val = test.exp.value[i];
+        if (val.kind === 'null') expect(test.value[i]).toBe(null);
+        else if (val.kind === 'error') throw Error('should not be an error');
+        else if (
+          val.kind !== 'number' &&
+          val.kind !== 'boolean' &&
+          val.kind !== 'string'
+        )
+          throw Error(` should be a number ${val.kind}`);
+        else expect(val.value).toBe(test.value[i]);
+      }
+    }
+  });
+}),
+  test('ForNumericStatement', () => {
+    const tests = [
+      {
+        exp: evalChunk(
+          luaparser.parse(`
                     x = 0
                     for i = 1, 3 do
                         x = x + 1
@@ -1328,39 +1459,39 @@ test('ForNumericStatement', () => {
 
                     return x
                 `),
-        new Lua_Environment(),
-      ),
-      value: [3],
-    },
-    {
-      exp: evalChunk(
-        luaparser.parse(`
+          new Lua_Environment(),
+        ),
+        value: [3],
+      },
+      {
+        exp: evalChunk(
+          luaparser.parse(`
                     x = 0
                     for i = 1, 3 do
                       x = x + i
                     end
                     return x
                 `),
-        new Lua_Environment(),
-      ),
-      value: [6],
-    },
-    {
-      exp: evalChunk(
-        luaparser.parse(`
+          new Lua_Environment(),
+        ),
+        value: [6],
+      },
+      {
+        exp: evalChunk(
+          luaparser.parse(`
                     for i = 1, 5 do
                       if i == 3 then return i end
                     end
                     return 0
                 `),
-        new Lua_Environment(),
-      ),
-      value: [3],
-    },
+          new Lua_Environment(),
+        ),
+        value: [3],
+      },
 
-    {
-      exp: evalChunk(
-        luaparser.parse(`
+      {
+        exp: evalChunk(
+          luaparser.parse(`
                     function sayHi(n)
                       return "hi" .. n
                     end
@@ -1371,14 +1502,14 @@ test('ForNumericStatement', () => {
                     end
                     return res
                 `),
-        new Lua_Environment(),
-      ),
-      value: ['hi1hi2'],
-    },
+          new Lua_Environment(),
+        ),
+        value: ['hi1hi2'],
+      },
 
-    {
-      exp: evalChunk(
-        luaparser.parse(`
+      {
+        exp: evalChunk(
+          luaparser.parse(`
                     function limit()
                       return 3
                     end
@@ -1389,14 +1520,14 @@ test('ForNumericStatement', () => {
                     end
                     return sum 
                 `),
-        new Lua_Environment(),
-      ),
-      value: [6],
-    },
+          new Lua_Environment(),
+        ),
+        value: [6],
+      },
 
-    {
-      exp: evalChunk(
-        luaparser.parse(`
+      {
+        exp: evalChunk(
+          luaparser.parse(`
                     function getStep()
                       return 2
                     end
@@ -1407,14 +1538,14 @@ test('ForNumericStatement', () => {
                     end
                     return sum 
                 `),
-        new Lua_Environment(),
-      ),
-      value: [9],
-    },
+          new Lua_Environment(),
+        ),
+        value: [9],
+      },
 
-    {
-      exp: evalChunk(
-        luaparser.parse(`
+      {
+        exp: evalChunk(
+          luaparser.parse(`
                 x = 0
                 function addToX(n)
                   x = x + n
@@ -1425,37 +1556,37 @@ test('ForNumericStatement', () => {
                 end
                 return x 
                 `),
-        new Lua_Environment(),
-      ),
-      value: [6],
-    },
-  ];
+          new Lua_Environment(),
+        ),
+        value: [6],
+      },
+    ];
 
-  let t = 0;
-  for (const test of tests) {
-    expect(test.exp).toBeDefined();
-    if (!test.exp) throw Error('Return should be defined');
-    if (test.exp.kind !== 'return')
-      throw Error(
-        `heey idx ${t} ${test.exp.kind === 'error' ? test.exp.message : 'null'}`,
-      );
-    expect(test.exp.kind).toBe('return');
+    let t = 0;
+    for (const test of tests) {
+      expect(test.exp).toBeDefined();
+      if (!test.exp) throw Error('Return should be defined');
+      if (test.exp.kind !== 'return')
+        throw Error(
+          `heey idx ${t} ${test.exp.kind === 'error' ? test.exp.message : 'null'}`,
+        );
+      expect(test.exp.kind).toBe('return');
 
-    for (let i = 0; i < test.exp.value.length; i++) {
-      const val = test.exp.value[i];
-      if (val.kind === 'null') expect(test.value[i]).toBe(null);
-      else if (val.kind === 'error') throw Error('should not be an error');
-      else if (
-        val.kind !== 'number' &&
-        val.kind !== 'boolean' &&
-        val.kind !== 'string'
-      )
-        throw Error(` should be a number ${val.kind}`);
-      else expect(val.value).toBe(test.value[i]);
+      for (let i = 0; i < test.exp.value.length; i++) {
+        const val = test.exp.value[i];
+        if (val.kind === 'null') expect(test.value[i]).toBe(null);
+        else if (val.kind === 'error') throw Error('should not be an error');
+        else if (
+          val.kind !== 'number' &&
+          val.kind !== 'boolean' &&
+          val.kind !== 'string'
+        )
+          throw Error(` should be a number ${val.kind}`);
+        else expect(val.value).toBe(test.value[i]);
+      }
+      t++;
     }
-    t++;
-  }
-});
+  }));
 
 test('break staement', () => {
   const tests = [
@@ -1845,7 +1976,7 @@ return a, b
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? test.exp.message : test.exp.kind}`,
       );
 
     expect(test.exp.kind).toBe('return');
