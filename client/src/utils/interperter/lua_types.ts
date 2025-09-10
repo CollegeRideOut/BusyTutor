@@ -10,8 +10,7 @@ export type Lua_Object =
   | Lua_Builtin
   | Lua_Table
   | Lua_Break
-  | Lua_Vargs
-  ;
+  | Lua_Vargs;
 
 export class Lua_Environment {
   public id: string;
@@ -375,6 +374,9 @@ export class Lua_Table {
           kind: 'error',
           message: `${key.kind} cannot be used as key for table`,
         } as Lua_Error;
+      }
+      default: {
+        return Lua_Null;
       }
     }
   }
