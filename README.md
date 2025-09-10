@@ -71,18 +71,28 @@
 - Basic visalization of curr_node stack hisotry
 - allow to click on stack history and present environment
 - Allow user to move through foward history but (Button timeline.next) not program .next
-- Allow user to move through backword history but (Button timeline.prev) 
+- Allow user to move through backword history but (Button timeline.prev)
 
 ### Up Next
 
-- basic implementations and visualization of Data Structures 
+- indexing for the member expresions
+- table visualization (put table in "heap" variables always point to it
+  - if table inside table child table should be separated and points to it
+  - or it has a special type of our data structures
+- reafactor how to pass the problem 
+- refactor how to pass test
+- test builder allow user to create heir own test
+- be able to show when time lmit/stack limit excee , passed, failed
+- basic implementations and visualization of Data Structures
   - 2d array
   - Stack
   - queue
   - linked list
   - double linked list
   - binary tree / binary search tree
-  - heap <- just an array tree
+  - heap <- just a array represented as tree
+- finish interpert
+- tanslate intperter to generator
 - Waiting on desing
 - Environment visuals: polish node cards, spacing, and shadows
 - Movable layout: allow dragging nodes/groups
@@ -100,6 +110,10 @@
 - Add all tables to a heap with unique IDs for clean visualization, leaving cycle handling and arrow layout as a later enhancement.
 - chaing indexing
 - cache layout
+- Time Complexity calculator?
+- do vidoe
+- move interperter to the server
+- optimizations
 
 ## Features to Include in MVP
 
