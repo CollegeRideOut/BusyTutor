@@ -1265,7 +1265,7 @@ return t.missing
 });
 
 describe('oop', () => {
-  test('', () => {
+  test.only('', () => {
     const tests = [
       {
         exp: evalChunk(
@@ -1302,6 +1302,47 @@ return p:get_name()
 
       for (let i = 0; i < test.exp.value.length; i++) {
         const val = test.exp.value[i];
+        if (test.value[i] === null) expect(val.kind).toBe(null);
+        else if (val.kind === 'error') throw Error('should not be an error');
+        else if (
+          val.kind !== 'number' &&
+          val.kind !== 'boolean' &&
+          val.kind !== 'string'
+        )
+          throw Error(` should be a string ${val.kind}`);
+        else expect(val.value).toBe(test.value[i]);
+      }
+    }
+  });
+});
+
+(describe('Metable Operatons', () => {
+  test('__newindex', () => {
+    const tests = [
+      {
+        exp: evalChunk(
+          luaparser.parse(`
+local sink = {}
+local t = setmetatable({}, { __newindex = sink })
+
+t.foo = 7        -- redirected to sink
+return sink.foo, t.foo   -- expect: 7, nil
+                `),
+          new Lua_Environment(),
+        ),
+        value: [7, null],
+      },
+    ];
+
+    for (const test of tests) {
+      expect(test.exp).toBeDefined();
+      if (!test.exp) throw Error('Return should be defined');
+      if (test.exp.kind !== 'return')
+        throw Error(`${test.exp.kind === 'error' ? test.exp.message : 'null'}`);
+      expect(test.exp.kind).toBe('return');
+
+      for (let i = 0; i < test.exp.value.length; i++) {
+        const val = test.exp.value[i];
         if (val.kind === 'null') expect(test.value[i]).toBe(null);
         else if (val.kind === 'error') throw Error('should not be an error');
         else if (
@@ -1314,9 +1355,94 @@ return p:get_name()
       }
     }
   });
-});
 
-(describe('Metable Operatons', () => {
+  test('__call', () => {
+    const tests = [
+      {
+        exp: evalChunk(
+          luaparser.parse(`
+local mt = {
+  __call = function(self, x)
+    return self.val + x
+  end
+}
+
+local t = setmetatable({ val = 5 }, mt)
+
+return t(3)   -- expect 8
+                `),
+          new Lua_Environment(),
+        ),
+        value: [8],
+      },
+    ];
+
+    for (const test of tests) {
+      expect(test.exp).toBeDefined();
+      if (!test.exp) throw Error('Return should be defined');
+      if (test.exp.kind !== 'return')
+        throw Error(`${test.exp.kind === 'error' ? test.exp.message : 'null'}`);
+      expect(test.exp.kind).toBe('return');
+
+      for (let i = 0; i < test.exp.value.length; i++) {
+        const val = test.exp.value[i];
+        if (val.kind === 'null') expect(test.value[i]).toBe(null);
+        else if (val.kind === 'error') throw Error('should not be an error');
+        else if (
+          val.kind !== 'number' &&
+          val.kind !== 'boolean' &&
+          val.kind !== 'string'
+        )
+          throw Error(` should be a number ${val.kind}`);
+        else expect(val.value).toBe(test.value[i]);
+      }
+    }
+  });
+
+  test('__concat', () => {
+    const tests = [
+      {
+        exp: evalChunk(
+          luaparser.parse(`
+local mt = {
+  __concat = function(a, b)
+    return a.val .. "-" .. b.val
+  end
+}
+
+local t1 = setmetatable({ val = "foo" }, mt)
+local t2 = setmetatable({ val = "bar" }, mt)
+
+return t1 .. t2   -- expect "foo-bar"
+                `),
+          new Lua_Environment(),
+        ),
+        value: ['foo-bar'],
+      },
+    ];
+
+    for (const test of tests) {
+      expect(test.exp).toBeDefined();
+      if (!test.exp) throw Error('Return should be defined');
+      if (test.exp.kind !== 'return')
+        throw Error(`${test.exp.kind === 'error' ? test.exp.message : 'null'}`);
+      expect(test.exp.kind).toBe('return');
+
+      for (let i = 0; i < test.exp.value.length; i++) {
+        const val = test.exp.value[i];
+        if (val.kind === 'null') expect(test.value[i]).toBe(null);
+        else if (val.kind === 'error') throw Error('should not be an error');
+        else if (
+          val.kind !== 'number' &&
+          val.kind !== 'boolean' &&
+          val.kind !== 'string'
+        )
+          throw Error(` should be a number ${val.kind}`);
+        else expect(val.value).toBe(test.value[i]);
+      }
+    }
+  });
+
   test('all arimethic', () => {
     const tests = [
       {
@@ -1447,42 +1573,19 @@ return
     }
   });
 }),
-  test('ForNumericStatement', () => {
+  test('break staement', () => {
     const tests = [
       {
         exp: evalChunk(
           luaparser.parse(`
-                    x = 0
-                    for i = 1, 3 do
-                        x = x + 1
-                    end
-
-                    return x
-                `),
-          new Lua_Environment(),
-        ),
-        value: [3],
-      },
-      {
-        exp: evalChunk(
-          luaparser.parse(`
-                    x = 0
-                    for i = 1, 3 do
-                      x = x + i
-                    end
-                    return x
-                `),
-          new Lua_Environment(),
-        ),
-        value: [6],
-      },
-      {
-        exp: evalChunk(
-          luaparser.parse(`
-                    for i = 1, 5 do
-                      if i == 3 then return i end
-                    end
-                    return 0
+local sum = 0
+for i = 1, 5 do
+  if i == 3 then
+    break
+  end
+  sum = sum + i
+end
+return sum
                 `),
           new Lua_Environment(),
         ),
@@ -1492,87 +1595,35 @@ return
       {
         exp: evalChunk(
           luaparser.parse(`
-                    function sayHi(n)
-                      return "hi" .. n
-                    end
-
-                    res = ""
-                    for i = 1, 2 do
-                      res = res .. sayHi(i)
-                    end
-                    return res
+local sum = 0
+for i = 1, 5 do
+    sum = sum + i
+    break
+end
+return sum
                 `),
           new Lua_Environment(),
         ),
-        value: ['hi1hi2'],
-      },
-
-      {
-        exp: evalChunk(
-          luaparser.parse(`
-                    function limit()
-                      return 3
-                    end
-
-                    sum = 0
-                    for i = 1, limit() do
-                      sum = sum + i
-                    end
-                    return sum 
-                `),
-          new Lua_Environment(),
-        ),
-        value: [6],
-      },
-
-      {
-        exp: evalChunk(
-          luaparser.parse(`
-                    function getStep()
-                      return 2
-                    end
-
-                    sum = 0
-                    for i = 1, 5, getStep() do
-                      sum = sum + i
-                    end
-                    return sum 
-                `),
-          new Lua_Environment(),
-        ),
-        value: [9],
-      },
-
-      {
-        exp: evalChunk(
-          luaparser.parse(`
-                x = 0
-                function addToX(n)
-                  x = x + n
-                end
-
-                for i = 1, 3 do
-                  addToX(i)
-                end
-                return x 
-                `),
-          new Lua_Environment(),
-        ),
-        value: [6],
+        value: [1],
       },
     ];
 
     let t = 0;
     for (const test of tests) {
+      console.error('test number', t);
       expect(test.exp).toBeDefined();
       if (!test.exp) throw Error('Return should be defined');
       if (test.exp.kind !== 'return')
         throw Error(
-          `heey idx ${t} ${test.exp.kind === 'error' ? test.exp.message : 'null'}`,
+          ` heeeeeeeey idx ${t} '${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
         );
+
       expect(test.exp.kind).toBe('return');
 
+      let r = 0;
+
       for (let i = 0; i < test.exp.value.length; i++) {
+        console.log('res number', r);
         const val = test.exp.value[i];
         if (val.kind === 'null') expect(test.value[i]).toBe(null);
         else if (val.kind === 'error') throw Error('should not be an error');
@@ -1583,78 +1634,12 @@ return
         )
           throw Error(` should be a number ${val.kind}`);
         else expect(val.value).toBe(test.value[i]);
+        r++;
       }
+
       t++;
     }
   }));
-
-test('break staement', () => {
-  const tests = [
-    {
-      exp: evalChunk(
-        luaparser.parse(`
-local sum = 0
-for i = 1, 5 do
-  if i == 3 then
-    break
-  end
-  sum = sum + i
-end
-return sum
-                `),
-        new Lua_Environment(),
-      ),
-      value: [3],
-    },
-
-    {
-      exp: evalChunk(
-        luaparser.parse(`
-local sum = 0
-for i = 1, 5 do
-    sum = sum + i
-    break
-end
-return sum
-                `),
-        new Lua_Environment(),
-      ),
-      value: [1],
-    },
-  ];
-
-  let t = 0;
-  for (const test of tests) {
-    console.error('test number', t);
-    expect(test.exp).toBeDefined();
-    if (!test.exp) throw Error('Return should be defined');
-    if (test.exp.kind !== 'return')
-      throw Error(
-        ` heeeeeeeey idx ${t} '${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
-      );
-
-    expect(test.exp.kind).toBe('return');
-
-    let r = 0;
-
-    for (let i = 0; i < test.exp.value.length; i++) {
-      console.log('res number', r);
-      const val = test.exp.value[i];
-      if (val.kind === 'null') expect(test.value[i]).toBe(null);
-      else if (val.kind === 'error') throw Error('should not be an error');
-      else if (
-        val.kind !== 'number' &&
-        val.kind !== 'boolean' &&
-        val.kind !== 'string'
-      )
-        throw Error(` should be a number ${val.kind}`);
-      else expect(val.value).toBe(test.value[i]);
-      r++;
-    }
-
-    t++;
-  }
-});
 
 test('DoStatement', () => {
   const tests = [

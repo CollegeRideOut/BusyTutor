@@ -269,29 +269,14 @@ export function evalStatements(
   }
 }
 
-export function evalAssignment(
-  exp:
-    | luaparser.Identifier
-    | luaparser.MemberExpression
-    | luaparser.IndexExpression,
+function handleTableIndexAssigment(
+  exp: luaparser.MemberExpression | luaparser.IndexExpression,
   val: Lua_Object,
   environment: Lua_Environment,
-  global: boolean,
-): Lua_Null | Lua_Error {
+  identifier: Lua_Table,
+) {
   switch (exp.type) {
-    case 'Identifier':
-      return evalIdentiferAssignment(exp, val, environment, global);
-
-    case 'IndexExpression':
-      const identifier = evalExpression(exp.base, environment);
-      if (identifier.kind === 'error') return identifier;
-      if (identifier.kind !== 'table')
-        return {
-          id: crypto.randomUUID(),
-          kind: 'error',
-          message: `${identifier.kind} cannot be indexed`,
-        } satisfies Lua_Error;
-
+    case 'IndexExpression': {
       let idx = evalExpression(exp.index, environment);
 
       if (idx.kind === 'return') idx = idx.value[0] || Lua_Null;
@@ -302,18 +287,37 @@ export function evalAssignment(
           kind: 'error',
           message: 'nil cannot be used as index for table',
         } satisfies Lua_Error;
-      identifier.set(idx, val);
-      return Lua_Null;
-    case 'MemberExpression': {
-      const identifier = evalExpression(exp.base, environment);
-      if (identifier.kind === 'error') return identifier;
-      if (identifier.kind !== 'table')
-        return {
-          id: crypto.randomUUID(),
-          kind: 'error',
-          message: `${identifier.kind} cannot be indexed`,
-        } satisfies Lua_Error;
 
+      // check if metatable
+      // TOOD smell repeated
+      //
+      console.log('sanity');
+      if (identifier.metatable.kind !== 'null') {
+        let __newindex = identifier.metatable.get({
+          id: crypto.randomUUID(),
+          kind: 'string',
+          value: '__newindex',
+        } satisfies Lua_String);
+        if (__newindex.kind === 'function') {
+          applyFunction(__newindex, [identifier, idx, val]);
+          return Lua_Null;
+        } else if (__newindex.kind === 'table') {
+          return handleTableIndexAssigment(exp, val, environment, __newindex);
+        } else if (__newindex.kind !== 'null') {
+          return {
+            id: crypto.randomUUID(),
+            kind: 'error',
+            message: '__newindex should be function or table',
+          } satisfies Lua_Error;
+        }
+      }
+
+      identifier.set(idx, val);
+
+      return Lua_Null;
+    }
+
+    case 'MemberExpression': {
       if (exp.indexer === ':') {
         if (val.kind !== 'function')
           return {
@@ -331,6 +335,37 @@ export function evalAssignment(
           val,
         );
       } else {
+        // check if metatable
+        // TOOD smell repeated
+        if (identifier.metatable.kind !== 'null') {
+          let __newindex = identifier.metatable.get({
+            id: crypto.randomUUID(),
+            kind: 'string',
+            value: '__newindex',
+          } satisfies Lua_String);
+          if (__newindex.kind === 'function') {
+            applyFunction(__newindex, [
+              identifier,
+              {
+                id: crypto.randomUUID(),
+                kind: 'string',
+                value: exp.identifier.name,
+              },
+              val,
+            ]);
+
+            return Lua_Null;
+          } else if (__newindex.kind === 'table') {
+            return handleTableIndexAssigment(exp, val, environment, __newindex);
+          } else if (__newindex.kind !== 'null') {
+            return {
+              id: crypto.randomUUID(),
+              kind: 'error',
+              message: '__newindex should be function or table',
+            } satisfies Lua_Error;
+          }
+        }
+
         identifier.set(
           {
             id: crypto.randomUUID(),
@@ -340,6 +375,37 @@ export function evalAssignment(
           val,
         );
       }
+
+      return Lua_Null;
+    }
+  }
+}
+
+export function evalAssignment(
+  exp:
+    | luaparser.Identifier
+    | luaparser.MemberExpression
+    | luaparser.IndexExpression,
+  val: Lua_Object,
+  environment: Lua_Environment,
+  global: boolean,
+): Lua_Null | Lua_Error {
+  switch (exp.type) {
+    case 'Identifier':
+      return evalIdentiferAssignment(exp, val, environment, global);
+
+    case 'MemberExpression':
+    case 'IndexExpression': {
+      const identifier = evalExpression(exp.base, environment);
+      if (identifier.kind === 'error') return identifier;
+      if (identifier.kind !== 'table')
+        return {
+          id: crypto.randomUUID(),
+          kind: 'error',
+          message: `${identifier.kind} cannot be indexed`,
+        } satisfies Lua_Error;
+
+      handleTableIndexAssigment(exp, val, environment, identifier);
 
       return Lua_Null;
     }
@@ -470,12 +536,42 @@ export function evalExpression(
     case 'CallExpression': {
       let func = evalExpression(exp.base, environment);
       if (func.kind === 'error') return func;
-      if (func.kind !== 'function' && func.kind !== 'builtin')
+      if (
+        func.kind !== 'function' &&
+        func.kind !== 'builtin' &&
+        func.kind !== 'table'
+      )
         return {
           id: crypto.randomUUID(),
           kind: 'error',
           message: `${func.kind} is supposed to be a function`,
         } satisfies Lua_Error;
+
+      if (func.kind === 'table') {
+        if (func.metatable.kind === 'null') {
+          return {
+            id: crypto.randomUUID(),
+            kind: 'error',
+            message: `table has no metabtable`,
+          } satisfies Lua_Error;
+        }
+        let f = func.metatable.get({
+          id: crypto.randomUUID(),
+          kind: 'string',
+          value: '__call',
+        } satisfies Lua_String);
+
+        if (f.kind !== 'function')
+          return {
+            id: crypto.randomUUID(),
+            kind: 'error',
+            message: `__call should be a function`,
+          } satisfies Lua_Error;
+
+        // TODO  stop mutating
+        f.self = func;
+        func = f;
+      }
 
       const args: Lua_Object[] = [];
       if (func.kind === 'function') {
@@ -768,6 +864,7 @@ export function evalTableField(
     }
   }
 }
+
 export function applyFunction(
   func: Lua_Function | Lua_Builtin,
   args: Lua_Object[],
@@ -945,6 +1042,40 @@ export function evalBinaryExpression(
       return evalRelationalOperations(operator, left, right);
     }
     case operator === ConcatenationOperation: {
+      if (left.kind === 'table' && right.kind === 'table') {
+        if (left.metatable.kind !== 'null') {
+          let func = left.metatable.get({
+            id: crypto.randomUUID(),
+            kind: 'string',
+            value: '__concat',
+          } satisfies Lua_String);
+          if (func.kind !== 'null' && func.kind !== 'function')
+            return {
+              id: crypto.randomUUID(),
+              kind: 'error',
+              message: 'must be a function',
+            } satisfies Lua_Error;
+          if (func.kind === 'function') {
+            return applyFunction(func, [left, right]);
+          }
+        } else if (right.metatable.kind !== 'null') {
+          let func = right.metatable.get({
+            id: crypto.randomUUID(),
+            kind: 'string',
+            value: '__concat',
+          } satisfies Lua_String);
+          if (func.kind !== 'null' && func.kind !== 'function')
+            return {
+              id: crypto.randomUUID(),
+              kind: 'error',
+              message: 'must be a function',
+            } satisfies Lua_Error;
+          if (func.kind === 'function') {
+            return applyFunction(func, [left, right]);
+          }
+        }
+      }
+
       let nleft = coerceString(left);
       if (nleft.kind === 'error') return nleft;
       let nright = coerceString(right);

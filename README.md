@@ -78,7 +78,10 @@
 - Refacotring not operator
 - Refactor eval Binary Expression
 - metabales functions
-- __lt, __le, etc
+- **lt, **le, etc
+- meta table \_\_newIndex
+- meta table \_\_call
+- meta table \_\_newIndex
 
 ### Up Next
 
