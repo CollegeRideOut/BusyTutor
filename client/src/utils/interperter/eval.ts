@@ -7,7 +7,6 @@ import {
   Lua_False,
   builtin,
   Lua_Break,
-  Lua_Vargs,
 } from './lua_types';
 import type {
   Lua_Number,
@@ -452,8 +451,9 @@ export function evalExpression(
       if (right.kind === 'return') right = right.value[0] || Lua_Null;
       if (right.kind === 'error') return right;
 
-      return evalBinaryExpression(exp.operator, left, right);
-      //return evalBinaryExpression(exp.operator, left, right)
+      let val = evalBinaryExpression(exp.operator, left, right);
+
+      return val;
     }
     case 'Identifier': {
       let [val, exist] = environment.get(exp.name);
@@ -708,14 +708,11 @@ export function evalExpression(
       if (left.kind === 'error') return left;
       if (left.kind === 'return')
         left = left.value.at(0) ? left.value[0] : Lua_Null;
-      console.log(left);
 
       let right: Lua_Object = evalExpression(exp.right, environment);
       if (right.kind === 'error') return right;
       if (right.kind === 'return')
         right = right.value.at(0) ? right.value[0] : Lua_Null;
-
-      console.log(right);
 
       if (exp.operator === 'or') return isThruthy(left).value ? left : right;
       else return isThruthy(left).value ? right : left;
@@ -813,37 +810,63 @@ export function extendeFunctionEnv(
   return env;
 }
 
-type Binary_Opereators =
-  | '-'
-  | '~'
-  | '+'
-  | '*'
-  | '%'
-  | '^'
-  | '/'
-  | '//'
-  | '&'
-  | '|'
-  | '<<'
-  | '>>'
-  | '..'
-  | '~='
-  | '=='
-  | '<'
-  | '<='
-  | '>'
-  | '>=';
+const ArithmeticOperators = ['+', '-', '*', '/', '%', '^', '//'] as const;
+
+const RelationalOperators = ['==', '~=', '<', '<=', '>', '>='] as const;
+
+const BitwiseOperators = ['&', '|', '<<', '>>', '~'] as const;
+const ConcatenationOperation = '..' as const;
+
+type BinaryOperators =
+  | (typeof ArithmeticOperators)[number]
+  | (typeof BitwiseOperators)[number]
+  | (typeof RelationalOperators)[number]
+  | typeof ConcatenationOperation;
+
+function isArithmeticOperators(
+  op: BinaryOperators,
+): op is (typeof ArithmeticOperators)[number] {
+  return (ArithmeticOperators as readonly string[]).includes(op);
+}
+
+function isRelationalOperators(
+  op: BinaryOperators,
+): op is (typeof RelationalOperators)[number] {
+  return (RelationalOperators as readonly string[]).includes(op);
+}
+function isBitwiseOperator(
+  op: BinaryOperators,
+): op is (typeof BitwiseOperators)[number] {
+  return (BitwiseOperators as readonly string[]).includes(op);
+}
+
 export function evalBinaryExpression(
-  operator: Binary_Opereators,
+  operator: BinaryOperators,
   left: Lua_Object,
   right: Lua_Object,
 ) {
   switch (true) {
-    case (left.kind === 'number' || left.kind === 'string') &&
-      (right.kind === 'number' || right.kind === 'string'): {
-      return evalIntegerorStringBinaryExpression(operator, left, right);
+    case isArithmeticOperators(operator): {
+      let ar = evalArimaticOperator(operator, left, right);
+      return ar;
     }
-    // TODO strings and more
+
+    case isRelationalOperators(operator): {
+      return evalRelationalOperations(operator, left, right);
+    }
+    case operator === ConcatenationOperation: {
+      let nleft = coerceString(left);
+      if (nleft.kind === 'error') return nleft;
+      let nright = coerceString(right);
+      if (nright.kind === 'error') return nright;
+      return {
+        id: crypto.randomUUID(),
+        kind: 'string',
+        value: nleft.value + nright.value,
+      } satisfies Lua_String;
+    }
+    case isBitwiseOperator(operator):
+
     default: {
       return {
         id: crypto.randomUUID(),
@@ -856,68 +879,112 @@ export function evalBinaryExpression(
   }
 }
 
-export function evalIntegerorStringBinaryExpression(
-  operator: Binary_Opereators,
+function coerceString(obj: Lua_Object): Lua_String | Lua_Error {
+  switch (obj.kind) {
+    case 'string':
+    case 'number': {
+      return {
+        id: crypto.randomUUID(),
+        kind: 'string',
+        value: String(obj.value),
+      } satisfies Lua_String;
+    }
+    case 'table': {
+      throw Error('TODO coerce to string');
+    }
+
+    default: {
+      return {
+        id: crypto.randomUUID(),
+        kind: 'error',
+        message: 'cannot voerce to string',
+      } satisfies Lua_Error;
+    }
+  }
+}
+
+function coerceToNumber(obj: Lua_Object): Lua_Number | Lua_Error {
+  switch (obj.kind) {
+    case 'number': {
+      return obj;
+    }
+    case 'string': {
+      let val = Number(obj.value);
+      if (Number.isNaN(val))
+        return {
+          id: crypto.randomUUID(),
+          kind: 'error',
+          message: 'failed numeric coerciong on type string',
+        } satisfies Lua_Error;
+      return {
+        id: crypto.randomUUID(),
+        kind: 'number',
+        value: val,
+      } satisfies Lua_Number;
+    }
+    default: {
+      return {
+        id: crypto.randomUUID(),
+        kind: 'error',
+        message: `failed numeric coerciong on type ${obj.kind}`,
+      } satisfies Lua_Error;
+    }
+  }
+}
+
+export function evalArimaticOperator(
+  operator: (typeof ArithmeticOperators)[number],
   left: Lua_Object,
   right: Lua_Object,
 ) {
-  //TODO there was an error;
-  if (
-    (left.kind !== 'number' && left.kind !== 'string') ||
-    (right.kind !== 'number' && right.kind !== 'string')
-  )
-    return {
-      id: crypto.randomUUID(),
-      kind: 'error',
-      message: `type missmatch ${left.kind} ${operator} ${right.kind}`,
-    } satisfies Lua_Error;
+  let nleft = coerceToNumber(left);
+  if (nleft.kind === 'error') return nleft;
+  let nright = coerceToNumber(right);
+  if (nright.kind === 'error') return nright;
 
-  //TODO bunch of opeartions todo and chekcout //
-  const nleft = left.kind === 'number' ? left.value : parseFloat(left.value);
-  const nright =
-    right.kind === 'number' ? right.value : parseFloat(right.value);
   switch (operator) {
     // arimethic
     case '+': {
       return {
         id: crypto.randomUUID(),
         kind: 'number',
-        value: nleft + nright,
+        value: nleft.value + nright.value,
       } satisfies Lua_Number;
     }
     case '-': {
       return {
         id: crypto.randomUUID(),
         kind: 'number',
-        value: nleft - nright,
+        value: nleft.value - nright.value,
       } satisfies Lua_Number;
     }
     case '*': {
       return {
         id: crypto.randomUUID(),
         kind: 'number',
-        value: nleft * nright,
+        value: nleft.value * nright.value,
       } satisfies Lua_Number;
     }
     case '/': {
       return {
         id: crypto.randomUUID(),
         kind: 'number',
-        value: nleft / nright,
+        value: nleft.value / nright.value,
       } satisfies Lua_Number;
     }
     case '%': {
       return {
         id: crypto.randomUUID(),
         kind: 'number',
-        value: nleft - Math.floor(nleft / nright) * nright,
+        value:
+          nleft.value - Math.floor(nleft.value / nright.value) * nright.value,
       } satisfies Lua_Number;
     }
     case '//': {
       return {
         id: crypto.randomUUID(),
         kind: 'number',
-        value: Math.floor(nleft / nright),
+        value: Math.floor(nleft.value / nright.value),
       } satisfies Lua_Number;
     }
     //TODO javascript and its god dammed percision freaking points
@@ -925,64 +992,112 @@ export function evalIntegerorStringBinaryExpression(
       return {
         id: crypto.randomUUID(),
         kind: 'number',
-        value: Math.exp(nright * Math.log(nleft)),
+        value: Math.pow(nright.value, nleft.value),
       } satisfies Lua_Number;
-    }
-
-    case '..': {
-      return {
-        id: crypto.randomUUID(),
-        kind: 'string',
-        value: left.value.toString().concat(right.value.toString()),
-      } satisfies Lua_String;
-    }
-    default: {
-      // boolean
-      return booleanOperations(operator, left, right);
     }
   }
 }
 
-export function booleanOperations(
-  operator: Binary_Opereators,
+function evalBitwiseOperations(
+  operator: (typeof BitwiseOperators)[number],
   left: Lua_Object,
   right: Lua_Object,
-): Lua_Object {
-  if (
-    (left.kind != 'number' && left.kind !== 'string') ||
-    left.kind !== right.kind
-  )
+) {
+  void operator;
+  void left;
+  void right;
+}
+function evalRelationalOperations(
+  operator: (typeof RelationalOperators)[number],
+  left: Lua_Object,
+  right: Lua_Object,
+) {
+  // TODO metabables operations stuff
+  switch (operator) {
+    case '==': {
+      return evalEquality(left, right);
+    }
+    case '~=': {
+      return evalEquality(left, right) ? Lua_False : Lua_True;
+    }
+    case '<': {
+      let result = evalLessThanOrEqual(left, right);
+      if (result.kind === 'error') return result;
+      if (result.value === 1) return Lua_True;
+      else return Lua_False;
+    }
+    case '<=': {
+      let result = evalLessThanOrEqual(left, right);
+      if (result.kind === 'error') return result;
+      if (result.value === -1) return Lua_False;
+      else return Lua_True;
+    }
+    case '>': {
+      let result = evalLessThanOrEqual(left, right);
+      if (result.kind === 'error') return result;
+      if (result.value === -1) return Lua_True;
+      else return Lua_False;
+    }
+    case '>=': {
+      let result = evalLessThanOrEqual(left, right);
+      if (result.kind === 'error') return result;
+      if (result.value === 1) return Lua_False;
+      else return Lua_True;
+    }
+  }
+}
+
+function evalEquality(left: Lua_Object, right: Lua_Object) {
+  if (left.kind !== right.kind) return Lua_False;
+  switch (left.kind) {
+    case 'string':
+    case 'number':
+    case 'boolean': {
+      return left.value! === (right as typeof left).value
+        ? Lua_True
+        : Lua_False;
+    }
+    case 'null': {
+      return Lua_True;
+    }
+    default: {
+      return left.id === right.id ? Lua_True : Lua_False;
+    }
+  }
+}
+
+function evalLessThanOrEqual(left: Lua_Object, right: Lua_Object) {
+  if (evalEquality(left, right).value)
+    return {
+      id: crypto.randomUUID(),
+      kind: 'number',
+      value: 0,
+    } satisfies Lua_Number;
+  if (left.kind !== right.kind)
     return {
       id: crypto.randomUUID(),
       kind: 'error',
-      message: `type missmatch ${left.kind} ${operator} ${right.kind}`,
+      message: 'comparing differnt types',
     } satisfies Lua_Error;
-
-  switch (operator) {
-    case '<': {
-      return left.value < right.value ? Lua_True : Lua_False;
+  switch (left.kind) {
+    case 'string':
+    case 'number': {
+      return {
+        id: crypto.randomUUID(),
+        kind: 'number',
+        value: left.value < (right as typeof left).value ? 1 : -1,
+      } satisfies Lua_Number;
     }
-    case '>': {
-      return left.value > right.value ? Lua_True : Lua_False;
+    case 'table': {
+      throw Error('TODO table relation');
     }
-    case '==': {
-      return left.value === right.value ? Lua_True : Lua_False;
-    }
-    case '~=': {
-      return left.value !== right.value ? Lua_True : Lua_False;
-    }
-    case '<=': {
-      return left.value <= right.value ? Lua_True : Lua_False;
-    }
-    case '>=': {
-      return left.value >= right.value ? Lua_True : Lua_False;
-    }
-    default:
+    default: {
       return {
         id: crypto.randomUUID(),
         kind: 'error',
-        message: `Booean operator ${operator} not implemented`,
+        message: `comparing ${left.kind} types`,
       } satisfies Lua_Error;
+    }
   }
 }
 
@@ -1079,19 +1194,8 @@ export function isThruthy(arg: Lua_Object) {
 
 export function evalNotOperator(arg: Lua_Object) {
   //TODO switchit to use isThruthy waiting for now
-  switch (arg.kind) {
-    case 'boolean': {
-      return arg.value ? Lua_False : Lua_True;
-    }
-    case 'null': {
-      return Lua_True;
-    }
-    default: {
-      return Lua_False;
-      //throw Error(`Not operator has not implemented ${(arg as any).kind}`)
-      //return Lua_Null;
-    }
-  }
+
+  return isThruthy(arg).value ? Lua_False : Lua_True;
 }
 
 export function parseLongString(input: string): string {

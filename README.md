@@ -73,13 +73,19 @@
 - Allow user to move through foward history but (Button timeline.next) not program .next
 - Allow user to move through backword history but (Button timeline.prev)
 
+### Sep 10
+
+- Refacotring not operator
+
 ### Up Next
 
+- finish interpert
+- tanslate intperter to generator
 - indexing for the member expresions
 - table visualization (put table in "heap" variables always point to it
   - if table inside table child table should be separated and points to it
   - or it has a special type of our data structures
-- reafactor how to pass the problem 
+- reafactor how to pass the problem
 - refactor how to pass test
 - test builder allow user to create heir own test
 - be able to show when time lmit/stack limit excee , passed, failed
@@ -91,8 +97,6 @@
   - double linked list
   - binary tree / binary search tree
   - heap <- just a array represented as tree
-- finish interpert
-- tanslate intperter to generator
 - Waiting on desing
 - Environment visuals: polish node cards, spacing, and shadows
 - Movable layout: allow dragging nodes/groups

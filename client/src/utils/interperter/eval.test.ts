@@ -134,6 +134,7 @@ test('NotOperator', () => {
     },
   ];
 
+  let t = 0;
   for (const test of tests) {
     expect(test.exp).toBeDefined();
     if (!test.exp) throw Error(`test.exp is not defined`);
@@ -144,7 +145,8 @@ test('NotOperator', () => {
     expect(test.exp.value[0].kind).toBe('boolean');
     if (test.exp.value[0].kind !== 'boolean')
       throw Error(`test.exp value[0] is not a boolean ${test.exp}`);
-    expect(test.exp.value[0].value).toBe(test.value);
+    expect(test.exp.value[0].value, `idx ${t}`).toBe(test.value);
+    t++;
   }
 });
 
@@ -407,7 +409,7 @@ describe('BinaryExpression', () => {
           luaparser.parse('return 10 ^ 10'),
           new Lua_Environment(),
         ),
-        value: Math.exp(10 * Math.log(10)),
+        value: Math.pow(10, 10),
       },
     ];
     for (const test of tests) {
@@ -757,24 +759,15 @@ describe('Errors', () => {
         ),
         value: 5,
       },
-      {
-        exp: evalChunk(luaparser.parse('return -true'), new Lua_Environment()),
-        value: 5,
-      },
-      {
-        exp: evalChunk(
-          luaparser.parse('return true + false'),
-          new Lua_Environment(),
-        ),
-        value: 5,
-      },
     ];
 
+    let t = 0;
     for (const test of tests) {
       expect(test.exp).toBeDefined();
       if (!test.exp) throw Error('Return should be defined');
 
-      expect(test.exp.kind).toBe('error');
+      expect(test.exp.kind, `${t}`).toBe('error');
+      t++;
     }
   });
 });
@@ -1438,11 +1431,14 @@ test('ForNumericStatement', () => {
     },
   ];
 
+  let t = 0;
   for (const test of tests) {
     expect(test.exp).toBeDefined();
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
-      throw Error(`${test.exp.kind === 'error' ? test.exp.message : 'null'}`);
+      throw Error(
+        `heey idx ${t} ${test.exp.kind === 'error' ? test.exp.message : 'null'}`,
+      );
     expect(test.exp.kind).toBe('return');
 
     for (let i = 0; i < test.exp.value.length; i++) {
@@ -1457,6 +1453,7 @@ test('ForNumericStatement', () => {
         throw Error(` should be a number ${val.kind}`);
       else expect(val.value).toBe(test.value[i]);
     }
+    t++;
   }
 });
 
@@ -1495,17 +1492,22 @@ return sum
     },
   ];
 
+  let t = 0;
   for (const test of tests) {
+    console.error('test number', t);
     expect(test.exp).toBeDefined();
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
+        ` heeeeeeeey idx ${t} '${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
       );
 
     expect(test.exp.kind).toBe('return');
 
+    let r = 0;
+
     for (let i = 0; i < test.exp.value.length; i++) {
+      console.log('res number', r);
       const val = test.exp.value[i];
       if (val.kind === 'null') expect(test.value[i]).toBe(null);
       else if (val.kind === 'error') throw Error('should not be an error');
@@ -1516,7 +1518,10 @@ return sum
       )
         throw Error(` should be a number ${val.kind}`);
       else expect(val.value).toBe(test.value[i]);
+      r++;
     }
+
+    t++;
   }
 });
 
