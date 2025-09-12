@@ -24,7 +24,9 @@ import type { Lua_Object_Visualizer } from './generator_types.ts';
 export function setGLobalEnvironmentGenerator(env: Lua_Environment) {
   Lua_Global_Environment = env;
 }
+
 export let Lua_Global_Environment = new Lua_Environment();
+let Heap: Set<Lua_Table> = new Set();
 
 export function evalChunkTestHelper(
   node: luaparser.Chunk,
@@ -46,12 +48,13 @@ export function* evalChunk(
   node: luaparser.Chunk,
   environment: Lua_Environment,
 ): Generator<
-  [Lua_Object_Visualizer | null, Lua_Environment, typeof branching],
+  [Lua_Object_Visualizer | null, Lua_Environment, typeof branching, Set<Lua_Table>],
   Lua_Object,
   [Lua_Object_Visualizer | null, Lua_Environment]
 > {
   //TODO
   current_environement = environment;
+Heap = new Set();
   let gen = evalStatementsArray(node.body, environment);
   let p: ReturnType<typeof gen.next> = {
     done: true,
@@ -60,7 +63,7 @@ export function* evalChunk(
   do {
     p = gen.next();
     if (!p.value) continue;
-    yield [p.value[0], current_environement, branching];
+    yield [p.value[0], current_environement, branching, Heap];
     branching = 'curr';
   } while (!p.done);
   return p.value![1];
@@ -737,6 +740,8 @@ export function* evalExpression(
         if (key.kind === 'null') t.setValue(val);
         else t.set(key, val);
       }
+      // TODO smell?? global mutation
+      Heap.add(t);
       return [{ loc: exp.loc }, t];
     }
 

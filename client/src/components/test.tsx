@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 
-import { IoReturnDownBack } from "react-icons/io5";
+import { IoReturnDownBack } from 'react-icons/io5';
 import { MdOutlineTimeline } from 'react-icons/md';
 import type { ReactNode } from 'react';
 import { ThemeContext } from '../routes/__root';
@@ -77,11 +77,11 @@ export function VisualizerTool({
   const [globalEnvironment, setGlobalEnvironment] =
     useState<Lua_Environment | null>(null);
   const visualEnvironmentRef = useRef<Map<string, HTMLElement>>(new Map());
+
   const visualParentRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<ReactNode[]>([]);
-  const [heapHelper, setHeapHelper] = useState<
-    { id: string; is_open: boolean }[]
-  >([]);
+
+  const [heap, setHeap] = useState<Set<Lua_Table>>(new Set());
   //const [bs, setBs] = useState<ReactNode[]>([]);
   //    const [history, setHistory] = useState<Lua_Object_Visualizer[]>([]);
 
@@ -89,8 +89,8 @@ export function VisualizerTool({
     if (!ast) return;
     createVisCode();
   }, [ast, codeLocation, theme]);
-  useEffect(() => {}, [environment]);
 
+  useEffect(() => {}, [environment]);
   //useEffect(() => {
   //  if (!globalEnvironment) return;
   //  setVisualGlobalEnvironment(
@@ -482,6 +482,7 @@ export function VisualizerTool({
                     ) as Lua_Environment;
                     setEnvironment(env);
                     let visual = val.value[0];
+                    setHeap(val.value[3]);
 
                     setHistory(info.tree);
 
@@ -533,12 +534,11 @@ export function VisualizerTool({
                 }}
                 size={30}
                 onClick={() => {
-
-                  console.log(timeline)
+                  console.log(timeline);
                   let e = timeline.at(currenTimeline + 1);
                   if (!e) return;
                   if (e.goTo) {
-                      console.log('yes go to?')
+                    console.log('yes go to?');
                     setPresintingNode(e.goTo);
                     visualEnvironmentRef.current = new Map();
                     setEnvironment(e.goTo.value.timeline[0].env);
@@ -548,7 +548,7 @@ export function VisualizerTool({
                   } else {
                     setEnvironment(e.env);
                     setCurrentTimeline(currenTimeline + 1);
-                      console.log('no go to?')
+                    console.log('no go to?');
                   }
                 }}
               />
@@ -562,20 +562,20 @@ export function VisualizerTool({
                 }}
                 size={30}
                 onClick={() => {
-
                   let e = timeline.at(currenTimeline - 1);
                   if (!e) return;
                   if (e.cameFrom) {
                     setPresintingNode(e.cameFrom.n);
                     visualEnvironmentRef.current = new Map();
-                    setEnvironment(e.cameFrom.n.value.timeline[e.cameFrom.eIdx].env);
+                    setEnvironment(
+                      e.cameFrom.n.value.timeline[e.cameFrom.eIdx].env,
+                    );
                     setTimeline(e.cameFrom.n.value.timeline);
                     setCurrentTimeline(e.cameFrom.eIdx);
-                    setHeapHelper([]);
                   } else {
                     setEnvironment(e.env);
                     setCurrentTimeline(currenTimeline + -1);
-                      console.log('no go to?')
+                    console.log('no go to?');
                   }
                 }}
               />
@@ -601,7 +601,6 @@ export function VisualizerTool({
                         setEnvironment(node.value.timeline[0].env);
                         setTimeline(node.value.timeline);
                         setCurrentTimeline(0);
-                        setHeapHelper([]);
                       }}
                     />
                   ) : (
@@ -626,9 +625,46 @@ export function VisualizerTool({
                         <VisualEnvironment
                           env={environment}
                           ref={visualEnvironmentRef}
-                          heapHelper={heapHelper}
-                          setHeapHelper={setHeapHelper}
                         />
+                        <div>
+                          heap
+                          {[...heap.values()].map((t, idx) => {
+                            return (
+                              <motion.div drag key={`${t.id}-${idx}`}>
+                                asdfasdfasdfasdf
+                                <Collapsible
+                                  defaultOpen={true}
+                                  className='flex p-1 gap-2 items-center justify-center'
+                                >
+                                  <CollapsibleTrigger asChild>
+                                    <div>{t.id}</div>
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent>
+                                    <ResizablePanelGroup
+                                      direction='horizontal'
+                                      className='flex flex-row max-w-fit'
+                                    >
+                                      <ResizablePanel className='w-2/3 flex flex-row'>
+                                        <ScrollArea className='w-full h-full rounded-md border p-4 flex flex-row'>
+                                          {tableVisualizer(
+                                            t,
+                                            visualEnvironmentRef,
+                                          )}
+                                          <ScrollBar
+                                            className='bg-black'
+                                            orientation='horizontal'
+                                          />
+                                        </ScrollArea>
+                                      </ResizablePanel>
+                                      <ResizableHandle withHandle />
+                                      <ResizablePanel></ResizablePanel>
+                                    </ResizablePanelGroup>
+                                  </CollapsibleContent>
+                                </Collapsible>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )
                   )}
@@ -727,10 +763,6 @@ export function VisualizerTool({
 type VisualEnvironmentProps = {
   env: Lua_Environment;
   ref: React.RefObject<Map<string, HTMLElement>>;
-  heapHelper: { id: string; is_open: boolean }[];
-  setHeapHelper: React.Dispatch<
-    React.SetStateAction<{ id: string; is_open: boolean }[]>
-  >;
 };
 
 export default function NAryTree({
@@ -839,12 +871,7 @@ const css = `
 
 let global_env = 0;
 // TODO fix this bs
-function VisualEnvironment({
-  env,
-  ref,
-  heapHelper,
-  setHeapHelper,
-}: VisualEnvironmentProps) {
+function VisualEnvironment({ env, ref }: VisualEnvironmentProps) {
   if (!env) return [];
   if (!env.store) return [];
   let rc: ReactNode[] = [];
@@ -854,8 +881,6 @@ function VisualEnvironment({
       VisualEnvironment({
         env: env.outer,
         ref,
-        heapHelper,
-        setHeapHelper,
       }),
     );
   }
@@ -877,66 +902,8 @@ function VisualEnvironment({
         );
       }
       case 'table': {
-        setHeapHelper((prev) => {
-          if (prev.some((h) => h.id === obj.id)) {
-            return prev;
-          } else {
-            return [...prev, { id: obj.id, is_open: true }];
-          }
-        });
         // TODO fix this bs
-        return (
-          <motion.div drag>
-            <Collapsible
-              open={(() => {
-                const found = heapHelper.find((h) => h.id === obj.id);
-                if (!found) {
-                  console.log(
-                    'wtf error handle it broski heap helper not found',
-                  );
-                }
-                return found === undefined ? true : found.is_open;
-              })()}
-              onOpenChange={() => {
-                const heap_clone: typeof heapHelper = JSON.parse(
-                  JSON.stringify(heapHelper),
-                );
-                const found = heap_clone.find((h) => h.id === obj.id);
-                if (found) {
-                  found.is_open = !found.is_open;
-                } else {
-                  console.log(
-                    'wtf error handle it broski heap helper not found onOpenChange',
-                  );
-                }
-                setHeapHelper(heap_clone);
-              }}
-              className='flex p-1 gap-2 items-center justify-center'
-            >
-              <CollapsibleTrigger asChild>
-                <div>{identifier}</div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <ResizablePanelGroup
-                  direction='horizontal'
-                  className='flex flex-row max-w-fit'
-                >
-                  <ResizablePanel className='w-2/3 flex flex-row'>
-                    <ScrollArea className='w-full h-full rounded-md border p-4 flex flex-row'>
-                      {tableVisualizer(obj, ref)}
-                      <ScrollBar
-                        className='bg-black'
-                        orientation='horizontal'
-                      />
-                    </ScrollArea>
-                  </ResizablePanel>
-                  <ResizableHandle withHandle />
-                  <ResizablePanel></ResizablePanel>
-                </ResizablePanelGroup>
-              </CollapsibleContent>
-            </Collapsible>
-          </motion.div>
-        );
+        return <div>{identifier} should be pointing somewhere</div>;
       }
       case 'return':
       case 'error':
@@ -966,6 +933,7 @@ function VisualEnvironment({
     </div>
   );
 }
+
 export function tableVisualizer(
   t: Lua_Table,
   ref: React.RefObject<Map<string, HTMLElement>>,
@@ -1007,7 +975,7 @@ export function tableVisualizer(
       case 'table': {
         return (
           <motion.div className='flex gap-3 p-1'>
-            {key.toString()}: {tableVisualizer(obj, ref)}
+            i should be a pointer
           </motion.div>
         );
       }

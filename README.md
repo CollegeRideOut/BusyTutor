@@ -83,26 +83,32 @@
 - meta table \_\_call
 - meta table \_\_newIndex
 
+### Sep 12
+
+- table visualization (put table in "heap" variables always point to it
+- added "heap" to interperte gnerator side.
+
+
 ### Up Next
 
+- variables should point to table
+- table perperty should point to table if is a table too
+- or it has a special type of our data structures
+- indexing for the member expresions
+- basic implementations and visualization of Data Structures
+- 2d array
+- Stack
+- queue
+- linked list
+- double linked list
+- binary tree / binary search tree
+- heap <- just a array represented as tree
 - finish interpert
 - tanslate intperter to generator
-- indexing for the member expresions
-- table visualization (put table in "heap" variables always point to it
-  - if table inside table child table should be separated and points to it
-  - or it has a special type of our data structures
 - reafactor how to pass the problem
 - refactor how to pass test
 - test builder allow user to create heir own test
 - be able to show when time lmit/stack limit excee , passed, failed
-- basic implementations and visualization of Data Structures
-  - 2d array
-  - Stack
-  - queue
-  - linked list
-  - double linked list
-  - binary tree / binary search tree
-  - heap <- just a array represented as tree
 - Waiting on desing
 - Environment visuals: polish node cards, spacing, and shadows
 - Movable layout: allow dragging nodes/groups

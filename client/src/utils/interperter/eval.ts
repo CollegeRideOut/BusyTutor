@@ -606,6 +606,7 @@ export function evalExpression(
       return func;
     }
 
+    // TODO put it on the heap LMAO
     case 'TableConstructorExpression': {
       let t = new Lua_Table();
       for (const field of exp.fields) {
