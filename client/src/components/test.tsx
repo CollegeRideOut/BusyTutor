@@ -1,4 +1,11 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import { IoReturnDownBack } from 'react-icons/io5';
 import { MdOutlineTimeline } from 'react-icons/md';
@@ -29,13 +36,7 @@ import {
 
 import { ScrollArea, ScrollBar } from './ui/scroll-area';
 import { Tree, TreeNode } from './tree';
-import { Environment } from 'vite';
-import { testInterperter } from '../utils/interperter';
-import {
-  controller,
-  History,
-  type event,
-} from '../utils/interperter_generator/controller';
+import { controller, History } from '../utils/interperter_generator/controller';
 import { make_replacer, reviver } from '../utils/jsonParser';
 
 export function VisualizerTool({
@@ -80,17 +81,51 @@ export function VisualizerTool({
 
   const visualParentRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<ReactNode[]>([]);
+  const [svgVars, setSvgVars] = useState<ReactNode[]>([]);
+  const [variables, setVariables] = useState<Map<string, string>>(new Map());
+  const debounceId = useRef<NodeJS.Timeout | null>(null);
 
   const [heap, setHeap] = useState<Set<Lua_Table>>(new Set());
   //const [bs, setBs] = useState<ReactNode[]>([]);
   //    const [history, setHistory] = useState<Lua_Object_Visualizer[]>([]);
+  //
+  //
+  //
+  //
+  const scheduleUpdate = useCallback(() => {
+    if (debounceId.current) clearTimeout(debounceId.current);
+
+    debounceId.current = setTimeout(() => {
+      if (environment === null) {
+        return;
+      }
+
+      let csvg = updateArrows(environment);
+      setSvgVars(csvg || []);
+      console.log('conaso', csvg, 'CONASO');
+
+      debounceId.current = null;
+    }, 100); // 100ms debounce
+  }, [environment]);
+
+  const setRef = useCallback(
+    (id: string, el: HTMLDivElement) => {
+      console.log('cuenta');
+      if (visualEnvironmentRef.current.has(id)) return;
+      visualEnvironmentRef.current.set(id, el);
+
+      console.log('te tan llamando mal es', id, el);
+
+      scheduleUpdate();
+    },
+    [environment],
+  );
 
   useEffect(() => {
     if (!ast) return;
     createVisCode();
   }, [ast, codeLocation, theme]);
 
-  useEffect(() => {}, [environment]);
   //useEffect(() => {
   //  if (!globalEnvironment) return;
   //  setVisualGlobalEnvironment(
@@ -100,6 +135,296 @@ export function VisualizerTool({
 
   //TODO REFAAACCTOOOOR
   useEffect(() => {
+    svgCreator();
+  }, [envVisual]);
+
+  let updateArrows = useCallback(
+    (environment: Lua_Environment) => {
+      console.log('klk que ta pasando cono');
+      if (environment === null) return null;
+
+      let svgs: ReactNode[] = [];
+      if (environment.outer !== null)
+        svgs.push(updateArrows(environment.outer));
+
+      svgs.push(
+        [...environment.store.entries()]
+          .filter(([_id, obj]) => obj.kind === 'table')
+          .filter(([id, obj]) => {
+            return (
+              visualEnvironmentRef.current.has(id) &&
+              visualEnvironmentRef.current.has(obj.id)
+            );
+          })
+          .map(([id, obj]) => svgVariablesCreator(id, obj.id)),
+      );
+      return svgs;
+    },
+
+    [environment],
+  );
+
+  function svgVariablesCreator(rect1Id: string, rect2Id: string) {
+    // TODO get rasterizing out and we gotta refactor sooon this looks tooo bad
+    console.log('svgVariablesCreator VAR VAR VAR');
+    let svgs: ReactNode = null;
+    const rect1 = visualEnvironmentRef.current
+      .get(rect1Id)!
+      .getBoundingClientRect();
+
+    const rect2 = visualEnvironmentRef.current
+      .get(rect2Id)!
+      .getBoundingClientRect();
+
+    // TODO look into rasterizing
+    let x_lines: Set<number> = new Set();
+    let y_lines: Set<number> = new Set();
+    let elements = [...visualEnvironmentRef.current.values()].map((e) => {
+      let rect = e.getBoundingClientRect();
+      x_lines.add(rect.left);
+      x_lines.add(rect.right);
+      y_lines.add(rect.top);
+      y_lines.add(rect.bottom);
+      return rect;
+    });
+
+    type cell = {
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+      occupied: boolean;
+      start: boolean;
+      end: boolean;
+    };
+    //    let parent_ref = visualParentRef.current!.getBoundingClientRect();
+
+    // rasterizing gpt code need to understand this better dynamc grid
+    const x_sorted = Array.from(x_lines).sort((a, b) => a - b);
+    const y_sorted = Array.from(y_lines).sort((a, b) => a - b);
+    const grid: cell[][] = [];
+    for (let i = 0; i < x_sorted.length - 1; i++) {
+      let row_cells: cell[] = [];
+      for (let j = 0; j < y_sorted.length - 1; j++) {
+        const cell: cell = {
+          left: x_sorted[i],
+          right: x_sorted[i + 1],
+          top: y_sorted[j],
+          bottom: y_sorted[j + 1],
+          occupied: false,
+          start: false,
+          end: false,
+        };
+
+        // check if occupied
+
+        for (const rect of elements) {
+          if (
+            !(
+              cell.right <= rect.left ||
+              cell.left >= rect.right ||
+              cell.bottom <= rect.top ||
+              cell.top >= rect.bottom
+            )
+          ) {
+            cell.occupied = true;
+            if (cell.left === rect1.left && cell.top === rect1.top) {
+              cell.occupied = false;
+              cell.start = true;
+            }
+            if (cell.left === rect2.left && cell.top === rect2.top) {
+              cell.occupied = false;
+              cell.end = true;
+            }
+            break;
+          }
+        }
+        //cell.left -= parent_ref.left;
+        //cell.right -= parent_ref.left;
+        //cell.top -= parent_ref.top;
+        //cell.bottom -= parent_ref.top;
+
+        row_cells.push(cell);
+      }
+      grid.push(row_cells);
+    }
+
+    // find start and end
+    let start = { i: -1, j: -1 };
+    let end = { i: -1, j: -1 };
+    for (let i = 0; i < grid.length; i++) {
+      for (let j = 0; j < grid[0].length; j++) {
+        if (grid[i][j].start) start = { i: i, j: j };
+        if (grid[i][j].end) end = { i: i, j: j };
+      }
+    }
+
+    let vistited_parent: Map<string, string> = new Map();
+    vistited_parent.set(`${start.i}-${start.j}`, `${start.i}-${start.j}`);
+    let dirs = [
+      { i: 1, j: 0 },
+      { i: -1, j: 0 },
+      { i: 0, j: 1 },
+      { i: 0, j: -1 },
+    ];
+    let q = [start];
+    // shortest path
+    parent: while (q.length > 0) {
+      let n = q.length;
+      for (let i = 0; i < n; i++) {
+        let curr = q.shift();
+        if (curr === undefined) {
+          console.log('error');
+          break;
+        }
+        if (curr.i === end.i && curr.j === end.j) {
+          console.log('found it');
+          break parent;
+        }
+        for (let dir of dirs) {
+          let new_node = { i: curr.i + dir.i, j: curr.j + dir.j };
+          if (
+            new_node.i < 0 ||
+            new_node.j < 0 ||
+            new_node.i >= grid.length ||
+            new_node.j >= grid[0].length ||
+            grid[new_node.i][new_node.j].occupied ||
+            vistited_parent.has(`${new_node.i}-${new_node.j}`)
+          ) {
+            continue;
+          } else {
+            vistited_parent.set(
+              `${new_node.i}-${new_node.j}`,
+              `${curr.i}-${curr.j}`,
+            );
+            q.push(new_node);
+          }
+        }
+      }
+    }
+    // TODO give grid values?
+
+    let path: { i: number; j: number }[] = [];
+    let last = `${end.i}-${end.j}`;
+    let parent_v = vistited_parent.get(last);
+    //
+    while (last !== parent_v) {
+      let split = last.split('-');
+      path.push({ i: parseInt(split[0]), j: parseInt(split[1]) });
+      last = parent_v!;
+      parent_v = vistited_parent.get(parent_v!);
+    }
+
+    path = path.reverse();
+
+    let svg_path =
+      `M${rect1.left} ${rect1.top} ` +
+      path
+        .map(({ i, j }, idx) => {
+          let curr_cell = grid[i][j];
+          let x = curr_cell.left;
+          let y = curr_cell.top;
+
+          if (idx === 0) return `L${x} ${y}`;
+
+          return `L${grid[i][j].left} ${grid[i][j].top}`;
+        })
+        .join(' ');
+
+    svgs = (
+      <svg
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          pointerEvents: 'none',
+        }}
+        width={window.innerWidth}
+        height={window.innerHeight}
+      >
+        <path
+          d={svg_path}
+          stroke={`${theme.vals.colors.primary}`}
+          fill='none'
+          strokeWidth={4}
+        />
+
+        {/* rect1 box*/}
+        <line
+          x1={rect1.x}
+          y1={rect1.y}
+          x2={rect1.x}
+          y2={rect1.bottom}
+          stroke={`${theme.vals.colors.primary}`}
+          strokeWidth={4}
+        />
+        <line
+          x1={rect1.right}
+          y1={rect1.y}
+          x2={rect1.right}
+          y2={rect1.bottom}
+          stroke={`${theme.vals.colors.primary}`}
+          strokeWidth={4}
+        />
+        <line
+          x1={rect1.left}
+          y1={rect1.y}
+          x2={rect1.right}
+          y2={rect1.y}
+          stroke={`${theme.vals.colors.primary}`}
+          strokeWidth={4}
+        />
+        <line
+          x1={rect1.left}
+          y1={rect1.bottom}
+          x2={rect1.right}
+          y2={rect1.bottom}
+          stroke={`${theme.vals.colors.primary}`}
+          strokeWidth={4}
+        />
+
+        {/*rect2 box*/}
+        <line
+          x1={rect2.x}
+          y1={rect2.y}
+          x2={rect2.x}
+          y2={rect2.bottom}
+          stroke={`${theme.vals.colors.primary}`}
+          strokeWidth={4}
+        />
+        <line
+          x1={rect2.right}
+          y1={rect2.y}
+          x2={rect2.right}
+          y2={rect2.bottom}
+          stroke={`${theme.vals.colors.primary}`}
+          strokeWidth={4}
+        />
+        <line
+          x1={rect2.left}
+          y1={rect2.y}
+          x2={rect2.right}
+          y2={rect2.y}
+          stroke={`${theme.vals.colors.primary}`}
+          strokeWidth={4}
+        />
+        <line
+          x1={rect2.left}
+          y1={rect2.bottom}
+          x2={rect2.right}
+          y2={rect2.bottom}
+          stroke={`${theme.vals.colors.primary}`}
+          strokeWidth={4}
+        />
+      </svg>
+    );
+
+    console.log('here wtf is going on', svgs);
+    return svgs;
+  }
+
+  // FUCK REFACORING IM DOING THAT SHIT FOR THE COMPLETE THING
+  function svgCreator() {
     if (!envVisual) return;
     if (envVisual.length < 1) return;
     let indexing = [envVisual.at(-1), envVisual.at(-2)];
@@ -391,7 +716,7 @@ export function VisualizerTool({
     }
 
     setSvg(svgs);
-  }, [envVisual]);
+  }
 
   function createVisCode() {
     if (!ast) return;
@@ -444,7 +769,12 @@ export function VisualizerTool({
       <ResizableHandle />
       <ResizablePanel className='flex flex-col w-1/2 border-solid border-l-1 border-black '>
         {gen ? (
-          <div className='h-full w-full p-4 overflow-y-scroll'>
+          <div
+            className='h-full w-full p-4 overflow-y-scroll'
+            onScrollEnd={() => {
+              //svgCreator();
+            }}
+          >
             <div className='flex gap-x-8 justify-center rounded p-4'>
               <VscDebugStepOver
                 className={`cursor-pointer hover:bg-[var(--bg-hover)] bg-[var(--bg)] rounded  active:bg-[var(--active)]`}
@@ -544,7 +874,6 @@ export function VisualizerTool({
                     setEnvironment(e.goTo.value.timeline[0].env);
                     setTimeline(e.goTo.value.timeline);
                     setCurrentTimeline(0);
-                    setHeapHelper([]);
                   } else {
                     setEnvironment(e.env);
                     setCurrentTimeline(currenTimeline + 1);
@@ -624,7 +953,7 @@ export function VisualizerTool({
                         </div>
                         <VisualEnvironment
                           env={environment}
-                          ref={visualEnvironmentRef}
+                          setRef={setRef as any}
                         />
                         <div>
                           heap
@@ -640,25 +969,18 @@ export function VisualizerTool({
                                     <div>{t.id}</div>
                                   </CollapsibleTrigger>
                                   <CollapsibleContent>
-                                    <ResizablePanelGroup
-                                      direction='horizontal'
-                                      className='flex flex-row max-w-fit'
-                                    >
-                                      <ResizablePanel className='w-2/3 flex flex-row'>
-                                        <ScrollArea className='w-full h-full rounded-md border p-4 flex flex-row'>
-                                          {tableVisualizer(
-                                            t,
-                                            visualEnvironmentRef,
-                                          )}
-                                          <ScrollBar
-                                            className='bg-black'
-                                            orientation='horizontal'
-                                          />
-                                        </ScrollArea>
-                                      </ResizablePanel>
-                                      <ResizableHandle withHandle />
-                                      <ResizablePanel></ResizablePanel>
-                                    </ResizablePanelGroup>
+                                    <ScrollArea className='w-full h-full rounded-md border p-4 flex flex-row'>
+                                      {
+                                        <TableVisualizer
+                                          t={t}
+                                          setRef={setRef}
+                                        />
+                                      }
+                                      <ScrollBar
+                                        className='bg-black'
+                                        orientation='horizontal'
+                                      />
+                                    </ScrollArea>
                                   </CollapsibleContent>
                                 </Collapsible>
                               </motion.div>
@@ -672,6 +994,7 @@ export function VisualizerTool({
               }
             </div>
             <div> {svg}</div>
+            <div>{svgVars}</div>
           </div>
         ) : (
           <div className='w-full flex flex-col items-center gap-y-8 p-4'>
@@ -762,7 +1085,7 @@ export function VisualizerTool({
 
 type VisualEnvironmentProps = {
   env: Lua_Environment;
-  ref: React.RefObject<Map<string, HTMLElement>>;
+  setRef: (el: HTMLDivElement, id: string) => void;
 };
 
 export default function NAryTree({
@@ -871,7 +1194,7 @@ const css = `
 
 let global_env = 0;
 // TODO fix this bs
-function VisualEnvironment({ env, ref }: VisualEnvironmentProps) {
+function VisualEnvironment({ env, setRef }: VisualEnvironmentProps) {
   if (!env) return [];
   if (!env.store) return [];
   let rc: ReactNode[] = [];
@@ -880,7 +1203,7 @@ function VisualEnvironment({ env, ref }: VisualEnvironmentProps) {
     rc.push(
       VisualEnvironment({
         env: env.outer,
-        ref,
+        setRef,
       }),
     );
   }
@@ -894,7 +1217,7 @@ function VisualEnvironment({ env, ref }: VisualEnvironmentProps) {
             drag
             className=' flex p-1 items-center h-[50px] w-[50px] justify-center'
             ref={(el) => {
-              el && ref.current.set(identifier, el);
+              el && setRef(el!, identifier);
             }}
           >
             {identifier} : {String(obj.value)}
@@ -902,8 +1225,15 @@ function VisualEnvironment({ env, ref }: VisualEnvironmentProps) {
         );
       }
       case 'table': {
-        // TODO fix this bs
-        return <div>{identifier} should be pointing somewhere</div>;
+        return (
+          <div
+            ref={(el) => {
+              el && setRef(el!, identifier);
+            }}
+          >
+            {identifier} should be pointing somewhere
+          </div>
+        );
       }
       case 'return':
       case 'error':
@@ -933,11 +1263,12 @@ function VisualEnvironment({ env, ref }: VisualEnvironmentProps) {
     </div>
   );
 }
+type TableVisualerProps = {
+  t: Lua_Table;
+  setRef: (id: string, el: HTMLDivElement) => void;
+};
 
-export function tableVisualizer(
-  t: Lua_Table,
-  ref: React.RefObject<Map<string, HTMLElement>>,
-) {
+export function TableVisualizer({ t, setRef }: TableVisualerProps) {
   let rc = [...t.store.entries()].map(([key, obj]) => {
     let key_s = '';
     void key_s;
@@ -953,7 +1284,7 @@ export function tableVisualizer(
           <motion.div
             className='flex gap-3 p-1 h-[50px] w-[50px] justify-center items-center'
             ref={(el) => {
-              el && ref.current.set(obj.id, el);
+              el && setRef(obj.id, el);
             }}
           >
             {key.toString()}:{obj.value}
@@ -964,9 +1295,7 @@ export function tableVisualizer(
         return (
           <motion.div
             className='flex gap-3 p-1 h-[50px] w-[50px]'
-            ref={(el) => {
-              el && ref.current.set(obj.id, el);
-            }}
+            ref={(el) => {}}
           >
             {key.toString()}:{obj.kind}
           </motion.div>
@@ -974,9 +1303,14 @@ export function tableVisualizer(
       }
       case 'table': {
         return (
-          <motion.div className='flex gap-3 p-1'>
+          <div
+            className='flex gap-3 p-1'
+            ref={(el) => {
+              el && setRef(`${t.id}-${key}`, el);
+            }}
+          >
             i should be a pointer
-          </motion.div>
+          </div>
         );
       }
       case 'return':
@@ -991,7 +1325,7 @@ export function tableVisualizer(
     }
   });
   return (
-    <motion.div drag className='flex gap-3 p-1 items-center justify-center'>
+    <motion.div className='flex gap-3 p-1 items-center justify-center'>
       {...rc}
     </motion.div>
   );

@@ -88,6 +88,9 @@
 - table visualization (put table in "heap" variables always point to it
 - added "heap" to interperte gnerator side.
 
+### Sep 14
+
+- on scroll recalculate svg
 
 ### Up Next
 
