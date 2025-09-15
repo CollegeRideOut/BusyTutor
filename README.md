@@ -96,6 +96,7 @@
 ### Sep 15
 
 - version 1 of variables poiting to table
+- version 1 of table value poiting to other tables
 
 ### Up Next
 

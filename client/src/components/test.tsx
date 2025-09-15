@@ -1053,9 +1053,7 @@ const HeapVIsuazer = memo(function HeapVIsuazer({
           defaultOpen={true}
           className='flex p-1 gap-2 items-center justify-center'
         >
-          <CollapsibleTrigger asChild>
-            <div>parent</div>
-          </CollapsibleTrigger>
+          <CollapsibleTrigger asChild></CollapsibleTrigger>
           <CollapsibleContent>
             <ScrollArea className='w-full h-full rounded-md border p-4 flex flex-row'>
               {TableVisualizer({ t: t, ref: ref, vars: vars })}
@@ -1299,7 +1297,14 @@ export function TableVisualizer({
           </motion.div>
         );
       }
-      case 'table': {
+      case 'table':
+      case 'return':
+      case 'error':
+      case 'null':
+      case 'builtin':
+
+      default: {
+          console.log('here is the table', t)
         vars.current.set(`${t.id}-${key_s}`, obj.id);
         return (
           <motion.div
@@ -1308,18 +1313,9 @@ export function TableVisualizer({
             }}
             className='flex gap-3 p-1'
           >
-            p ${key_s}
+            {key_s}
           </motion.div>
         );
-      }
-      case 'return':
-      case 'error':
-      case 'null':
-      case 'builtin': {
-        return null;
-      }
-      default: {
-        return <div></div>;
       }
     }
   });

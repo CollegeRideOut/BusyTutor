@@ -3,7 +3,7 @@ export function make_replacer() {
   return (_key: any, value: any) => {
     if (typeof value === 'object' && value !== null) {
       if (seen.has(value)) {
-        return '[Circular]';
+        return {id: value.id};
       }
       seen.add(value);
     }
