@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
+import { memo, useContext, useEffect, useRef, useState } from 'react';
 
 import { IoReturnDownBack } from 'react-icons/io5';
 import { MdOutlineTimeline } from 'react-icons/md';
@@ -78,48 +71,14 @@ export function VisualizerTool({
   const [globalEnvironment, setGlobalEnvironment] =
     useState<Lua_Environment | null>(null);
   const visualEnvironmentRef = useRef<Map<string, HTMLElement>>(new Map());
+  const arrowRef = useRef<Map<string, string>>(new Map());
 
   const visualParentRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<ReactNode[]>([]);
-  const [svgVars, setSvgVars] = useState<ReactNode[]>([]);
-  const [variables, setVariables] = useState<Map<string, string>>(new Map());
-  const debounceId = useRef<NodeJS.Timeout | null>(null);
-
   const [heap, setHeap] = useState<Set<Lua_Table>>(new Set());
+  const variablesRef = useRef<Map<string, string>>(new Map());
   //const [bs, setBs] = useState<ReactNode[]>([]);
   //    const [history, setHistory] = useState<Lua_Object_Visualizer[]>([]);
-  //
-  //
-  //
-  //
-  const scheduleUpdate = useCallback(() => {
-    if (debounceId.current) clearTimeout(debounceId.current);
-
-    debounceId.current = setTimeout(() => {
-      if (environment === null) {
-        return;
-      }
-
-      let csvg = updateArrows(environment);
-      setSvgVars(csvg || []);
-      console.log('conaso', csvg, 'CONASO');
-
-      debounceId.current = null;
-    }, 100); // 100ms debounce
-  }, [environment]);
-
-  const setRef = useCallback(
-    (id: string, el: HTMLDivElement) => {
-      console.log('cuenta');
-      if (visualEnvironmentRef.current.has(id)) return;
-      visualEnvironmentRef.current.set(id, el);
-
-      console.log('te tan llamando mal es', id, el);
-
-      scheduleUpdate();
-    },
-    [environment],
-  );
 
   useEffect(() => {
     if (!ast) return;
@@ -137,291 +96,6 @@ export function VisualizerTool({
   useEffect(() => {
     svgCreator();
   }, [envVisual]);
-
-  let updateArrows = useCallback(
-    (environment: Lua_Environment) => {
-      console.log('klk que ta pasando cono');
-      if (environment === null) return null;
-
-      let svgs: ReactNode[] = [];
-      if (environment.outer !== null)
-        svgs.push(updateArrows(environment.outer));
-
-      svgs.push(
-        [...environment.store.entries()]
-          .filter(([_id, obj]) => obj.kind === 'table')
-          .filter(([id, obj]) => {
-            return (
-              visualEnvironmentRef.current.has(id) &&
-              visualEnvironmentRef.current.has(obj.id)
-            );
-          })
-          .map(([id, obj]) => svgVariablesCreator(id, obj.id)),
-      );
-      return svgs;
-    },
-
-    [environment],
-  );
-
-  function svgVariablesCreator(rect1Id: string, rect2Id: string) {
-    // TODO get rasterizing out and we gotta refactor sooon this looks tooo bad
-    console.log('svgVariablesCreator VAR VAR VAR');
-    let svgs: ReactNode = null;
-    const rect1 = visualEnvironmentRef.current
-      .get(rect1Id)!
-      .getBoundingClientRect();
-
-    const rect2 = visualEnvironmentRef.current
-      .get(rect2Id)!
-      .getBoundingClientRect();
-
-    // TODO look into rasterizing
-    let x_lines: Set<number> = new Set();
-    let y_lines: Set<number> = new Set();
-    let elements = [...visualEnvironmentRef.current.values()].map((e) => {
-      let rect = e.getBoundingClientRect();
-      x_lines.add(rect.left);
-      x_lines.add(rect.right);
-      y_lines.add(rect.top);
-      y_lines.add(rect.bottom);
-      return rect;
-    });
-
-    type cell = {
-      left: number;
-      right: number;
-      top: number;
-      bottom: number;
-      occupied: boolean;
-      start: boolean;
-      end: boolean;
-    };
-    //    let parent_ref = visualParentRef.current!.getBoundingClientRect();
-
-    // rasterizing gpt code need to understand this better dynamc grid
-    const x_sorted = Array.from(x_lines).sort((a, b) => a - b);
-    const y_sorted = Array.from(y_lines).sort((a, b) => a - b);
-    const grid: cell[][] = [];
-    for (let i = 0; i < x_sorted.length - 1; i++) {
-      let row_cells: cell[] = [];
-      for (let j = 0; j < y_sorted.length - 1; j++) {
-        const cell: cell = {
-          left: x_sorted[i],
-          right: x_sorted[i + 1],
-          top: y_sorted[j],
-          bottom: y_sorted[j + 1],
-          occupied: false,
-          start: false,
-          end: false,
-        };
-
-        // check if occupied
-
-        for (const rect of elements) {
-          if (
-            !(
-              cell.right <= rect.left ||
-              cell.left >= rect.right ||
-              cell.bottom <= rect.top ||
-              cell.top >= rect.bottom
-            )
-          ) {
-            cell.occupied = true;
-            if (cell.left === rect1.left && cell.top === rect1.top) {
-              cell.occupied = false;
-              cell.start = true;
-            }
-            if (cell.left === rect2.left && cell.top === rect2.top) {
-              cell.occupied = false;
-              cell.end = true;
-            }
-            break;
-          }
-        }
-        //cell.left -= parent_ref.left;
-        //cell.right -= parent_ref.left;
-        //cell.top -= parent_ref.top;
-        //cell.bottom -= parent_ref.top;
-
-        row_cells.push(cell);
-      }
-      grid.push(row_cells);
-    }
-
-    // find start and end
-    let start = { i: -1, j: -1 };
-    let end = { i: -1, j: -1 };
-    for (let i = 0; i < grid.length; i++) {
-      for (let j = 0; j < grid[0].length; j++) {
-        if (grid[i][j].start) start = { i: i, j: j };
-        if (grid[i][j].end) end = { i: i, j: j };
-      }
-    }
-
-    let vistited_parent: Map<string, string> = new Map();
-    vistited_parent.set(`${start.i}-${start.j}`, `${start.i}-${start.j}`);
-    let dirs = [
-      { i: 1, j: 0 },
-      { i: -1, j: 0 },
-      { i: 0, j: 1 },
-      { i: 0, j: -1 },
-    ];
-    let q = [start];
-    // shortest path
-    parent: while (q.length > 0) {
-      let n = q.length;
-      for (let i = 0; i < n; i++) {
-        let curr = q.shift();
-        if (curr === undefined) {
-          console.log('error');
-          break;
-        }
-        if (curr.i === end.i && curr.j === end.j) {
-          console.log('found it');
-          break parent;
-        }
-        for (let dir of dirs) {
-          let new_node = { i: curr.i + dir.i, j: curr.j + dir.j };
-          if (
-            new_node.i < 0 ||
-            new_node.j < 0 ||
-            new_node.i >= grid.length ||
-            new_node.j >= grid[0].length ||
-            grid[new_node.i][new_node.j].occupied ||
-            vistited_parent.has(`${new_node.i}-${new_node.j}`)
-          ) {
-            continue;
-          } else {
-            vistited_parent.set(
-              `${new_node.i}-${new_node.j}`,
-              `${curr.i}-${curr.j}`,
-            );
-            q.push(new_node);
-          }
-        }
-      }
-    }
-    // TODO give grid values?
-
-    let path: { i: number; j: number }[] = [];
-    let last = `${end.i}-${end.j}`;
-    let parent_v = vistited_parent.get(last);
-    //
-    while (last !== parent_v) {
-      let split = last.split('-');
-      path.push({ i: parseInt(split[0]), j: parseInt(split[1]) });
-      last = parent_v!;
-      parent_v = vistited_parent.get(parent_v!);
-    }
-
-    path = path.reverse();
-
-    let svg_path =
-      `M${rect1.left} ${rect1.top} ` +
-      path
-        .map(({ i, j }, idx) => {
-          let curr_cell = grid[i][j];
-          let x = curr_cell.left;
-          let y = curr_cell.top;
-
-          if (idx === 0) return `L${x} ${y}`;
-
-          return `L${grid[i][j].left} ${grid[i][j].top}`;
-        })
-        .join(' ');
-
-    svgs = (
-      <svg
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          pointerEvents: 'none',
-        }}
-        width={window.innerWidth}
-        height={window.innerHeight}
-      >
-        <path
-          d={svg_path}
-          stroke={`${theme.vals.colors.primary}`}
-          fill='none'
-          strokeWidth={4}
-        />
-
-        {/* rect1 box*/}
-        <line
-          x1={rect1.x}
-          y1={rect1.y}
-          x2={rect1.x}
-          y2={rect1.bottom}
-          stroke={`${theme.vals.colors.primary}`}
-          strokeWidth={4}
-        />
-        <line
-          x1={rect1.right}
-          y1={rect1.y}
-          x2={rect1.right}
-          y2={rect1.bottom}
-          stroke={`${theme.vals.colors.primary}`}
-          strokeWidth={4}
-        />
-        <line
-          x1={rect1.left}
-          y1={rect1.y}
-          x2={rect1.right}
-          y2={rect1.y}
-          stroke={`${theme.vals.colors.primary}`}
-          strokeWidth={4}
-        />
-        <line
-          x1={rect1.left}
-          y1={rect1.bottom}
-          x2={rect1.right}
-          y2={rect1.bottom}
-          stroke={`${theme.vals.colors.primary}`}
-          strokeWidth={4}
-        />
-
-        {/*rect2 box*/}
-        <line
-          x1={rect2.x}
-          y1={rect2.y}
-          x2={rect2.x}
-          y2={rect2.bottom}
-          stroke={`${theme.vals.colors.primary}`}
-          strokeWidth={4}
-        />
-        <line
-          x1={rect2.right}
-          y1={rect2.y}
-          x2={rect2.right}
-          y2={rect2.bottom}
-          stroke={`${theme.vals.colors.primary}`}
-          strokeWidth={4}
-        />
-        <line
-          x1={rect2.left}
-          y1={rect2.y}
-          x2={rect2.right}
-          y2={rect2.y}
-          stroke={`${theme.vals.colors.primary}`}
-          strokeWidth={4}
-        />
-        <line
-          x1={rect2.left}
-          y1={rect2.bottom}
-          x2={rect2.right}
-          y2={rect2.bottom}
-          stroke={`${theme.vals.colors.primary}`}
-          strokeWidth={4}
-        />
-      </svg>
-    );
-
-    console.log('here wtf is going on', svgs);
-    return svgs;
-  }
 
   // FUCK REFACORING IM DOING THAT SHIT FOR THE COMPLETE THING
   function svgCreator() {
@@ -772,7 +446,8 @@ export function VisualizerTool({
           <div
             className='h-full w-full p-4 overflow-y-scroll'
             onScrollEnd={() => {
-              //svgCreator();
+              console.log('hello');
+              svgCreator();
             }}
           >
             <div className='flex gap-x-8 justify-center rounded p-4'>
@@ -812,7 +487,13 @@ export function VisualizerTool({
                     ) as Lua_Environment;
                     setEnvironment(env);
                     let visual = val.value[0];
-                    setHeap(val.value[3]);
+
+                    let table = JSON.parse(
+                      JSON.stringify(val.value[3], make_replacer()),
+                      reviver,
+                    ) as Set<Lua_Table>;
+
+                    setHeap(table);
 
                     setHistory(info.tree);
 
@@ -953,39 +634,16 @@ export function VisualizerTool({
                         </div>
                         <VisualEnvironment
                           env={environment}
-                          setRef={setRef as any}
+                          ref={visualEnvironmentRef}
+                          vars={variablesRef}
                         />
                         <div>
                           heap
-                          {[...heap.values()].map((t, idx) => {
-                            return (
-                              <motion.div drag key={`${t.id}-${idx}`}>
-                                asdfasdfasdfasdf
-                                <Collapsible
-                                  defaultOpen={true}
-                                  className='flex p-1 gap-2 items-center justify-center'
-                                >
-                                  <CollapsibleTrigger asChild>
-                                    <div>{t.id}</div>
-                                  </CollapsibleTrigger>
-                                  <CollapsibleContent>
-                                    <ScrollArea className='w-full h-full rounded-md border p-4 flex flex-row'>
-                                      {
-                                        <TableVisualizer
-                                          t={t}
-                                          setRef={setRef}
-                                        />
-                                      }
-                                      <ScrollBar
-                                        className='bg-black'
-                                        orientation='horizontal'
-                                      />
-                                    </ScrollArea>
-                                  </CollapsibleContent>
-                                </Collapsible>
-                              </motion.div>
-                            );
-                          })}
+                          <HeapVIsuazer
+                            heap={heap}
+                            ref={visualEnvironmentRef}
+                            vars={variablesRef}
+                          />
                         </div>
                       </div>
                     )
@@ -993,8 +651,13 @@ export function VisualizerTool({
                 </div>
               }
             </div>
+
             <div> {svg}</div>
-            <div>{svgVars}</div>
+            <VarArrows
+              ref={visualEnvironmentRef}
+              vars={variablesRef}
+              theme={theme}
+            />
           </div>
         ) : (
           <div className='w-full flex flex-col items-center gap-y-8 p-4'>
@@ -1083,10 +746,327 @@ export function VisualizerTool({
   );
 }
 
-type VisualEnvironmentProps = {
-  env: Lua_Environment;
-  setRef: (el: HTMLDivElement, id: string) => void;
+const VarArrows = function VarArrows({
+  ref,
+  vars,
+  theme,
+}: {
+  ref: React.RefObject<Map<string, HTMLElement>>;
+  vars: React.RefObject<Map<string, string>>;
+  theme: any;
+}) {
+  let visualEnvironmentRef = ref;
+  return [...vars.current.entries()].map(([rect1id, rect2id]) => {
+    if (
+      !visualEnvironmentRef.current.has(rect1id) ||
+      !visualEnvironmentRef.current.has(rect2id)
+    )
+      return null;
+    const rect1 = visualEnvironmentRef.current
+      .get(rect1id)!
+      .getBoundingClientRect();
+
+    const rect2 = visualEnvironmentRef.current
+      .get(rect2id)!
+      .getBoundingClientRect();
+
+    // TODO look into rasterizing
+    let x_lines: Set<number> = new Set();
+    let y_lines: Set<number> = new Set();
+    let elements = [...visualEnvironmentRef.current.values()].map((e) => {
+      let rect = e.getBoundingClientRect();
+      x_lines.add(rect.left);
+      x_lines.add(rect.right);
+      y_lines.add(rect.top);
+      y_lines.add(rect.bottom);
+      return rect;
+    });
+
+    type cell = {
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+      occupied: boolean;
+      start: boolean;
+      end: boolean;
+    };
+    //    let parent_ref = visualParentRef.current!.getBoundingClientRect();
+
+    // rasterizing gpt code need to understand this better dynamc grid
+    const x_sorted = Array.from(x_lines).sort((a, b) => a - b);
+    const y_sorted = Array.from(y_lines).sort((a, b) => a - b);
+    const grid: cell[][] = [];
+    for (let i = 0; i < x_sorted.length - 1; i++) {
+      let row_cells: cell[] = [];
+      for (let j = 0; j < y_sorted.length - 1; j++) {
+        const cell: cell = {
+          left: x_sorted[i],
+          right: x_sorted[i + 1],
+          top: y_sorted[j],
+          bottom: y_sorted[j + 1],
+          occupied: false,
+          start: false,
+          end: false,
+        };
+
+        // check if occupied
+
+        for (const rect of elements) {
+          if (
+            !(
+              cell.right <= rect.left ||
+              cell.left >= rect.right ||
+              cell.bottom <= rect.top ||
+              cell.top >= rect.bottom
+            )
+          ) {
+            cell.occupied = true;
+            if (cell.left === rect1.left && cell.top === rect1.top) {
+              cell.occupied = false;
+              cell.start = true;
+            }
+            if (cell.left === rect2.left && cell.top === rect2.top) {
+              cell.occupied = false;
+              cell.end = true;
+            }
+            break;
+          }
+        }
+        //cell.left -= parent_ref.left;
+        //cell.right -= parent_ref.left;
+        //cell.top -= parent_ref.top;
+        //cell.bottom -= parent_ref.top;
+
+        row_cells.push(cell);
+      }
+      grid.push(row_cells);
+    }
+    //let bullshit: ReactNode[] = [];
+    //for (let y of grid) {
+    //  for (let x of y) {
+    //    if (x.occupied) continue;
+    //    bullshit.push(
+    //      <div
+    //        style={{
+    //          position: 'absolute',
+    //          left: x.left,
+    //          top: x.top,
+    //          width: x.right - x.left,
+    //          height: x.bottom - x.top,
+    //          background: 'yellow',
+    //        }}
+    //      ></div>,
+    //    );
+    //  }
+    //}
+    //setBs(bullshit);
+    //// now we have to find a path
+
+    // find start and end
+    let start = { i: -1, j: -1 };
+    let end = { i: -1, j: -1 };
+    for (let i = 0; i < grid.length; i++) {
+      for (let j = 0; j < grid[0].length; j++) {
+        if (grid[i][j].start) start = { i: i, j: j };
+        if (grid[i][j].end) end = { i: i, j: j };
+      }
+    }
+
+    let vistited_parent: Map<string, string> = new Map();
+    vistited_parent.set(`${start.i}-${start.j}`, `${start.i}-${start.j}`);
+    let dirs = [
+      { i: 1, j: 0 },
+      { i: -1, j: 0 },
+      { i: 0, j: 1 },
+      { i: 0, j: -1 },
+    ];
+    let q = [start];
+    // shortest path
+    parent: while (q.length > 0) {
+      let n = q.length;
+      for (let i = 0; i < n; i++) {
+        let curr = q.shift();
+        if (curr === undefined) {
+          console.log('error');
+          break;
+        }
+        if (curr.i === end.i && curr.j === end.j) {
+          console.log('found it');
+          break parent;
+        }
+        for (let dir of dirs) {
+          let new_node = { i: curr.i + dir.i, j: curr.j + dir.j };
+          if (
+            new_node.i < 0 ||
+            new_node.j < 0 ||
+            new_node.i >= grid.length ||
+            new_node.j >= grid[0].length ||
+            grid[new_node.i][new_node.j].occupied ||
+            vistited_parent.has(`${new_node.i}-${new_node.j}`)
+          ) {
+            continue;
+          } else {
+            vistited_parent.set(
+              `${new_node.i}-${new_node.j}`,
+              `${curr.i}-${curr.j}`,
+            );
+            q.push(new_node);
+          }
+        }
+      }
+    }
+    // TODO give grid values?
+
+    let path: { i: number; j: number }[] = [];
+    let last = `${end.i}-${end.j}`;
+    let parent_v = vistited_parent.get(last);
+    //
+    while (last !== parent_v) {
+      let split = last.split('-');
+      path.push({ i: parseInt(split[0]), j: parseInt(split[1]) });
+      last = parent_v!;
+      parent_v = vistited_parent.get(parent_v!);
+    }
+
+    path = path.reverse();
+
+    let svg_path =
+      `M${rect1.left} ${rect1.top} ` +
+      path
+        .map(({ i, j }, idx) => {
+          let curr_cell = grid[i][j];
+          let x = curr_cell.left;
+          let y = curr_cell.top;
+
+          if (idx === 0) return `L${x} ${y}`;
+
+          return `L${grid[i][j].left} ${grid[i][j].top}`;
+        })
+        .join(' ');
+    console.log(svg_path);
+
+    return (
+      <svg
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          pointerEvents: 'none',
+        }}
+        width={window.innerWidth}
+        height={window.innerHeight}
+      >
+        <path
+          d={svg_path}
+          stroke={`${theme.vals.colors.primary}`}
+          fill='none'
+          strokeWidth={4}
+        />
+
+        {/* rect1 box*/}
+        <line
+          x1={rect1.x}
+          y1={rect1.y}
+          x2={rect1.x}
+          y2={rect1.bottom}
+          stroke={`${theme.vals.colors.primary}`}
+          strokeWidth={4}
+        />
+        <line
+          x1={rect1.right}
+          y1={rect1.y}
+          x2={rect1.right}
+          y2={rect1.bottom}
+          stroke={`${theme.vals.colors.primary}`}
+          strokeWidth={4}
+        />
+        <line
+          x1={rect1.left}
+          y1={rect1.y}
+          x2={rect1.right}
+          y2={rect1.y}
+          stroke={`${theme.vals.colors.primary}`}
+          strokeWidth={4}
+        />
+        <line
+          x1={rect1.left}
+          y1={rect1.bottom}
+          x2={rect1.right}
+          y2={rect1.bottom}
+          stroke={`${theme.vals.colors.primary}`}
+          strokeWidth={4}
+        />
+
+        {/*rect2 box*/}
+        <line
+          x1={rect2.x}
+          y1={rect2.y}
+          x2={rect2.x}
+          y2={rect2.bottom}
+          stroke={`${theme.vals.colors.primary}`}
+          strokeWidth={4}
+        />
+        <line
+          x1={rect2.right}
+          y1={rect2.y}
+          x2={rect2.right}
+          y2={rect2.bottom}
+          stroke={`${theme.vals.colors.primary}`}
+          strokeWidth={4}
+        />
+        <line
+          x1={rect2.left}
+          y1={rect2.y}
+          x2={rect2.right}
+          y2={rect2.y}
+          stroke={`${theme.vals.colors.primary}`}
+          strokeWidth={4}
+        />
+        <line
+          x1={rect2.left}
+          y1={rect2.bottom}
+          x2={rect2.right}
+          y2={rect2.bottom}
+          stroke={`${theme.vals.colors.primary}`}
+          strokeWidth={4}
+        />
+      </svg>
+    );
+  });
 };
+
+const HeapVIsuazer = memo(function HeapVIsuazer({
+  heap,
+  ref,
+  vars,
+}: {
+  heap: Set<Lua_Table>;
+  ref: React.RefObject<Map<string, HTMLElement>>;
+  vars: React.RefObject<Map<string, string>>;
+}) {
+  console.log('heap', heap);
+  return [...heap.values()].map((t, idx) => {
+    return (
+      <motion.div drag key={`${t.id}-${idx}`}>
+        <Collapsible
+          defaultOpen={true}
+          className='flex p-1 gap-2 items-center justify-center'
+        >
+          <CollapsibleTrigger asChild>
+            <div>parent</div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <ScrollArea className='w-full h-full rounded-md border p-4 flex flex-row'>
+              {TableVisualizer({ t: t, ref: ref, vars: vars })}
+              <ScrollBar className='bg-black' orientation='horizontal' />
+            </ScrollArea>
+          </CollapsibleContent>
+        </Collapsible>
+      </motion.div>
+    );
+  });
+});
 
 export default function NAryTree({
   tree,
@@ -1191,19 +1171,29 @@ const css = `
 `;
 
 // --- Demo usage (optional) ---
-
 let global_env = 0;
 // TODO fix this bs
-function VisualEnvironment({ env, setRef }: VisualEnvironmentProps) {
-  if (!env) return [];
-  if (!env.store) return [];
+
+type VisualEnvironmentProps = {
+  env: Lua_Environment;
+  ref: React.RefObject<Map<string, HTMLElement>>;
+  vars: React.RefObject<Map<string, string>>;
+};
+const VisualEnvironment = memo(function VisualEnvironment({
+  env,
+  ref,
+  vars,
+}: VisualEnvironmentProps) {
+  if (!env) return null;
+  if (!env.store) return null;
   let rc: ReactNode[] = [];
   global_env++;
   if (env.outer) {
     rc.push(
       VisualEnvironment({
         env: env.outer,
-        setRef,
+        ref,
+        vars,
       }),
     );
   }
@@ -1217,7 +1207,7 @@ function VisualEnvironment({ env, setRef }: VisualEnvironmentProps) {
             drag
             className=' flex p-1 items-center h-[50px] w-[50px] justify-center'
             ref={(el) => {
-              el && setRef(el!, identifier);
+              el && ref.current.set(identifier, el);
             }}
           >
             {identifier} : {String(obj.value)}
@@ -1225,13 +1215,14 @@ function VisualEnvironment({ env, setRef }: VisualEnvironmentProps) {
         );
       }
       case 'table': {
+        vars.current.set(identifier, obj.id);
         return (
           <div
             ref={(el) => {
-              el && setRef(el!, identifier);
+              el && ref.current.set(identifier, el);
             }}
           >
-            {identifier} should be pointing somewhere
+            poointer {identifier}{' '}
           </div>
         );
       }
@@ -1262,13 +1253,18 @@ function VisualEnvironment({ env, setRef }: VisualEnvironmentProps) {
       </Collapsible>
     </div>
   );
-}
-type TableVisualerProps = {
-  t: Lua_Table;
-  setRef: (id: string, el: HTMLDivElement) => void;
-};
+});
 
-export function TableVisualizer({ t, setRef }: TableVisualerProps) {
+export function TableVisualizer({
+  t,
+  ref,
+  vars,
+}: {
+  t: Lua_Table;
+
+  vars: React.RefObject<Map<string, string>>;
+  ref: React.RefObject<Map<string, HTMLElement>>;
+}) {
   let rc = [...t.store.entries()].map(([key, obj]) => {
     let key_s = '';
     void key_s;
@@ -1284,7 +1280,7 @@ export function TableVisualizer({ t, setRef }: TableVisualerProps) {
           <motion.div
             className='flex gap-3 p-1 h-[50px] w-[50px] justify-center items-center'
             ref={(el) => {
-              el && setRef(obj.id, el);
+              el && ref.current.set(obj.id, el);
             }}
           >
             {key.toString()}:{obj.value}
@@ -1295,22 +1291,25 @@ export function TableVisualizer({ t, setRef }: TableVisualerProps) {
         return (
           <motion.div
             className='flex gap-3 p-1 h-[50px] w-[50px]'
-            ref={(el) => {}}
+            ref={(el) => {
+              el && ref.current.set(obj.id, el);
+            }}
           >
             {key.toString()}:{obj.kind}
           </motion.div>
         );
       }
       case 'table': {
+        vars.current.set(`${t.id}-${key_s}`, obj.id);
         return (
-          <div
-            className='flex gap-3 p-1'
+          <motion.div
             ref={(el) => {
-              el && setRef(`${t.id}-${key}`, el);
+              el && ref.current.set(`${t.id}-${key_s}`, el);
             }}
+            className='flex gap-3 p-1'
           >
-            i should be a pointer
-          </div>
+            p ${key_s}
+          </motion.div>
         );
       }
       case 'return':
@@ -1326,6 +1325,13 @@ export function TableVisualizer({ t, setRef }: TableVisualerProps) {
   });
   return (
     <motion.div className='flex gap-3 p-1 items-center justify-center'>
+      <div
+        ref={(el) => {
+          el && ref.current.set(t.id, el);
+        }}
+      >
+        Parent
+      </div>
       {...rc}
     </motion.div>
   );

@@ -91,6 +91,11 @@
 ### Sep 14
 
 - on scroll recalculate svg
+- trying to do pointers from variables to heap;
+
+### Sep 15
+
+- version 1 of variables poiting to table
 
 ### Up Next
 
