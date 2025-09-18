@@ -1,6 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useContext } from 'react';
-import { ThemeContext } from '../__root';
 import { VisualizerTool } from '../../components/test';
 
 export const Route = createFileRoute('/arrays/217')({
@@ -28,7 +26,6 @@ const testString: {
 ];
 
 function RouteComponent() {
-  //const theme = useContext(ThemeContext);
 
   return (
     <div

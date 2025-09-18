@@ -1,292 +1,176 @@
 import { createRootRoute, Link, Outlet } from '@tanstack/react-router';
-import { createContext, useEffect, useState } from 'react';
-import { MdOutlineDarkMode } from 'react-icons/md';
-import { MdDarkMode } from 'react-icons/md';
-import { useMediaQuery } from 'react-responsive';
-import { GiHamburgerMenu } from 'react-icons/gi';
-import { CgCloseO } from 'react-icons/cg';
-
-//import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-
-const colors_light = {
-  background: '#F2E9E4',
-  accent: '#C9ADA7',
-  text: '#22223B',
-  primary: '#9A8C98',
-  secondary: '#C9ADA7',
-  heapmapBackground: '#2e2e4b',
-  heatmap: {
-    0: '#dcd6d0',
-    1: '#cbbfb7',
-    4: '#a99890',
-    8: '#a48b81',
-    10: '#5e4b44',
-  },
-};
-const colors_dark = {
-  background: '#22223B',
-  accent: '#9A8C98',
-  text: '#F2E9E4',
-  primary: '#4A4E69',
-  secondary: '#C9ADA7',
-  heapmapBackground: '#2e2e4b',
-  heatmap: {
-    0: '#3a3a5c',
-    1: '#66667a',
-    4: '#9999aa',
-    8: '#cccccc',
-    10: '#ffffff',
-  },
-};
-
-const init_theme: {
-  vals: {
-    theme: 'light' | 'dark';
-    mobile: boolean;
-    colors: typeof colors_dark;
-  };
-  toggleTheme: () => void;
-  toggleMobile: () => void;
-} = {
-  vals: {
-    theme: 'light',
-    mobile: false,
-    colors: colors_dark,
-  },
-  toggleTheme: () => {},
-  toggleMobile: () => {},
-};
-
-export const ThemeContext = createContext(init_theme);
+import { Code2, Menu, Github, Twitter, Mail } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { useState } from 'react';
 
 //context
 export const Route = createRootRoute({
   component: () => {
-    const isBigScreen = useMediaQuery({ query: '(min-width: 1824px)' });
-    const isTabletOrMobile = useMediaQuery({ query: '(max-width: 1224px)' });
-    const [toggleDropDown, setToggleDropDown] = useState(false);
-    useEffect(() => {
-      setToggleDropDown(false);
-    }, [isTabletOrMobile]);
-
-    const [theme, setTheme] = useState<{
-      theme: 'light' | 'dark';
-      mobile: boolean;
-      colors: typeof colors_dark;
-    }>({
-      theme: 'dark',
-      mobile: false,
-      colors: colors_dark,
-    });
-    useEffect(() => {
-      let x = localStorage.getItem('theme');
-      if (x && x === 'light') {
-        setTheme({
-          ...theme,
-          theme: 'light',
-          mobile: false,
-          colors: colors_light,
-        });
-      } else {
-        setTheme({
-          ...theme,
-          theme: 'dark',
-          mobile: false,
-          colors: colors_dark,
-        });
-      }
-    }, []);
-
-    const toggleTheme = () => {
-      console.log(theme.theme);
-      if (theme.theme === 'light') {
-        setTheme({ ...theme, theme: 'dark', colors: colors_dark });
-        localStorage.setItem('theme', 'dark');
-      } else {
-        setTheme({ ...theme, theme: 'light', colors: colors_light });
-        localStorage.setItem('theme', 'light');
-      }
-    };
-    const toggleMobile = () => {
-      setTheme({ ...theme, mobile: !theme.mobile });
-    };
-
-    const linkStyle: React.CSSProperties = {
-      textDecoration: 'none',
-      color: theme.colors.text,
-      fontSize: 20,
-    };
-    const menuLinks = (
-      <>
-        <Link
-          to='/'
-          style={{ ...linkStyle, fontSize: 14 }}
-          onClick={() => setToggleDropDown(false)}
-        >
-          HOME
-        </Link>
-        <Link
-          to='/arrays'
-          style={{ ...linkStyle, fontSize: 14 }}
-          onClick={() => setToggleDropDown(false)}
-        >
-          ARRAYS
-        </Link>
-      </>
+    const [currentPage, setCurrentPage] = useState<'landing' | 'practice'>(
+      'landing',
     );
+
     return (
       <div
         style={{
-          backgroundColor: theme.colors.background,
           width: '100%',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
           flex: '1 1 auto',
           textDecoration: 'none',
-          color: theme.colors.text,
           fontSize: 18,
         }}
       >
-        <ThemeContext.Provider
-          value={{ vals: theme, toggleTheme, toggleMobile }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              color: theme.colors.text,
-              justifyContent: isBigScreen ? 'center' : 'space-between',
-              alignItems: 'center',
-              borderBottom: `1px solid ${theme.colors.text}`,
-              padding: 30,
-              paddingLeft: 60,
-              paddingRight: 60,
-            }}
-          >
-            <div
-              style={{
-                width: '100%',
-                display: 'flex',
-                maxWidth: 1824,
-                flexDirection: 'row',
-                color: theme.colors.text,
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div
-                style={{
-                  width: isTabletOrMobile ? '100%' : 'min-content',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                {isTabletOrMobile && (
-                  <div
-                    style={{ width: 'min-content', cursor: 'pointer' }}
-                    onClick={() => {
-                      setToggleDropDown(!toggleDropDown);
-                    }}
-                  >
-                    {!toggleDropDown ? (
-                      <GiHamburgerMenu />
-                    ) : (
-                      <CgCloseO size={20} />
-                    )}
-                  </div>
-                )}
-
-                <Link
-                  to='/'
-                  style={{
-                    ...linkStyle,
-                    width: '100%',
-                    display: 'flex',
-                    justifyContent: 'center',
-                  }}
-                >
-                  BusyTutor
-                </Link>
-              </div>
-
-              {!isTabletOrMobile && (
-                <div
-                  style={{
-                    display: 'flex',
-                    flex: 1,
-                    justifyContent: 'center',
-                    columnGap: 20,
-                    width: 'max-content',
-                    textDecoration: 'underline',
-                    textUnderlineOffset: 4,
-                  }}
-                >
-                  {menuLinks}
-                </div>
-              )}
-              <div
-                onClick={() => {
-                  toggleTheme();
-                }}
-                style={{ cursor: 'pointer', width: 'min-content' }}
-              >
-                {theme.theme === 'dark' ? (
-                  <MdDarkMode size={30} />
-                ) : (
-                  <MdOutlineDarkMode size={30} />
-                )}
-              </div>
-            </div>
-          </div>
-
-          {isTabletOrMobile && toggleDropDown && (
-            <div>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  backgroundColor: theme.colors.background,
-                  rowGap: 20,
-                  position: 'absolute',
-                  width: '100%',
-                  height: '100%',
-                  left: 0,
-                  borderRadius: 10,
-                  padding: 10,
-                }}
-              >
-                {menuLinks}
-              </div>
-            </div>
-          )}
-
-          <div
-            style={{
-              height: '100%',
-              width: '100%',
-              flexDirection: 'column',
-              display: 'flex',
-              flex: '1 1 auto',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                height: '100%',
-                flexDirection: 'column',
-                maxWidth: 1824,
-                flex: '1 1 auto',
-                width: isTabletOrMobile ? '100%' : '100%',
-              }}
-            >
-              <Outlet />
-            </div>
-          </div>
-        </ThemeContext.Provider>
+        <Header
+          currentPage={currentPage}
+          onNavigate={(e: string) => setCurrentPage(e as any)}
+        />
+        <Outlet />
+        <Footer />
       </div>
     );
   },
 });
+interface HeaderProps {
+  currentPage: string;
+  onNavigate: (page: string) => void;
+}
+export function Header({ currentPage, onNavigate }: HeaderProps) {
+  return (
+    <header className='border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50'>
+      <div className='container mx-auto px-4 py-4'>
+        <div className='flex items-center justify-between'>
+          <div
+            className='flex items-center gap-2 cursor-pointer'
+            onClick={() => onNavigate('landing')}
+          >
+            <Code2 className='h-8 w-8 text-primary' />
+            <span className='text-xl font-semibold'>Busy Tutor</span>
+          </div>
+
+          <nav className='hidden md:flex items-center gap-6'>
+            <Link
+              to='/'
+              className={`hover:text-primary transition-colors ${
+                currentPage === 'landing'
+                  ? 'text-primary'
+                  : 'text-muted-foreground'
+              }`}
+              onClick={() => onNavigate('landing')}
+            >
+              Home
+            </Link>
+
+            <Link
+              to='/practice'
+              className={`hover:text-primary transition-colors ${
+                currentPage === 'practice'
+                  ? 'text-primary'
+                  : 'text-muted-foreground'
+              }`}
+              onClick={() => onNavigate('practice')}
+            >
+              Practice
+            </Link>
+
+            <Button variant='outline'>Login</Button>
+            <Button variant='outline'>Register</Button>
+            <Button>Get Started</Button>
+          </nav>
+
+          <Button variant='ghost' size='sm' className='md:hidden'>
+            <Menu className='h-5 w-5' />
+          </Button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+export function Footer() {
+  return (
+    <footer className='bg-muted/30 border-t mt-auto'>
+      <div className='container mx-auto px-4 py-12'>
+        <div className='grid grid-cols-1 md:grid-cols-4 gap-8'>
+          <div className='space-y-4'>
+            <div className='flex items-center gap-2'>
+              <Code2 className='h-6 w-6 text-primary' />
+              <span className='text-lg font-semibold'>Busy Tutor</span>
+            </div>
+            <p className='text-muted-foreground text-sm'>
+              Master debugging, algorithms, data structures, and architecture
+              through interactive challenges and comprehensive learning
+              resources.
+            </p>
+          </div>
+
+          <div>
+            <h3 className='font-semibold mb-4'>Learn</h3>
+            <ul className='space-y-2 text-sm text-muted-foreground'>
+              <li>
+                <a href='#' className='hover:text-primary transition-colors'>
+                  Getting Started
+                </a>
+              </li>
+              <li>
+                <a href='#' className='hover:text-primary transition-colors'>
+                  Debugging Basics
+                </a>
+              </li>
+              <li>
+                <a href='#' className='hover:text-primary transition-colors'>
+                  Advanced Architecture
+                </a>
+              </li>
+              <li>
+                <a href='#' className='hover:text-primary transition-colors'>
+                  Best Practices
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className='font-semibold mb-4'>Practice</h3>
+            <ul className='space-y-2 text-sm text-muted-foreground'>
+              <li>
+                <a href='#' className='hover:text-primary transition-colors'>
+                  Algorithms
+                </a>
+              </li>
+              <li>
+                <a href='#' className='hover:text-primary transition-colors'>
+                  Data Structures
+                </a>
+              </li>
+              <li>
+                <a href='#' className='hover:text-primary transition-colors'>
+                  Debugging
+                </a>
+              </li>
+              <li>
+                <a href='#' className='hover:text-primary transition-colors'>
+                  Architecture
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className='font-semibold mb-4'>Connect</h3>
+            <div className='flex gap-4'>
+              <Github className='h-5 w-5 text-muted-foreground hover:text-primary cursor-pointer transition-colors' />
+              <Twitter className='h-5 w-5 text-muted-foreground hover:text-primary cursor-pointer transition-colors' />
+              <Mail className='h-5 w-5 text-muted-foreground hover:text-primary cursor-pointer transition-colors' />
+            </div>
+          </div>
+        </div>
+
+        <div className='border-t pt-8 mt-8 text-center text-sm text-muted-foreground'>
+          © 2024 Busy Tutor. All rights reserved.
+        </div>
+      </div>
+    </footer>
+  );
+}

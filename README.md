@@ -98,12 +98,19 @@
 - version 1 of variables poiting to table
 - version 1 of table value poiting to other tables
 
+### Sep 16
+
+- allow mergin table inside of table property removing the pointer its sooooo bad but is what i wanted.... for now
+
+### Sep 16
+
+- new landing page
+- new practice page
+
 ### Up Next
 
-- variables should point to table
-- table perperty should point to table if is a table too
-- or it has a special type of our data structures
 - indexing for the member expresions
+- or it has a special type of our data structures
 - basic implementations and visualization of Data Structures
 - 2d array
 - Stack

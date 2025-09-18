@@ -902,6 +902,7 @@ export function* evalExpression(
           } satisfies Lua_String),
         ];
       } else {
+          // TODO the visualization of the memberr indexastion type shii tmy ggggg
         const val = identifier.get({
           id: crypto.randomUUID(),
           kind: 'string',

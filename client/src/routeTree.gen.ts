@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ArraysIndexRouteImport } from './routes/arrays/index'
 import { Route as ArraysTestRouteImport } from './routes/arrays/test'
 import { Route as Arrays217RouteImport } from './routes/arrays/217'
 
+const PracticeRoute = PracticeRouteImport.update({
+  id: '/practice',
+  path: '/practice',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -37,12 +43,14 @@ const Arrays217Route = Arrays217RouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/practice': typeof PracticeRoute
   '/arrays/217': typeof Arrays217Route
   '/arrays/test': typeof ArraysTestRoute
   '/arrays': typeof ArraysIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/practice': typeof PracticeRoute
   '/arrays/217': typeof Arrays217Route
   '/arrays/test': typeof ArraysTestRoute
   '/arrays': typeof ArraysIndexRoute
@@ -50,20 +58,28 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/practice': typeof PracticeRoute
   '/arrays/217': typeof Arrays217Route
   '/arrays/test': typeof ArraysTestRoute
   '/arrays/': typeof ArraysIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/arrays/217' | '/arrays/test' | '/arrays'
+  fullPaths: '/' | '/practice' | '/arrays/217' | '/arrays/test' | '/arrays'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/arrays/217' | '/arrays/test' | '/arrays'
-  id: '__root__' | '/' | '/arrays/217' | '/arrays/test' | '/arrays/'
+  to: '/' | '/practice' | '/arrays/217' | '/arrays/test' | '/arrays'
+  id:
+    | '__root__'
+    | '/'
+    | '/practice'
+    | '/arrays/217'
+    | '/arrays/test'
+    | '/arrays/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PracticeRoute: typeof PracticeRoute
   Arrays217Route: typeof Arrays217Route
   ArraysTestRoute: typeof ArraysTestRoute
   ArraysIndexRoute: typeof ArraysIndexRoute
@@ -71,6 +87,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/practice': {
+      id: '/practice'
+      path: '/practice'
+      fullPath: '/practice'
+      preLoaderRoute: typeof PracticeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -104,6 +127,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PracticeRoute: PracticeRoute,
   Arrays217Route: Arrays217Route,
   ArraysTestRoute: ArraysTestRoute,
   ArraysIndexRoute: ArraysIndexRoute,

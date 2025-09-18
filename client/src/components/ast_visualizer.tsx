@@ -3,13 +3,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../components/ui/tooltip';
-import type { ThemeContext } from '../routes/__root';
 import { parseLongString } from '../utils/interperter/eval';
 import luaparser from 'luaparse';
 import type { Lua_Object_Visualizer } from '../utils/interperter_generator/generator_types';
 import type { ReactNode } from 'react';
 
-type Theme = typeof ThemeContext extends React.Context<infer U> ? U : never;
+type Theme = {theme: {colors: {primary: ''}}};
 
 export function evalChunkFront(
   node: luaparser.Chunk,

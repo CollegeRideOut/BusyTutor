@@ -3,7 +3,6 @@ import { memo, useContext, useEffect, useRef, useState } from 'react';
 import { IoReturnDownBack } from 'react-icons/io5';
 import { MdOutlineTimeline } from 'react-icons/md';
 import type { ReactNode } from 'react';
-import { ThemeContext } from '../routes/__root';
 import { RiResetLeftFill } from 'react-icons/ri';
 import { VscDebugStepOver } from 'react-icons/vsc';
 import { Lua_Environment, Lua_Table } from '../utils/interperter/lua_types';
@@ -15,7 +14,6 @@ import {
 import type { Lua_Object_Visualizer } from '../utils/interperter_generator/generator_types';
 import {
   evalChunk,
-  Lua_Global_Environment,
   setGLobalEnvironmentGenerator,
 } from '../utils/interperter_generator/eval_generator';
 import luaparser from 'luaparse';
@@ -31,6 +29,26 @@ import { ScrollArea, ScrollBar } from './ui/scroll-area';
 import { Tree, TreeNode } from './tree';
 import { controller, History } from '../utils/interperter_generator/controller';
 import { make_replacer, reviver } from '../utils/jsonParser';
+
+const theme = {
+  theme: 'dark',
+  mobile: false,
+  colors: {
+    background: '#22223B',
+    accent: '#9A8C98',
+    text: '#F2E9E4',
+    primary: '#4A4E69',
+    secondary: '#C9ADA7',
+    heapmapBackground: '#2e2e4b',
+    heatmap: {
+      0: '#3a3a5c',
+      1: '#66667a',
+      4: '#9999aa',
+      8: '#cccccc',
+      10: '#ffffff',
+    },
+  },
+};
 
 export function VisualizerTool({
   title,
@@ -61,8 +79,8 @@ export function VisualizerTool({
 
   const [presentingNode, setPresintingNode] =
     useState<TreeNode<History> | null>(null);
+  const [updater, forceUpdate] = useState(0);
   const [visCode, setVisCode] = useState<ReactNode[]>([]);
-  const theme = useContext(ThemeContext);
   const [gen, setGen] = useState<ReturnType<typeof evalChunk>>();
   const [codeLocation, setCodeLocaltion] = useState<Lua_Object_Visualizer>();
   const [envVisual, setEnviVisual] = useState<Lua_Object_Visualizer[]>([]);
@@ -76,7 +94,11 @@ export function VisualizerTool({
   const visualParentRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<ReactNode[]>([]);
   const [heap, setHeap] = useState<Set<Lua_Table>>(new Set());
+  const [heapHelper, setHeapHelper] = useState<
+    Map<string, { inline: boolean }>
+  >(new Map());
   const variablesRef = useRef<Map<string, string>>(new Map());
+
   //const [bs, setBs] = useState<ReactNode[]>([]);
   //    const [history, setHistory] = useState<Lua_Object_Visualizer[]>([]);
 
@@ -423,7 +445,7 @@ export function VisualizerTool({
             value={code}
             className='flex flex-col w-full h-full'
             style={{
-              background: theme.vals.colors.heatmap[0],
+              background: theme.colors.heatmap[0],
             }}
           />
         ) : (
@@ -494,6 +516,14 @@ export function VisualizerTool({
                     ) as Set<Lua_Table>;
 
                     setHeap(table);
+                    [...table.values()].forEach((t) => {
+                      if (!heapHelper.has(t.id)) {
+                        // TODO should do a full copy but fuck it just testing init
+                        heapHelper.set(t.id, { inline: false });
+                        setHeapHelper(heapHelper);
+                        console.log('i happen');
+                      }
+                    });
 
                     setHistory(info.tree);
 
@@ -641,8 +671,11 @@ export function VisualizerTool({
                           heap
                           <HeapVIsuazer
                             heap={heap}
+                            heapHelper={heapHelper}
                             ref={visualEnvironmentRef}
                             vars={variablesRef}
+                            updater={updater}
+                            forceUpdate={forceUpdate}
                           />
                         </div>
                       </div>
@@ -691,9 +724,9 @@ export function VisualizerTool({
                         <div
                           className={`flex flex-col gap-y-3 cursor-pointer w-full hover:bg-[var(--bg-hover)] bg-[var(--bg)] rounded p-2 active:bg-[var(--active)]`}
                           style={{
-                            '--active': theme.vals.colors.primary,
-                            '--bg-hover': theme.vals.colors.accent,
-                            '--bg': theme.vals.colors.background,
+                            '--active': theme.colors.primary,
+                            '--bg-hover': theme.colors.accent,
+                            '--bg': theme.colors.background,
                           }}
                           onClick={() => {
                             const _ast = luaparser.parse(
@@ -1038,15 +1071,28 @@ const VarArrows = function VarArrows({
 
 const HeapVIsuazer = memo(function HeapVIsuazer({
   heap,
+  heapHelper,
   ref,
   vars,
+  forceUpdate,
+  updater,
 }: {
   heap: Set<Lua_Table>;
+  updater: number;
+  forceUpdate: React.Dispatch<React.SetStateAction<number>>;
   ref: React.RefObject<Map<string, HTMLElement>>;
   vars: React.RefObject<Map<string, string>>;
+  heapHelper: Map<
+    string,
+    {
+      inline: boolean;
+    }
+  >;
 }) {
   console.log('heap', heap);
   return [...heap.values()].map((t, idx) => {
+    let helper = heapHelper.get(t.id) || { inline: false };
+    if (helper.inline) return null;
     return (
       <motion.div drag key={`${t.id}-${idx}`}>
         <Collapsible
@@ -1056,7 +1102,16 @@ const HeapVIsuazer = memo(function HeapVIsuazer({
           <CollapsibleTrigger asChild></CollapsibleTrigger>
           <CollapsibleContent>
             <ScrollArea className='w-full h-full rounded-md border p-4 flex flex-row'>
-              {TableVisualizer({ t: t, ref: ref, vars: vars })}
+              {TableVisualizer({
+                t: t,
+                ref: ref,
+                vars: vars,
+                heapHelper,
+                heap: heap,
+                updater: updater,
+                forceUpdate: forceUpdate,
+              })}
+
               <ScrollBar className='bg-black' orientation='horizontal' />
             </ScrollArea>
           </CollapsibleContent>
@@ -1257,9 +1312,22 @@ export function TableVisualizer({
   t,
   ref,
   vars,
+  heapHelper,
+  heap,
+  forceUpdate,
+  updater,
 }: {
   t: Lua_Table;
 
+  updater: number;
+  forceUpdate: React.Dispatch<React.SetStateAction<number>>;
+  heap: Set<Lua_Table>;
+  heapHelper: Map<
+    string,
+    {
+      inline: boolean;
+    }
+  >;
   vars: React.RefObject<Map<string, string>>;
   ref: React.RefObject<Map<string, HTMLElement>>;
 }) {
@@ -1304,8 +1372,11 @@ export function TableVisualizer({
       case 'builtin':
 
       default: {
-          console.log('here is the table', t)
         vars.current.set(`${t.id}-${key_s}`, obj.id);
+
+        let helper = heapHelper.get(obj.id) || { inline: false };
+        let obj_h = [...heap.values()].find((table) => table.id === obj.id);
+
         return (
           <motion.div
             ref={(el) => {
@@ -1314,14 +1385,32 @@ export function TableVisualizer({
             className='flex gap-3 p-1'
           >
             {key_s}
+            {helper.inline ? (
+              <TableVisualizer
+                t={obj_h!}
+                ref={ref}
+                forceUpdate={forceUpdate}
+                vars={vars}
+                heap={heap}
+                heapHelper={heapHelper}
+                updater={updater}
+              />
+            ) : (
+              ''
+            )}
           </motion.div>
         );
       }
     }
   });
+  let helper = heapHelper.get(t.id) || { inline: false };
   return (
     <motion.div className='flex gap-3 p-1 items-center justify-center'>
       <div
+        onClick={() => {
+          heapHelper.set(t.id, { inline: !helper.inline });
+          forceUpdate(updater + 1);
+        }}
         ref={(el) => {
           el && ref.current.set(t.id, el);
         }}
