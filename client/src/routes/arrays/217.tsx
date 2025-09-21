@@ -28,9 +28,6 @@ const testString: {
 
 function RouteComponent() {
 
-  return (
-      <ProblemPage />
-  );
 }
 
       <VisualizerTool

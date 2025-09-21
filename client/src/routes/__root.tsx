@@ -19,7 +19,7 @@ export const Route = createRootRoute({
     >('landing');
 
     return (
-      <div className='min-h-screen flex flex-col bg-background'>
+      <div className='min-h-screen flex flex-col flex-1 bg-background'>
         {currentPage !== 'problem' && (
           <Header
             currentPage={currentPage}
@@ -30,7 +30,7 @@ export const Route = createRootRoute({
         <CurrentPageContext.Provider
           value={{ page: currentPage, setCurrentPage: setCurrentPage as any }}
         >
-          <main className='h-screen'>
+          <main className='flex flex-col flex-1'>
             <Outlet />
           </main>
         </CurrentPageContext.Provider>

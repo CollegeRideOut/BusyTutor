@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="81" height="81">
+  <!-- Top row -->
+  <rect x="0" y="0" width="25" height="25" fill="#4c6ef5"></rect>
+  <rect x="28" y="0" width="25" height="25" fill="#4c6ef5"></rect>
+  <rect x="56" y="0" width="25" height="25" fill="#4c6ef5"></rect>
+
+  <!-- Left column -->
+  <rect x="0" y="28" width="25" height="25" fill="#4c6ef5"></rect>
+  <rect x="0" y="56" width="25" height="25" fill="#4c6ef5"></rect>
+
+  <!-- Right column -->
+  <rect x="56" y="28" width="25" height="25" fill="#4c6ef5"></rect>
+  <rect x="56" y="56" width="25" height="25" fill="#4c6ef5"></rect>
+
+  <!-- Bottom row -->
+  <rect x="28" y="56" width="25" height="25" fill="#4c6ef5"></rect>
+</svg>

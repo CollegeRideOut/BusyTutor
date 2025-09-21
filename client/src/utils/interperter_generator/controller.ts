@@ -83,7 +83,7 @@ export function controller(ast: luaparser.Chunk) {
       const global = new Lua_Environment();
       let stepper = evalChunk(ast, global);
       let first_event: event = { step: 0, env: global, type: 'curr' };
-      let curr_node = new TreeNode(new History(first_event));
+      let curr_node = new TreeNode(new History(first_event), 'main');
       let curr_env = global;
       let tree = new Tree<History>();
       tree.root = curr_node;
@@ -118,7 +118,8 @@ export function controller(ast: luaparser.Chunk) {
         info.curr_node = info.curr_node.parent!;
         // TODO maybe add and event to the parent?
       } else if (modify_env === 'new') {
-        let new_node = new TreeNode(new History());
+          // TODO change this
+        let new_node = new TreeNode(new History(), 'main');
         new_node.parent = info.curr_node;
         let event: event = {
           step: info.steps,

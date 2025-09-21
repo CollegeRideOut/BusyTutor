@@ -729,36 +729,6 @@ export function VisualizerTool({
                             '--bg': theme.colors.background,
                           }}
                           onClick={() => {
-                            const _ast = luaparser.parse(
-                              t.testToAddToCode + '\n' + code,
-                              {
-                                locations: true,
-                              },
-                            );
-
-                            // lets try using the controller
-                            let controls = controller(_ast);
-                            setControls(controls);
-                            controls.init();
-                            let info = controls.info();
-                            if (info === null)
-                              throw Error('should not be noot after init');
-
-                            // TODO old version
-                            setAst(_ast);
-                            let globalEnvironment = info.global;
-                            setEnvironment(info.curr_env);
-                            setGLobalEnvironmentGenerator(info.global);
-                            setGlobalEnvironment(info.global);
-                            setGen(info.stepper);
-                            // TODO
-                            let curr: TreeNode<Lua_Environment> = new TreeNode(
-                              globalEnvironment,
-                            );
-
-                            setCurrentNode(info.curr_node);
-                            setPresintingNode(info.curr_node);
-                            setHistory(info.tree);
                           }}
                         >
                           <div>{args}</div>

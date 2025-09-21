@@ -1,6 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
 
 import { IoReturnDownBack } from 'react-icons/io5';
+import squareBorderImage from '../assets/sqaureborder.png';
 import { MdOutlineTimeline } from 'react-icons/md';
 import type { ReactNode } from 'react';
 import { RiResetLeftFill } from 'react-icons/ri';
@@ -433,7 +434,7 @@ export function VisualizerToolNew({ codeWritten }: { codeWritten: string }) {
   // render
   return (
     <div
-      className='h-full w-full p-4 overflow-y-scroll'
+      className='h-full flex-col flex-1 w-full p-4 overflow-y-scroll'
       onScrollEnd={() => {
         console.log('hello');
         svgCreator();
@@ -1015,25 +1016,29 @@ function Node({
   const isCurrent = currentId === node.id;
 
   return (
-    <div className='inline-flex flex-col items-center relative'>
+    <div className='inline-flex flex-col items-center relative '>
       {/* Card */}
       <button
         type='button'
         onClick={() => onCurrentClick(node)}
         className={[
-          'rounded-xl border px-4 py-2 min-w-[96px] text-center shadow-md select-none',
-          'bg-slate-800 border-slate-700 text-slate-100',
+          'bg-slate-800 border-slate-700 text-slate-100 p-4',
           isCurrent
             ? 'ring-4 ring-indigo-500/50 shadow-indigo-700/30'
             : 'hover:bg-slate-750/50',
         ].join(' ')}
+        style={{
+          //TODO in tailwind
+          border: '10px solid transparent',
+          borderImage: `url(${squareBorderImage}) 26 round`,
+        }}
         aria-current={isCurrent || undefined}
         data-node-id={node.id}
       >
         <div className='text-sm font-semibold truncate max-w-[140px]'>
-          {node.id}
+          {node.name}
         </div>
-        <div className='text-[10px] text-slate-400'>depth {depth}</div>
+        {/*<div className='text-[10px] text-slate-400'>depth {depth}</div>*/}
       </button>
 
       {/* Connectors + children */}

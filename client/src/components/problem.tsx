@@ -123,7 +123,7 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
 
   return (
     <div
-      className='max-h-screen flex flex-col bg-background relative'
+      className='max-h-screen flex flex-col flex-1 bg-background relative'
       style={{
         //TODO why tailwind not working?
         maxHeight: '100vh',
@@ -281,7 +281,7 @@ function ProblemDescription({ problemId }: ProblemPageProps) {
   };
 
   return (
-    <div className='flex-1 overflow-y-auto'>
+    <div className=' flex flex-col flex-1 overflow-y-auto'>
       <div className='p-6 space-y-6'>
         {/* Problem Description */}
         <div>

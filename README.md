@@ -110,10 +110,15 @@
 ### Sep 21
 
 - Refactorign problem page
+- Pulled out 'pure' visulizer
+- wrap tree nodes elements in pxilated border
+- fix height problem
 
 ### Up Next
 
 - indexing for the member expresions
+- pretify visulzer
+- refactor visualizer
 - or it has a special type of our data structures
 - basic implementations and visualization of Data Structures
 - 2d array
