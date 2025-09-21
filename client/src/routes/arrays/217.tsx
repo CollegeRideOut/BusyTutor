@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { VisualizerTool } from '../../components/test';
+import { ProblemPage } from '../../components/problem';
 
 export const Route = createFileRoute('/arrays/217')({
   component: RouteComponent,
@@ -28,20 +29,13 @@ const testString: {
 function RouteComponent() {
 
   return (
-    <div
-      style={{
-        width: '100%',
-        display: 'flex',
+      <ProblemPage />
+  );
+}
 
-        height: '100%',
-      }}
-    >
       <VisualizerTool
         title={title}
         description={description}
         constraints={constraints}
         testString={testString}
       />
-    </div>
-  );
-}

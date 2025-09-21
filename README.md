@@ -102,10 +102,14 @@
 
 - allow mergin table inside of table property removing the pointer its sooooo bad but is what i wanted.... for now
 
-### Sep 16
+### Sep 17
 
 - new landing page
 - new practice page
+
+### Sep 21
+
+- Refactorign problem page
 
 ### Up Next
 

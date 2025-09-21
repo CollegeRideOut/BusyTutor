@@ -1,0 +1,42 @@
+{
+  "problems": [
+    {
+      "id": 1,
+      "title": "Contains Duplicate",
+      "difficulty": "Easy",
+      "status": "not-started",
+      "acceptance": "70.1%",
+      "category": "Arrays",
+      "data": {
+        "title": "Contains Duplicate",
+        "difficulty": "Easy",
+        "description": "Given an integer array nums, return true if any value appears at least twice in the array, and return false if every element is distinct.",
+        "examples": [
+          {
+            "input": "nums = [1,2,3,1]",
+            "output": "true",
+            "explanation": "The value 1 appears at index 0 and 3."
+          },
+          {
+            "input": "nums = [1,2,3,4]",
+            "output": "false",
+            "explanation": "All elements are distinct."
+          },
+          {
+            "input": "nums = [1,1,1,3,3,4,3,2,4,2]",
+            "output": "true",
+            "explanation": "There are multiple duplicate values."
+          }
+        ],
+        "constraints": ["1 <= nums.length <= 10^5", "-10^9 <= nums[i] <= 10^9"],
+        "hints": [
+          "Try using a data structure that allows you to check if an element has been seen before in O(1) time.",
+          "A hash set (or hash table) can store elements you've already encountered while iterating through the array.",
+          "As you iterate through each element, check if it's already in your set. If it is, you've found a duplicate!"
+        ],
+        "starterCode": "def containsDuplicate(nums):\n    \"\"\"\n    :type nums: List[int]\n    :rtype: bool\n    \"\"\"\n    # Write your solution here\n    pass",
+        "solution": "def containsDuplicate(nums):\n    seen = set()\n    for num in nums:\n        if num in seen:\n            return True\n        seen.add(num)\n    return False"
+      }
+    }
+  ]
+}

@@ -2,32 +2,39 @@ import { createRootRoute, Link, Outlet } from '@tanstack/react-router';
 import { Code2, Menu, Github, Twitter, Mail } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useState } from 'react';
+import { createContext } from 'react';
 
 //context
+export let CurrentPageContext = createContext({
+  page: 'landing',
+  setCurrentPage: (p: string) => {
+    void p;
+  },
+});
+
 export const Route = createRootRoute({
   component: () => {
-    const [currentPage, setCurrentPage] = useState<'landing' | 'practice'>(
-      'landing',
-    );
+    const [currentPage, setCurrentPage] = useState<
+      'landing' | 'practice' | 'problem'
+    >('landing');
 
     return (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          flex: '1 1 auto',
-          textDecoration: 'none',
-          fontSize: 18,
-        }}
-      >
-        <Header
-          currentPage={currentPage}
-          onNavigate={(e: string) => setCurrentPage(e as any)}
-        />
-        <Outlet />
-        <Footer />
+      <div className='min-h-screen flex flex-col bg-background'>
+        {currentPage !== 'problem' && (
+          <Header
+            currentPage={currentPage}
+            onNavigate={(e: string) => setCurrentPage(e as any)}
+          />
+        )}
+
+        <CurrentPageContext.Provider
+          value={{ page: currentPage, setCurrentPage: setCurrentPage as any }}
+        >
+          <main className='h-screen'>
+            <Outlet />
+          </main>
+        </CurrentPageContext.Provider>
+        {currentPage !== 'problem' && <Footer />}
       </div>
     );
   },

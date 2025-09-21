@@ -1,4 +1,4 @@
-import { memo, useContext, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 
 import { IoReturnDownBack } from 'react-icons/io5';
 import { MdOutlineTimeline } from 'react-icons/md';
@@ -335,7 +335,7 @@ export function VisualizerTool({
         >
           <path
             d={svg_path}
-            stroke={`${theme.vals.colors.primary}`}
+            stroke={`${theme.colors.primary}`}
             fill='none'
             strokeWidth={4}
           />
@@ -346,7 +346,7 @@ export function VisualizerTool({
             y1={rect1.y}
             x2={rect1.x}
             y2={rect1.bottom}
-            stroke={`${theme.vals.colors.primary}`}
+            stroke={`${theme.colors.primary}`}
             strokeWidth={4}
           />
           <line
@@ -354,7 +354,7 @@ export function VisualizerTool({
             y1={rect1.y}
             x2={rect1.right}
             y2={rect1.bottom}
-            stroke={`${theme.vals.colors.primary}`}
+            stroke={`${theme.colors.primary}`}
             strokeWidth={4}
           />
           <line
@@ -362,7 +362,7 @@ export function VisualizerTool({
             y1={rect1.y}
             x2={rect1.right}
             y2={rect1.y}
-            stroke={`${theme.vals.colors.primary}`}
+            stroke={`${theme.colors.primary}`}
             strokeWidth={4}
           />
           <line
@@ -370,7 +370,7 @@ export function VisualizerTool({
             y1={rect1.bottom}
             x2={rect1.right}
             y2={rect1.bottom}
-            stroke={`${theme.vals.colors.primary}`}
+            stroke={`${theme.colors.primary}`}
             strokeWidth={4}
           />
 
@@ -380,7 +380,7 @@ export function VisualizerTool({
             y1={rect2.y}
             x2={rect2.x}
             y2={rect2.bottom}
-            stroke={`${theme.vals.colors.primary}`}
+            stroke={`${theme.colors.primary}`}
             strokeWidth={4}
           />
           <line
@@ -388,7 +388,7 @@ export function VisualizerTool({
             y1={rect2.y}
             x2={rect2.right}
             y2={rect2.bottom}
-            stroke={`${theme.vals.colors.primary}`}
+            stroke={`${theme.colors.primary}`}
             strokeWidth={4}
           />
           <line
@@ -396,7 +396,7 @@ export function VisualizerTool({
             y1={rect2.y}
             x2={rect2.right}
             y2={rect2.y}
-            stroke={`${theme.vals.colors.primary}`}
+            stroke={`${theme.colors.primary}`}
             strokeWidth={4}
           />
           <line
@@ -404,7 +404,7 @@ export function VisualizerTool({
             y1={rect2.bottom}
             x2={rect2.right}
             y2={rect2.bottom}
-            stroke={`${theme.vals.colors.primary}`}
+            stroke={`${theme.colors.primary}`}
             strokeWidth={4}
           />
         </svg>,
@@ -476,9 +476,9 @@ export function VisualizerTool({
               <VscDebugStepOver
                 className={`cursor-pointer hover:bg-[var(--bg-hover)] bg-[var(--bg)] rounded  active:bg-[var(--active)]`}
                 style={{
-                  '--bg': theme.vals.colors.background,
-                  '--active': theme.vals.colors.primary,
-                  '--bg-hover': theme.vals.colors.primary,
+                  '--bg': theme.colors.background,
+                  '--active': theme.colors.primary,
+                  '--bg-hover': theme.colors.primary,
                 }}
                 size={30}
                 onClick={() => {
@@ -554,9 +554,9 @@ export function VisualizerTool({
               <RiResetLeftFill
                 className={`cursor-pointer hover:bg-[var(--bg-hover)] bg-[var(--bg)] rounded  active:bg-[var(--active)]`}
                 style={{
-                  '--bg': theme.vals.colors.background,
-                  '--active': theme.vals.colors.primary,
-                  '--bg-hover': theme.vals.colors.accent,
+                  '--bg': theme.colors.background,
+                  '--active': theme.colors.primary,
+                  '--bg-hover': theme.colors.accent,
                 }}
                 size={30}
                 onClick={() => {
@@ -569,9 +569,9 @@ export function VisualizerTool({
               <MdOutlineTimeline
                 className={`cursor-pointer hover:bg-[var(--bg-hover)] bg-[var(--bg)] rounded  active:bg-[var(--active)]`}
                 style={{
-                  '--bg': theme.vals.colors.background,
-                  '--active': theme.vals.colors.primary,
-                  '--bg-hover': theme.vals.colors.accent,
+                  '--bg': theme.colors.background,
+                  '--active': theme.colors.primary,
+                  '--bg-hover': theme.colors.accent,
                 }}
                 size={30}
                 onClick={() => {
@@ -596,9 +596,9 @@ export function VisualizerTool({
               <IoReturnDownBack
                 className={`cursor-pointer hover:bg-[var(--bg-hover)] bg-[var(--bg)] rounded  active:bg-[var(--active)]`}
                 style={{
-                  '--bg': theme.vals.colors.background,
-                  '--active': theme.vals.colors.primary,
-                  '--bg-hover': theme.vals.colors.accent,
+                  '--bg': theme.colors.background,
+                  '--active': theme.colors.primary,
+                  '--bg-hover': theme.colors.accent,
                 }}
                 size={30}
                 onClick={() => {
@@ -992,7 +992,7 @@ const VarArrows = function VarArrows({
       >
         <path
           d={svg_path}
-          stroke={`${theme.vals.colors.primary}`}
+          stroke={`${theme.colors.primary}`}
           fill='none'
           strokeWidth={4}
         />
@@ -1003,7 +1003,7 @@ const VarArrows = function VarArrows({
           y1={rect1.y}
           x2={rect1.x}
           y2={rect1.bottom}
-          stroke={`${theme.vals.colors.primary}`}
+          stroke={`${theme.colors.primary}`}
           strokeWidth={4}
         />
         <line
@@ -1011,7 +1011,7 @@ const VarArrows = function VarArrows({
           y1={rect1.y}
           x2={rect1.right}
           y2={rect1.bottom}
-          stroke={`${theme.vals.colors.primary}`}
+          stroke={`${theme.colors.primary}`}
           strokeWidth={4}
         />
         <line
@@ -1019,7 +1019,7 @@ const VarArrows = function VarArrows({
           y1={rect1.y}
           x2={rect1.right}
           y2={rect1.y}
-          stroke={`${theme.vals.colors.primary}`}
+          stroke={`${theme.colors.primary}`}
           strokeWidth={4}
         />
         <line
@@ -1027,7 +1027,7 @@ const VarArrows = function VarArrows({
           y1={rect1.bottom}
           x2={rect1.right}
           y2={rect1.bottom}
-          stroke={`${theme.vals.colors.primary}`}
+          stroke={`${theme.colors.primary}`}
           strokeWidth={4}
         />
 
@@ -1037,7 +1037,7 @@ const VarArrows = function VarArrows({
           y1={rect2.y}
           x2={rect2.x}
           y2={rect2.bottom}
-          stroke={`${theme.vals.colors.primary}`}
+          stroke={`${theme.colors.primary}`}
           strokeWidth={4}
         />
         <line
@@ -1045,7 +1045,7 @@ const VarArrows = function VarArrows({
           y1={rect2.y}
           x2={rect2.right}
           y2={rect2.bottom}
-          stroke={`${theme.vals.colors.primary}`}
+          stroke={`${theme.colors.primary}`}
           strokeWidth={4}
         />
         <line
@@ -1053,7 +1053,7 @@ const VarArrows = function VarArrows({
           y1={rect2.y}
           x2={rect2.right}
           y2={rect2.y}
-          stroke={`${theme.vals.colors.primary}`}
+          stroke={`${theme.colors.primary}`}
           strokeWidth={4}
         />
         <line
@@ -1061,7 +1061,7 @@ const VarArrows = function VarArrows({
           y1={rect2.bottom}
           x2={rect2.right}
           y2={rect2.bottom}
-          stroke={`${theme.vals.colors.primary}`}
+          stroke={`${theme.colors.primary}`}
           strokeWidth={4}
         />
       </svg>

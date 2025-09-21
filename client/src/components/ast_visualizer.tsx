@@ -8,7 +8,7 @@ import luaparser from 'luaparse';
 import type { Lua_Object_Visualizer } from '../utils/interperter_generator/generator_types';
 import type { ReactNode } from 'react';
 
-type Theme = {theme: {colors: {primary: ''}}};
+type Theme = any;
 
 export function evalChunkFront(
   node: luaparser.Chunk,
@@ -42,7 +42,7 @@ export function evalStatements(
     visuals.loc === undefined
       ? ''
       : `${visuals.loc.start.line}-${visuals.loc.end.line} | ${visuals.loc.start.column}-${visuals.loc.end.column}`;
-  let backgroundColor = visualid === id ? theme.vals.colors.primary : '';
+  let backgroundColor = visualid === id ? theme.colors.primary : '';
   switch (node.type) {
     case 'ReturnStatement': {
       let vals: ReactNode[] = [];
@@ -221,7 +221,7 @@ export function evalExpression(
     visuals.loc === undefined
       ? ''
       : `${visuals.loc.start.line}-${visuals.loc.end.line} | ${visuals.loc.start.column}-${visuals.loc.end.column}`;
-  let backgroundColor = visualid === id ? theme.vals.colors.primary : '';
+  let backgroundColor = visualid === id ? theme.colors.primary : '';
   switch (exp.type) {
     case 'NumericLiteral': {
       return (
@@ -445,7 +445,7 @@ export function evalClause(
     visuals.loc === undefined
       ? ''
       : `${visuals.loc.start.line}-${visuals.loc.end.line} | ${visuals.loc.start.column}-${visuals.loc.end.column}`;
-  let backgroundColor = visualid === id ? theme.vals.colors.primary : '';
+  let backgroundColor = visualid === id ? theme.colors.primary : '';
   switch (clause.type) {
     case 'ElseClause': {
       const child = evalStatementsArray(clause.body, visuals, theme);
@@ -497,7 +497,7 @@ export function evalAssignment(
     visuals.loc === undefined
       ? ''
       : `${visuals.loc.start.line}-${visuals.loc.end.line} | ${visuals.loc.start.column}-${visuals.loc.end.column}`;
-  let backgroundColor = visualid === id ? theme.vals.colors.primary : '';
+  let backgroundColor = visualid === id ? theme.colors.primary : '';
   switch (exp.type) {
     case 'Identifier':
       return (
@@ -559,7 +559,7 @@ export function evalTableField(
       ? ''
       : `${visuals.loc.start.line}-${visuals.loc.end.line} | ${visuals.loc.start.column}-${visuals.loc.end.column}`;
 
-  let backgroundColor = visualid === id ? theme.vals.colors.primary : '';
+  let backgroundColor = visualid === id ? theme.colors.primary : '';
   let render: ReactNode = null;
   switch (field.type) {
     case 'TableKey': {
