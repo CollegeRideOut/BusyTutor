@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
+import luarparser from 'luaparse';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Textarea } from './ui/textarea';
@@ -24,6 +25,8 @@ import {
   ResizablePanelGroup,
 } from './ui/resizable';
 import { VisualizerToolNew } from './visualizerTool';
+import { EvalChunkFront } from './ast_visualizer';
+import type { Lua_Object_Visualizer } from '../utils/interperter_generator/generator_types';
 
 interface ProblemPageProps {
   problemId: number | null;
@@ -38,7 +41,27 @@ interface TestRun {
 }
 
 // Mock problem data - you can replace this with actual data later
+//
 
+const theme = {
+  theme: 'dark',
+  mobile: false,
+  colors: {
+    background: '#22223B',
+    accent: '#9A8C98',
+    text: '#F2E9E4',
+    primary: '#4A4E69',
+    secondary: '#C9ADA7',
+    heapmapBackground: '#2e2e4b',
+    heatmap: {
+      0: '#3a3a5c',
+      1: '#66667a',
+      4: '#9999aa',
+      8: '#cccccc',
+      10: '#ffffff',
+    },
+  },
+};
 export function ProblemPage({ problemId }: ProblemPageProps) {
   let { setCurrentPage } = useContext(CurrentPageContext);
   const [code, setCode] = useState('');
@@ -46,6 +69,8 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
   const [problem] = useState(problems.find((p) => p.id === problemId)?.data);
   const [isConsoleOpen, setIsConsoleOpen] = useState(true);
   const [isVisual, setIsVisual] = useState(false);
+  const [visual, setVisual] = useState<Lua_Object_Visualizer | null>(null);
+  const [ast, setAst] = useState<luarparser.Chunk | null>(null);
   const [runCounter, setRunCounter] = useState(0);
 
   useEffect(() => {
@@ -165,7 +190,11 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
           {!isVisual ? (
             <ProblemDescription problemId={problemId} />
           ) : (
-            <VisualizerToolNew codeWritten={code} />
+            <VisualizerToolNew
+              codeWritten={code}
+              setVisual={setVisual}
+              setAstParent={setAst}
+            />
           )}
         </ResizablePanel>
 
@@ -213,13 +242,17 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
 
               {/* Code Editor Area */}
               <div className='flex-1 p-4 min-h-0'>
-                <Textarea
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder='Write your solution here...'
-                  className='w-full h-full font-mono text-sm bg-muted/30 border border-border/30 resize-none focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-colors'
-                  style={{ minHeight: '100%' }}
-                />
+                {!isVisual ? (
+                  <Textarea
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder='Write your solution here...'
+                    className='w-full h-full font-mono text-sm bg-muted/30 border border-border/30 resize-none focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-colors'
+                    style={{ minHeight: '100%' }}
+                  />
+                ) : visual && ast &&(
+                  <EvalChunkFront theme={theme} visual={visual} node={ast} />
+                )}
               </div>
             </ResizablePanel>
 

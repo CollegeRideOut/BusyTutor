@@ -51,7 +51,15 @@ const theme = {
   },
 };
 
-export function VisualizerToolNew({ codeWritten }: { codeWritten: string }) {
+export function VisualizerToolNew({
+  codeWritten,
+  setAstParent,
+  setVisual,
+}: {
+  codeWritten: string;
+  setAstParent: (ast: luaparser.Chunk | null) => void;
+  setVisual: (v: Lua_Object_Visualizer | null) => void;
+}) {
   const [controls, setControls] = useState<ReturnType<
     typeof controller
   > | null>(null);
@@ -104,6 +112,7 @@ export function VisualizerToolNew({ codeWritten }: { codeWritten: string }) {
 
     // TODO old version
     setAst(_ast);
+    setAstParent(_ast);
     setEnvironment(info.curr_env);
     setGLobalEnvironmentGenerator(info.global);
     setGlobalEnvironment(info.global);
@@ -434,7 +443,7 @@ export function VisualizerToolNew({ codeWritten }: { codeWritten: string }) {
   // render
   return (
     <div
-      className='h-full flex-col flex-1 w-full p-4 overflow-y-scroll'
+      className='flex flex-col flex-1 overflow-y-auto p-4'
       onScrollEnd={() => {
         console.log('hello');
         svgCreator();
@@ -500,6 +509,7 @@ export function VisualizerToolNew({ codeWritten }: { codeWritten: string }) {
                   console.log('env visual hapened');
                 } else if (visual.loc) {
                   setCodeLocaltion(visual);
+                  setVisual(visual)
                 }
               }
               //setGlobalEnvironment(
@@ -517,6 +527,7 @@ export function VisualizerToolNew({ codeWritten }: { codeWritten: string }) {
           size={30}
           onClick={() => {
             setAst(null);
+            setAstParent(null)
             setVisCode([]);
             setGen(undefined);
           }}
@@ -955,8 +966,7 @@ const HeapVIsuazer = memo(function HeapVIsuazer({
           defaultOpen={true}
           className='flex p-1 gap-2 items-center justify-center'
         >
-          <CollapsibleTrigger asChild></CollapsibleTrigger>
-          <CollapsibleContent>
+          <div>
             <ScrollArea className='w-full h-full rounded-md border p-4 flex flex-row'>
               {TableVisualizer({
                 t: t,
@@ -970,7 +980,7 @@ const HeapVIsuazer = memo(function HeapVIsuazer({
 
               <ScrollBar className='bg-black' orientation='horizontal' />
             </ScrollArea>
-          </CollapsibleContent>
+          </div>
         </Collapsible>
       </motion.div>
     );
@@ -1120,6 +1130,10 @@ const VisualEnvironment = memo(function VisualEnvironment({
           <motion.div
             drag
             className=' flex p-1 items-center h-[50px] w-[50px] justify-center'
+            style={{
+              border: '10px solid transparent',
+              borderImage: `url(${squareBorderImage}) 26 round`,
+            }}
             ref={(el) => {
               el && ref.current.set(identifier, el);
             }}
@@ -1132,11 +1146,15 @@ const VisualEnvironment = memo(function VisualEnvironment({
         vars.current.set(identifier, obj.id);
         return (
           <div
+            style={{
+              border: '10px solid transparent',
+              borderImage: `url(${squareBorderImage}) 26 round`,
+            }}
             ref={(el) => {
               el && ref.current.set(identifier, el);
             }}
           >
-            poointer {identifier}{' '}
+            {identifier}
           </div>
         );
       }
@@ -1146,7 +1164,13 @@ const VisualEnvironment = memo(function VisualEnvironment({
       case 'builtin':
       case 'function': {
         return (
-          <div className='flex w-full justify-between items-center '>
+          <div
+            className='flex w-full justify-between items-center '
+            style={{
+              border: '10px solid transparent',
+              borderImage: `url(${squareBorderImage}) 26 round`,
+            }}
+          >
             {identifier} {obj.kind}
           </div>
         );
@@ -1156,12 +1180,14 @@ const VisualEnvironment = memo(function VisualEnvironment({
   global_env--;
   return (
     <div className={`${global_env === 0 ? 'h-full' : 'h-fit'}`}>
-      <Collapsible className='h-full' defaultOpen={true}>
+      <Collapsible className='h-full flex flex-col' defaultOpen={true}>
         {rc}
         <CollapsibleTrigger>Env: #{global_env}</CollapsibleTrigger>
 
         <ScrollArea className='h-full'>
-          <CollapsibleContent>{curr}</CollapsibleContent>
+          <CollapsibleContent className='flex flex-col gap-4'>
+            {curr}
+          </CollapsibleContent>
           <ScrollBar className='bg-black' orientation='vertical' />
         </ScrollArea>
       </Collapsible>
@@ -1240,6 +1266,10 @@ export function TableVisualizer({
 
         return (
           <motion.div
+            style={{
+              border: '10px solid transparent',
+              borderImage: `url(${squareBorderImage}) 26 round`,
+            }}
             ref={(el) => {
               el && ref.current.set(`${t.id}-${key_s}`, el);
             }}
@@ -1266,18 +1296,20 @@ export function TableVisualizer({
   });
   let helper = heapHelper.get(t.id) || { inline: false };
   return (
-    <motion.div className='flex gap-3 p-1 items-center justify-center'>
-      <div
-        onClick={() => {
-          heapHelper.set(t.id, { inline: !helper.inline });
-          forceUpdate(updater + 1);
-        }}
-        ref={(el) => {
-          el && ref.current.set(t.id, el);
-        }}
-      >
-        Parent
-      </div>
+    <motion.div
+      className='flex gap-3 p-1 items-center justify-center'
+      style={{
+        border: '10px solid transparent',
+        borderImage: `url(${squareBorderImage}) 26 round`,
+      }}
+      ref={(el) => {
+        el && ref.current.set(t.id, el);
+      }}
+      onClick={() => {
+        heapHelper.set(t.id, { inline: !helper.inline });
+        forceUpdate(updater + 1);
+      }}
+    >
       {...rc}
     </motion.div>
   );

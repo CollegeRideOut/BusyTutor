@@ -10,6 +10,18 @@ import type { ReactNode } from 'react';
 
 type Theme = any;
 
+export function EvalChunkFront({
+  node,
+  visual,
+  theme,
+}: {
+  node: luaparser.Chunk;
+  visual: Lua_Object_Visualizer;
+  theme: Theme;
+}) {
+  return evalStatementsArray(node.body, visual, theme);
+}
+
 export function evalChunkFront(
   node: luaparser.Chunk,
   visual: Lua_Object_Visualizer,

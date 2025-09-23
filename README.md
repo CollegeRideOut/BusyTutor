@@ -114,6 +114,11 @@
 - wrap tree nodes elements in pxilated border
 - fix height problem
 
+### Sep 22
+
+- wrap identifiers and tables with the "pixel" border 
+- allow for visual code 
+
 ### Up Next
 
 - indexing for the member expresions
