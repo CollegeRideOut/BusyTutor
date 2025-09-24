@@ -1,4 +1,5 @@
 import luaparser from 'luaparse';
+import { error, pcall, setmetatable, toStringBuilt } from './builtin';
 export type Lua_Object =
   | Lua_Return
   | Lua_Error
@@ -51,182 +52,20 @@ export class Lua_Environment {
 
 export const builtin: Map<string, Lua_Builtin> = new Map<string, Lua_Builtin>(
   Object.entries({
-    tostring: {
-      id: crypto.randomUUID(),
-      kind: 'builtin',
-      fn: function (...args) {
-        if (args.length === 0) {
-          return {
-            id: crypto.randomUUID(),
-            kind: 'return',
-            value: [
-              {
-                id: crypto.randomUUID(),
-                kind: 'error',
-                message: 'tostring expects 1 arguent',
-              } as Lua_Error,
-            ],
-          };
-        }
-
-        let obj = args[0];
-        switch (obj.kind) {
-          case 'string': {
-            return {
-              id: crypto.randomUUID(),
-              kind: 'return',
-              value: [obj],
-            };
-          }
-          case 'number': {
-            return {
-              id: crypto.randomUUID(),
-              kind: 'return',
-              value: [
-                {
-                  id: crypto.randomUUID(),
-                  kind: 'string',
-                  value: obj.value.toString(),
-                } as Lua_String,
-              ],
-            };
-          }
-          case 'boolean': {
-            return {
-              id: crypto.randomUUID(),
-              kind: 'return',
-              value: [
-                {
-                  id: crypto.randomUUID(),
-                  kind: 'string',
-                  value: obj.value.toString(),
-                } as Lua_String,
-              ],
-            };
-          }
-          case 'function': {
-            return {
-              id: crypto.randomUUID(),
-              kind: 'return',
-              value: [
-                {
-                  id: crypto.randomUUID(),
-                  kind: 'string',
-                  value: obj.body.join(),
-                } as Lua_String,
-              ],
-            };
-          }
-          case 'error': {
-            return {
-              id: crypto.randomUUID(),
-              kind: 'return',
-              value: [
-                {
-                  id: crypto.randomUUID(),
-                  kind: 'string',
-                  value: obj.message,
-                } as Lua_String,
-              ],
-            };
-          }
-
-          case 'return': {
-            return this.fn(...obj.value);
-          }
-          case 'null':
-            return {
-              id: crypto.randomUUID(),
-              kind: 'return',
-              value: [
-                {
-                  id: crypto.randomUUID(),
-                  kind: 'string',
-                  value: 'nil',
-                } as Lua_String,
-              ],
-            };
-          case 'builtin':
-          default: {
-            return {
-              id: crypto.randomUUID(),
-              kind: 'return',
-              value: [
-                {
-                  id: crypto.randomUUID(),
-                  kind: 'error',
-                  message: `tostring not implemented with ${obj.kind} `,
-                } as Lua_Error,
-              ],
-            };
-          }
-        }
-      },
-    },
-    setmetatable: {
-      id: crypto.randomUUID(),
-      kind: 'builtin',
-      fn: function (...args) {
-        if (args.length !== 2)
-          return {
-            id: crypto.randomUUID(),
-            kind: 'return',
-            value: [
-              {
-                id: crypto.randomUUID(),
-                kind: 'error',
-                message: 'setmetatable takes 2 arguments',
-              },
-            ],
-          };
-
-        let curr = args[0];
-
-        if (curr.kind !== 'table')
-          return {
-            id: crypto.randomUUID(),
-            kind: 'return',
-            value: [
-              {
-                id: crypto.randomUUID(),
-                kind: 'error',
-                message: 'argument 1 must be of type table',
-              },
-            ],
-          };
-
-        let meta = args[1];
-
-        if (meta.kind !== 'table')
-          return {
-            id: crypto.randomUUID(),
-            kind: 'return',
-            value: [
-              {
-                id: crypto.randomUUID(),
-                kind: 'error',
-                message: 'argument 2 must be of type table',
-              },
-            ],
-          };
-
-        curr.metatable = meta;
-
-        return { id: crypto.randomUUID(), kind: 'return', value: [curr] };
-      },
-    },
-
-    //
+    tostring: toStringBuilt,
+    setmetatable: setmetatable,
+    error: error,
+    pcall: pcall,
   }),
 );
 
 export type Lua_Builtin = {
   id: string;
   kind: 'builtin';
-  fn: Lua_Builtin_Function;
+  fn?: Lua_Builtin_Function;
 };
 
-type Lua_Builtin_Function = (...args: Lua_Object[]) => Lua_Return;
+type Lua_Builtin_Function = (...args: Lua_Object[]) => Lua_Return | Lua_Error;
 
 export type Lua_Function = {
   id: string;
@@ -241,7 +80,13 @@ export type Lua_Return = { id: string; kind: 'return'; value: Lua_Object[] };
 
 export type Lua_Identifier = { id: string; kind: 'identifier'; name: string };
 
-export type Lua_Error = { id: string; kind: 'error'; message: string };
+//TODO remove message
+export type Lua_Error = {
+  id: string;
+  kind: 'error';
+  message: string;
+  value?: Lua_Object;
+};
 
 export type Lua_Number = { id: string; kind: 'number'; value: number };
 
@@ -303,13 +148,15 @@ export class Lua_Table {
         this.store.set(this.idx, val.value[0] || Lua_Null);
         return Lua_Null;
       }
-
       case 'error': {
         return {
           id: crypto.randomUUID(),
           kind: 'error',
           message: 'error cannot be used as value',
-        };
+        } satisfies Lua_Error;
+      }
+      default: {
+        return Lua_Null;
       }
     }
   }

@@ -1265,7 +1265,7 @@ return t.missing
 });
 
 describe('oop', () => {
-  test.only('', () => {
+  test('', () => {
     const tests = [
       {
         exp: evalChunk(
@@ -1623,7 +1623,6 @@ return sum
       let r = 0;
 
       for (let i = 0; i < test.exp.value.length; i++) {
-        console.log('res number', r);
         const val = test.exp.value[i];
         if (val.kind === 'null') expect(test.value[i]).toBe(null);
         else if (val.kind === 'error') throw Error('should not be an error');
@@ -2127,6 +2126,44 @@ return a, outer
         val.kind !== 'string'
       )
         throw Error(` should be a number  is ${val.kind}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test.only('pcall', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+return pcall(function() error("bad") end)
+        `),
+        new Lua_Environment(),
+      ),
+      value: [false, 'bad'],
+    },
+  ];
+
+  for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (val.kind === 'null') expect(test.value[i]).toBe(null);
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` should be a number ${val.kind}`);
       else expect(val.value).toBe(test.value[i]);
     }
   }

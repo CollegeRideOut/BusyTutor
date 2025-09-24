@@ -17,6 +17,7 @@ import type {
   Lua_String,
   Lua_Builtin,
 } from './lua_types';
+import { pcall } from './builtin';
 
 let Lua_Global_Environment = new Lua_Environment();
 
@@ -66,7 +67,13 @@ export function evalStatements(
         const obj = evalExpression(exp, environment);
         if (obj.kind === 'error') return obj;
         // unwrapping returns
-        if (obj.kind === 'return') vals.push(...obj.value);
+        if (obj.kind === 'return') {
+            vals.push(...obj.value);
+            for(let v of obj.value){
+                if(v.kind === 'error') return v;
+                vals.push(v)
+            }
+        }
         else vals.push(obj);
       }
       return {
@@ -259,6 +266,7 @@ export function evalStatements(
     case 'ForGenericStatement':
     case 'LabelStatement':
     case 'GotoStatement':
+
     default: {
       return {
         id: crypto.randomUUID(),
@@ -291,7 +299,6 @@ function handleTableIndexAssigment(
       // check if metatable
       // TOOD smell repeated
       //
-      console.log('sanity');
       if (identifier.metatable.kind !== 'null') {
         let __newindex = identifier.metatable.get({
           id: crypto.randomUUID(),
@@ -523,7 +530,6 @@ export function evalExpression(
     }
     case 'Identifier': {
       let [val, exist] = environment.get(exp.name);
-      //console.log('hehre', val, 'name = ', exp.name);
       if (exist) return val;
 
       [val, exist] = Lua_Global_Environment.get(exp.name);
@@ -877,7 +883,59 @@ export function applyFunction(
       return evaulated;
     }
     case 'builtin': {
-      return func.fn(...args);
+      // TODO handle what happens whtn i do pcall
+      switch (func.id) {
+        case pcall.id: {
+          if (args.length < 1) {
+            return {
+              id: crypto.randomUUID(),
+              kind: 'error',
+              message: 'TODO',
+              value: {
+                id: crypto.randomUUID(),
+                kind: 'string',
+                value: '',
+              } satisfies Lua_String,
+            } satisfies Lua_Error;
+          }
+
+          const func_passed = args.shift()!;
+          if (func_passed.kind !== 'function')
+            return {
+              id: crypto.randomUUID(),
+              kind: 'error',
+              message: 'TODO',
+              value: {
+                id: crypto.randomUUID(),
+                kind: 'string',
+                value: '',
+              } satisfies Lua_String,
+            } satisfies Lua_Error;
+          let vals: Lua_Object = applyFunction(func_passed, args);
+          let ok = Lua_True;
+          if (vals.kind === 'error') {
+            ok = Lua_False;
+            vals = vals.value!;
+          }
+          if (vals.kind === 'return') {
+            if (vals.value.length > 0 && vals.value[0].kind === 'error') {
+              ok = Lua_False;
+              vals = vals.value[0].value!;
+            }
+          }
+          let returned_vals = vals.kind === 'return' ? vals.value : [vals];
+
+          return {
+            id: crypto.randomUUID(),
+            kind: 'return',
+            value: [ok, ...returned_vals],
+          } satisfies Lua_Return;
+        }
+        default: {
+          if (func.fn === undefined) throw Error('TODO idk man');
+          return func.fn(...args);
+        }
+      }
     }
   }
 }

@@ -119,8 +119,16 @@
 - wrap identifiers and tables with the "pixel" border 
 - allow for visual code 
 
+### Sep 23
+
+- pcall()
+- error()
+
+
 ### Up Next
 
+- importnat nothing should return and error is more like a throw that takes over
+- move to server
 - indexing for the member expresions
 - pretify visulzer
 - refactor visualizer
