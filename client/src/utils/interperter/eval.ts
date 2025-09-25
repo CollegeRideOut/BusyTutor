@@ -17,7 +17,7 @@ import type {
   Lua_String,
   Lua_Builtin,
 } from './lua_types';
-import { pcall } from './builtin';
+import { ipairs, pcall } from './builtin';
 
 let Lua_Global_Environment = new Lua_Environment();
 
@@ -35,11 +35,28 @@ export function Inspect(obj: Lua_Object) {
   }
 }
 
+let Hidden_Environment = new Lua_Environment();
 export function evalChunk(node: luaparser.Chunk, environment: Lua_Environment) {
   //TODO
   void environment; // TODO remove this bs
   Lua_Global_Environment = new Lua_Environment();
+  Hidden_Environment = new Lua_Environment();
+  setUp(Hidden_Environment);
   return evalStatementsArray(node.body, Lua_Global_Environment);
+}
+const ipairs_aux = 'ipairs_aux'
+export function setUp(environment: Lua_Environment) {
+  let chunk = luaparser.parse(`
+function ${ipairs_aux}(t, i)
+  i = i + 1
+  local v = t[i]
+  if v ~= nil then
+    return i, v
+  end
+end
+`);
+  let v = evalStatementsArray(chunk.body, environment);
+  void v;
 }
 
 export function evalStatementsArray(
@@ -68,13 +85,11 @@ export function evalStatements(
         if (obj.kind === 'error') return obj;
         // unwrapping returns
         if (obj.kind === 'return') {
-            vals.push(...obj.value);
-            for(let v of obj.value){
-                if(v.kind === 'error') return v;
-                vals.push(v)
-            }
-        }
-        else vals.push(obj);
+          for (let v of obj.value) {
+            if (v.kind === 'error') return v;
+            vals.push(v);
+          }
+        } else vals.push(obj);
       }
       return {
         id: crypto.randomUUID(),
@@ -880,6 +895,7 @@ export function applyFunction(
     case 'function': {
       const extendedEnv = extendeFunctionEnv(func, args);
       const evaulated = evalStatementsArray(func.body, extendedEnv);
+
       return evaulated;
     }
     case 'builtin': {
@@ -930,6 +946,45 @@ export function applyFunction(
             kind: 'return',
             value: [ok, ...returned_vals],
           } satisfies Lua_Return;
+        }
+        case (ipairs.id):{
+          if (args.length < 1) {
+            return {
+              id: crypto.randomUUID(),
+              kind: 'error',
+              message: 'TODO',
+              value: {
+                id: crypto.randomUUID(),
+                kind: 'string',
+                value: 'ipairs needs 1 arument',
+              } satisfies Lua_String,
+            } satisfies Lua_Error;
+          }
+
+
+
+          let table = args.at(0)!;
+          if(table.kind !== 'table'){
+            return {
+              id: crypto.randomUUID(),
+              kind: 'error',
+              message: 'TODO',
+              value: {
+                id: crypto.randomUUID(),
+                kind: 'string',
+                value: 'ipairs needs 1 arument',
+              } satisfies Lua_String,
+            } satisfies Lua_Error;
+          }
+
+          let [func,exist] = Hidden_Environment.get(ipairs_aux);
+          if(!exist)
+              throw Error('interperter error iparis should exist');
+          if(func.kind !== 'function')
+              throw Error('interperter error iparis_aux should be a function');
+
+          let idx = {id: crypto.randomUUID(), kind: 'number', value: 0} satisfies Lua_Number
+          return {id: crypto.randomUUID(), kind: 'return', value: [func, table, idx]} satisfies Lua_Return;
         }
         default: {
           if (func.fn === undefined) throw Error('TODO idk man');

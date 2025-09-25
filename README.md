@@ -124,6 +124,13 @@
 - pcall()
 - error()
 
+### Sep 24
+
+- pcall()
+- error()
+- next()
+- ipairs()
+
 
 ### Up Next
 

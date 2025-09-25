@@ -1,5 +1,13 @@
 import luaparser from 'luaparse';
-import { error, pcall, setmetatable, toStringBuilt } from './builtin';
+import {
+  ipairs,
+  next,
+  error,
+  assert,
+  pcall,
+  setmetatable,
+  toStringBuilt,
+} from './builtin';
 export type Lua_Object =
   | Lua_Return
   | Lua_Error
@@ -56,6 +64,9 @@ export const builtin: Map<string, Lua_Builtin> = new Map<string, Lua_Builtin>(
     setmetatable: setmetatable,
     error: error,
     pcall: pcall,
+    next: next,
+    assert: assert,
+    ipairs: ipairs,
   }),
 );
 

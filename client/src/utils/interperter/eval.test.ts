@@ -921,7 +921,6 @@ describe('FunctionDeclaration', () => {
     ];
 
     for (const test of tests) {
-      expect(test.exp).toBeDefined();
       if (!test.exp) throw Error('Return should be defined');
       if (test.exp.kind !== 'return')
         throw Error(`${test.exp.kind === 'error' ? test.exp.message : 'null'}`);
@@ -929,6 +928,7 @@ describe('FunctionDeclaration', () => {
 
       for (let i = 0; i < test.exp.value.length; i++) {
         const val = test.exp.value[i];
+
         if (val.kind === 'null') expect(test.value[i]).toBe(null);
         else if (val.kind === 'error') throw Error('should not be an error');
         else if (val.kind !== 'number' && val.kind !== 'boolean')
@@ -1610,7 +1610,6 @@ return sum
 
     let t = 0;
     for (const test of tests) {
-      console.error('test number', t);
       expect(test.exp).toBeDefined();
       if (!test.exp) throw Error('Return should be defined');
       if (test.exp.kind !== 'return')
@@ -2131,7 +2130,7 @@ return a, outer
   }
 });
 
-test.only('pcall', () => {
+test('pcall', () => {
   const tests = [
     {
       exp: evalChunk(
@@ -2145,6 +2144,199 @@ return pcall(function() error("bad") end)
   ];
 
   for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (val.kind === 'null') expect(test.value[i]).toBe(null);
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` should be a number ${val.kind}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('next', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+
+-- Table with two entries
+t = { a = 10, b = 20 }
+-- Start from beginning
+k1, v1 = next(t, nil)
+
+-- Get next after k1
+k2, v2 = next(t, k1)
+
+-- Try next after k2 (should end)
+k3, v3 = next(t, k2)
+
+-- Invalid key (not in table)
+ok4, err4 = pcall(function() return next(t, "nope") end)
+
+return k1, v1,
+       k2, v2,
+       k3, v3,
+       ok4, err4
+
+        `),
+        new Lua_Environment(),
+      ),
+      value: ['a', 10, 'b', 20, null, null, false, "invalid key to 'next'"],
+    },
+  ];
+
+  for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (test.value[i] === null) expect(val.kind).toBe('null');
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      ) {
+        throw Error(` should be a number is ${val.kind} -- ${i}`);
+      } else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('ipairs', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+-- 1. Basic table
+f1, t1, i1 = ipairs({"a", "b"})
+r1, r2 = f1(t1, i1)
+r3, r4 = f1(t1, r1)
+r5, r6 = f1(t1, r3)
+-- expected:
+-- r1=1, r2="a"
+-- r3=2, r4="b"
+-- r5=nil, r6=nil
+
+-- 2. Empty table
+f2, t2, i2 = ipairs({})
+s1, s2 = f2(t2, i2)
+-- expected:
+-- s1=nil, s2=nil
+
+return r1, r2, r3, r4, r5, r6,
+       s1, s2
+        `),
+        new Lua_Environment(),
+      ),
+      value: [1, 'a', 2, 'b', null, null, null, null],
+    },
+  ];
+
+  for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (val.kind === 'null') expect(test.value[i]).toBe(null);
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` should be a number ${val.kind}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('assert', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+a1, a2 = pcall(function() return assert(123) end)
+-- expected: a1 = true,  a2 = 123
+
+-- 2. Falsy, no message
+b1, b2 = pcall(function() return assert(false) end)
+-- expected: b1 = false, b2 = "assertion failed!"
+
+-- 3. Truthy, with message
+c1, c2, c3 = pcall(function() return assert(1, "ok") end)
+-- expected: c1 = true,  c2 = 1, c3 = "ok"
+
+-- 4. Falsy, with message
+d1, d2 = pcall(function() return assert(nil, "bad") end)
+-- expected: d1 = false, d2 = "bad"
+
+-- 5. Truthy, multiple args
+e1, e2, e3, e4, e5 = pcall(function() return assert(1, "x", 2, 3) end)
+-- expected: e1 = true, e2 = 1, e3 = "x", e4 = 2, e5 = 3
+
+-- 6. No args at all
+f1, f2 = pcall(function() return assert() end)
+-- expected: f1 = false, f2 = "bad argument #1 to 'assert' (value expected)"
+
+return a1, a2, b1, b2, c1, c2, c3, d1, d2, e1, e2, e3, e4, e5, f1, f2, 
+
+
+        `),
+        new Lua_Environment(),
+      ),
+      value: [
+        true,
+        123,
+        false,
+        'assertion failed!',
+        true,
+        1,
+        'ok',
+        false,
+        'bad',
+        true,
+        1,
+        'x',
+        2,
+        3,
+        false,
+        "bad argument #1 to 'assert' (value expected)",
+      ],
+    },
+  ];
+
+  for (const test of tests) {
+    console.log('WHERE THE FUCK AM I ', test.exp);
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
