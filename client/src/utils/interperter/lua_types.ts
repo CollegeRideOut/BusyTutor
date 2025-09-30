@@ -7,7 +7,21 @@ import {
   pcall,
   setmetatable,
   toStringBuilt,
+  pairs,
+  print,
+  rawequal,
+  rawget,
+  rawset,
+  select,
+  tonumber,
+  type,
+  unpack,
+  xpcall,
+  getfenv,
+  setfenv,
+  getmetatable,
 } from './builtin';
+import { applyFunction } from './eval';
 export type Lua_Object =
   | Lua_Return
   | Lua_Error
@@ -31,6 +45,7 @@ export class Lua_Environment {
     let val = this.store.get(name);
     let exist = !!val;
 
+    // TODO wtf was i doing here
     if (!exist) return false;
     if (!exist && this.outer) return this.outer?.findEnvCotaining(name);
 
@@ -67,6 +82,19 @@ export const builtin: Map<string, Lua_Builtin> = new Map<string, Lua_Builtin>(
     next: next,
     assert: assert,
     ipairs: ipairs,
+    print: print,
+    pairs: pairs,
+    rawequal: rawequal,
+    rawget: rawget,
+    rawset: rawset,
+    select: select,
+    tonumber: tonumber,
+    getfenv: getfenv,
+    getmetatable: getmetatable,
+    type: type,
+    unpack: unpack,
+    xpcall: xpcall,
+    setfenv: setfenv,
   }),
 );
 
@@ -84,7 +112,7 @@ export type Lua_Function = {
   self: Lua_Object | false;
   parameters: (luaparser.Identifier | luaparser.VarargLiteral)[];
   body: luaparser.Statement[];
-  environment: Lua_Environment;
+  environment: Lua_Table;
 };
 
 export type Lua_Return = { id: string; kind: 'return'; value: Lua_Object[] };
@@ -95,7 +123,7 @@ export type Lua_Identifier = { id: string; kind: 'identifier'; name: string };
 export type Lua_Error = {
   id: string;
   kind: 'error';
-  message: string;
+  message?: string;
   value?: Lua_Object;
 };
 
@@ -126,6 +154,20 @@ export const Lua_Null: Lua_Null = { id: crypto.randomUUID(), kind: 'null' };
 export const Lua_Break: Lua_Break = { id: crypto.randomUUID(), kind: 'break' };
 export const Lua_Vargs: Lua_Vargs = { id: crypto.randomUUID(), kind: 'varg' };
 
+export class Lua_Console {
+  public buffer: string[] = [];
+
+  write(...args: Lua_String[]) {
+    this.buffer.push(...args.map((a) => a.value));
+  }
+
+  flush(): string {
+    const out = this.buffer.join('\t') + '\n';
+    this.buffer = [];
+    return out;
+  }
+}
+
 //TODO delete if value is set to null and do something about the idx is suppsed to be contiguos numeric values
 export class Lua_Table {
   id: string;
@@ -135,6 +177,77 @@ export class Lua_Table {
   metatable: Lua_Table | Lua_Null = Lua_Null;
   idx: number;
 
+  climbEnv(n: number): Lua_Table | Lua_Error {
+    if (n === 0) {
+      return this;
+    }
+    if (this.metatable.kind === 'null') {
+      // TODO should be an error
+      return {
+        id: crypto.randomUUID(),
+        kind: 'error',
+        message: 'dw',
+        value: {
+          id: crypto.randomUUID(),
+          kind: 'string',
+          value: 'invalid number',
+        } satisfies Lua_String,
+      } satisfies Lua_Error;
+    }
+    let outer = this.metatable.get('__index');
+    if (outer.kind === 'null') {
+      return {
+        id: crypto.randomUUID(),
+        kind: 'error',
+        message: 'dw',
+        value: {
+          id: crypto.randomUUID(),
+          kind: 'string',
+          value: 'invalid number',
+        } satisfies Lua_String,
+      } satisfies Lua_Error;
+    }
+    if (outer.kind !== 'table') return this;
+    if (outer === this) {
+      return {
+        id: crypto.randomUUID(),
+        kind: 'error',
+        message: 'dw',
+        value: {
+          id: crypto.randomUUID(),
+          kind: 'string',
+          value: 'self refential clingEnv',
+        } satisfies Lua_String,
+      } satisfies Lua_Error;
+    }
+    return outer.climbEnv(n - 1);
+  }
+  findTopTable(): Lua_Table {
+    if (this.metatable.kind === 'null') {
+      // TODO should be an error
+      return this;
+    }
+    let outer = this.metatable.get('__index');
+    if (outer.kind !== 'table') return this;
+    if (outer === this) return this;
+    return outer.findTopTable();
+  }
+  findEnvCotaining(name: string | Lua_Object): Lua_Table | false {
+    let val = this.get(name);
+    let exist = val.kind === 'null' ? false : true;
+
+    if (!exist) return false;
+    if (this.metatable.kind === 'null') {
+      // TODO should be an error
+      return false;
+    }
+    let outer = this.metatable.get('__index');
+    if (outer.kind !== 'table') return false;
+    let v = this.store.get(name);
+    if (!v) return outer.findEnvCotaining(name);
+
+    return this;
+  }
   constructor() {
     this.id = crypto.randomUUID();
     this.store = new Map();
@@ -172,7 +285,15 @@ export class Lua_Table {
     }
   }
 
-  set(key: Lua_Object, val: Lua_Object): Lua_Null | Lua_Error {
+  set(key: Lua_Object | string, val: Lua_Object): Lua_Null | Lua_Error {
+    if (typeof key === 'string') {
+      key = {
+        id: crypto.randomUUID(),
+        kind: 'string',
+        value: key,
+      } satisfies Lua_String;
+    }
+
     const delete_key = val.kind === 'null';
     switch (key.kind) {
       // use value
@@ -212,17 +333,28 @@ export class Lua_Table {
     }
   }
 
-  get(key: Lua_Object): Lua_Object {
+  get(key: Lua_Object | string): Lua_Object {
+    if (typeof key === 'string') {
+      key = {
+        id: crypto.randomUUID(),
+        kind: 'string',
+        value: key,
+      } satisfies Lua_String;
+    }
+
+    let val: Lua_Object = Lua_Null;
     switch (key.kind) {
       case 'string':
       case 'number': {
-        return this.store.get(key.value) || Lua_Null;
+        val = this.store.get(key.value) || Lua_Null;
+        break;
       }
       case 'boolean':
       case 'function':
       case 'table':
       case 'builtin': {
-        return this.store.get(key) || Lua_Null;
+        val = this.store.get(key) || Lua_Null;
+        break;
       }
 
       case 'error':
@@ -237,5 +369,21 @@ export class Lua_Table {
         return Lua_Null;
       }
     }
+    if (val.kind !== 'null') {
+      return val;
+    }
+    if (this.metatable.kind === 'null') {
+      return val;
+    }
+    const __index = this.metatable.get('__index');
+    if (__index.kind !== 'table') {
+      if (__index.kind === 'function') {
+        return applyFunction(__index, [this, key]);
+      }
+
+      return __index;
+    }
+
+    return __index.get(key);
   }
 }

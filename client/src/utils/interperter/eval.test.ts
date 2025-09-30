@@ -1,8 +1,8 @@
 import luaparser from 'luaparse';
 import { describe, expect, test } from 'vitest';
-import { evalExpression, evalChunk } from './eval';
+import { evalExpression, evalChunk, Lua_GLobal_Console } from './eval';
 import type { Lua_Boolean, Lua_Number } from './lua_types';
-import { Lua_Environment } from './lua_types';
+import { Lua_Table } from './lua_types';
 
 // test expression
 
@@ -16,7 +16,7 @@ test('NumericLiteral', () => {
   ];
 
   for (const test of tests) {
-    let val = evalExpression(test.exp, new Lua_Environment());
+    let val = evalExpression(test.exp, new Lua_Table());
     expect(val.kind).toBe('number');
     expect((val as Lua_Number).value).toBe(test.value);
   }
@@ -29,7 +29,7 @@ test('BooleanLiteral', () => {
   ];
 
   for (const test of tests) {
-    let val = evalExpression(test.exp, new Lua_Environment());
+    let val = evalExpression(test.exp, new Lua_Table());
     expect(val.kind).toBe('boolean');
     expect((val as Lua_Boolean).value).toBe(test.value);
   }
@@ -38,25 +38,19 @@ test('BooleanLiteral', () => {
 test('StringLiteral', () => {
   const tests = [
     {
-      exp: evalChunk(luaparser.parse('return "hello"'), new Lua_Environment()),
+      exp: evalChunk(luaparser.parse('return "hello"'), new Lua_Table()),
       value: 'hello',
     },
     {
-      exp: evalChunk(luaparser.parse("return 'hello'"), new Lua_Environment()),
+      exp: evalChunk(luaparser.parse("return 'hello'"), new Lua_Table()),
       value: 'hello',
     },
     {
-      exp: evalChunk(
-        luaparser.parse('return [[hello]]'),
-        new Lua_Environment(),
-      ),
+      exp: evalChunk(luaparser.parse('return [[hello]]'), new Lua_Table()),
       value: 'hello',
     },
     {
-      exp: evalChunk(
-        luaparser.parse('return [==[hello]==]'),
-        new Lua_Environment(),
-      ),
+      exp: evalChunk(luaparser.parse('return [==[hello]==]'), new Lua_Table()),
       value: 'hello',
     },
   ];
@@ -79,57 +73,39 @@ test('StringLiteral', () => {
 test('NotOperator', () => {
   const tests = [
     {
-      exp: evalChunk(luaparser.parse('return not true'), new Lua_Environment()),
+      exp: evalChunk(luaparser.parse('return not true'), new Lua_Table()),
       value: false,
     },
     {
-      exp: evalChunk(
-        luaparser.parse('return not false'),
-        new Lua_Environment(),
-      ),
+      exp: evalChunk(luaparser.parse('return not false'), new Lua_Table()),
       value: true,
     },
     {
-      exp: evalChunk(
-        luaparser.parse('return not not true'),
-        new Lua_Environment(),
-      ),
+      exp: evalChunk(luaparser.parse('return not not true'), new Lua_Table()),
       value: true,
     },
     {
-      exp: evalChunk(
-        luaparser.parse('return not not false'),
-        new Lua_Environment(),
-      ),
+      exp: evalChunk(luaparser.parse('return not not false'), new Lua_Table()),
       value: false,
     },
     {
-      exp: evalChunk(luaparser.parse('return not 5'), new Lua_Environment()),
+      exp: evalChunk(luaparser.parse('return not 5'), new Lua_Table()),
       value: false,
     },
     {
-      exp: evalChunk(
-        luaparser.parse('return not not 5'),
-        new Lua_Environment(),
-      ),
+      exp: evalChunk(luaparser.parse('return not not 5'), new Lua_Table()),
       value: true,
     },
     {
-      exp: evalChunk(
-        luaparser.parse('return not not 5'),
-        new Lua_Environment(),
-      ),
+      exp: evalChunk(luaparser.parse('return not not 5'), new Lua_Table()),
       value: true,
     },
     {
-      exp: evalChunk(luaparser.parse('return not nil'), new Lua_Environment()),
+      exp: evalChunk(luaparser.parse('return not nil'), new Lua_Table()),
       value: true,
     },
     {
-      exp: evalChunk(
-        luaparser.parse('return not not nil'),
-        new Lua_Environment(),
-      ),
+      exp: evalChunk(luaparser.parse('return not not nil'), new Lua_Table()),
       value: false,
     },
   ];
@@ -153,28 +129,19 @@ test('NotOperator', () => {
 test('LengthOperator #', () => {
   const tests = [
     {
-      exp: evalChunk(luaparser.parse('return #"hello"'), new Lua_Environment()),
+      exp: evalChunk(luaparser.parse('return #"hello"'), new Lua_Table()),
       value: 5,
     },
     {
-      exp: evalChunk(
-        luaparser.parse('x = "22" return #x'),
-        new Lua_Environment(),
-      ),
+      exp: evalChunk(luaparser.parse('x = "22" return #x'), new Lua_Table()),
       value: 2,
     },
     {
-      exp: evalChunk(
-        luaparser.parse('x = {1,2,3} return #x'),
-        new Lua_Environment(),
-      ),
+      exp: evalChunk(luaparser.parse('x = {1,2,3} return #x'), new Lua_Table()),
       value: 3,
     },
     {
-      exp: evalChunk(
-        luaparser.parse('return #{1,2,3, 4}'),
-        new Lua_Environment(),
-      ),
+      exp: evalChunk(luaparser.parse('return #{1,2,3, 4}'), new Lua_Table()),
       value: 4,
     },
   ];
@@ -197,11 +164,11 @@ describe('Minues operator', () => {
   test('Integer', () => {
     const tests = [
       {
-        exp: evalChunk(luaparser.parse('return -2'), new Lua_Environment()),
+        exp: evalChunk(luaparser.parse('return -2'), new Lua_Table()),
         value: -2,
       },
       {
-        exp: evalChunk(luaparser.parse('return -10'), new Lua_Environment()),
+        exp: evalChunk(luaparser.parse('return -10'), new Lua_Table()),
         value: -10,
       },
     ];
@@ -228,22 +195,16 @@ describe('BinaryExpression', () => {
       {
         exp: evalChunk(
           luaparser.parse('return 10 + 10 + 10 + 10'),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: 40,
       },
       {
-        exp: evalChunk(
-          luaparser.parse('return 10 + 10 '),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('return 10 + 10 '), new Lua_Table()),
         value: 20,
       },
       {
-        exp: evalChunk(
-          luaparser.parse('return 10 + 10 + 20'),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('return 10 + 10 + 20'), new Lua_Table()),
         value: 40,
       },
     ];
@@ -266,22 +227,16 @@ describe('BinaryExpression', () => {
       {
         exp: evalChunk(
           luaparser.parse('return 10 - 10 - 10 - 10'),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: -20,
       },
       {
-        exp: evalChunk(
-          luaparser.parse('return 10 - 10 '),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('return 10 - 10 '), new Lua_Table()),
         value: 0,
       },
       {
-        exp: evalChunk(
-          luaparser.parse('return 10  - 20'),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('return 10  - 20'), new Lua_Table()),
         value: -10,
       },
     ];
@@ -304,22 +259,16 @@ describe('BinaryExpression', () => {
       {
         exp: evalChunk(
           luaparser.parse('return 10 * 10 * 10 * 10'),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: 10000,
       },
       {
-        exp: evalChunk(
-          luaparser.parse('return 10 * 10 '),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('return 10 * 10 '), new Lua_Table()),
         value: 100,
       },
       {
-        exp: evalChunk(
-          luaparser.parse('return 10 * 20'),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('return 10 * 20'), new Lua_Table()),
         value: 200,
       },
     ];
@@ -340,10 +289,7 @@ describe('BinaryExpression', () => {
   test('/', () => {
     const tests = [
       {
-        exp: evalChunk(
-          luaparser.parse('return 10 / 10'),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('return 10 / 10'), new Lua_Table()),
         value: 1,
       },
     ];
@@ -364,10 +310,7 @@ describe('BinaryExpression', () => {
   test('%', () => {
     const tests = [
       {
-        exp: evalChunk(
-          luaparser.parse('return 10 % 10'),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('return 10 % 10'), new Lua_Table()),
         value: 0,
       },
     ];
@@ -405,10 +348,7 @@ describe('BinaryExpression', () => {
   test('^', () => {
     const tests = [
       {
-        exp: evalChunk(
-          luaparser.parse('return 10 ^ 10'),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('return 10 ^ 10'), new Lua_Table()),
         value: Math.pow(10, 10),
       },
     ];
@@ -430,23 +370,20 @@ describe('BinaryExpression', () => {
   test('..', () => {
     const tests = [
       {
-        exp: evalChunk(
-          luaparser.parse('return "hel".."lo"'),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('return "hel".."lo"'), new Lua_Table()),
         value: 'hello',
       },
       {
         exp: evalChunk(
           luaparser.parse('x = "he"; return x .. "llo" '),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: 'hello',
       },
       {
         exp: evalChunk(
           luaparser.parse('x, y = "hel", "lo"; return x .. y'),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: 'hello',
       },
@@ -469,10 +406,7 @@ describe('BinaryExpression', () => {
   test('<', () => {
     const tests = [
       {
-        exp: evalChunk(
-          luaparser.parse('return 10 < 10'),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('return 10 < 10'), new Lua_Table()),
         value: false,
       },
     ];
@@ -493,10 +427,7 @@ describe('BinaryExpression', () => {
   test('>', () => {
     const tests = [
       {
-        exp: evalChunk(
-          luaparser.parse('return 10 > 10'),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('return 10 > 10'), new Lua_Table()),
         value: false,
       },
     ];
@@ -517,10 +448,7 @@ describe('BinaryExpression', () => {
   test('==', () => {
     const tests = [
       {
-        exp: evalChunk(
-          luaparser.parse('return 10 == 10'),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('return 10 == 10'), new Lua_Table()),
         value: true,
       },
     ];
@@ -541,10 +469,7 @@ describe('BinaryExpression', () => {
   test('~=', () => {
     const tests = [
       {
-        exp: evalChunk(
-          luaparser.parse('return 10 ~= 10'),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('return 10 ~= 10'), new Lua_Table()),
         value: false,
       },
     ];
@@ -565,10 +490,7 @@ describe('BinaryExpression', () => {
   test('<=', () => {
     const tests = [
       {
-        exp: evalChunk(
-          luaparser.parse('return 10 <= 10'),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('return 10 <= 10'), new Lua_Table()),
         value: true,
       },
     ];
@@ -588,10 +510,7 @@ describe('BinaryExpression', () => {
   test('>=', () => {
     const tests = [
       {
-        exp: evalChunk(
-          luaparser.parse('return 10 >= 10'),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('return 10 >= 10'), new Lua_Table()),
         value: true,
       },
     ];
@@ -616,19 +535,19 @@ describe('ReturnStatement', () => {
   test('One argument', () => {
     const tests = [
       {
-        exp: evalChunk(luaparser.parse('return 10'), new Lua_Environment()),
+        exp: evalChunk(luaparser.parse('return 10'), new Lua_Table()),
         value: 10,
       },
       {
-        exp: evalChunk(luaparser.parse('return 12'), new Lua_Environment()),
+        exp: evalChunk(luaparser.parse('return 12'), new Lua_Table()),
         value: 12,
       },
       {
-        exp: evalChunk(luaparser.parse('return 14'), new Lua_Environment()),
+        exp: evalChunk(luaparser.parse('return 14'), new Lua_Table()),
         value: 14,
       },
       {
-        exp: evalChunk(luaparser.parse('return 20'), new Lua_Environment()),
+        exp: evalChunk(luaparser.parse('return 20'), new Lua_Table()),
         value: 20,
       },
     ];
@@ -650,19 +569,19 @@ describe('ReturnStatement', () => {
   test('Two argument', () => {
     const tests = [
       {
-        exp: evalChunk(luaparser.parse('return 10, 20'), new Lua_Environment()),
+        exp: evalChunk(luaparser.parse('return 10, 20'), new Lua_Table()),
         value: [10, 20],
       },
       {
-        exp: evalChunk(luaparser.parse('return 12, 30'), new Lua_Environment()),
+        exp: evalChunk(luaparser.parse('return 12, 30'), new Lua_Table()),
         value: [12, 30],
       },
       {
-        exp: evalChunk(luaparser.parse('return 14, 50'), new Lua_Environment()),
+        exp: evalChunk(luaparser.parse('return 14, 50'), new Lua_Table()),
         value: [14, 50],
       },
       {
-        exp: evalChunk(luaparser.parse('return 20, 11'), new Lua_Environment()),
+        exp: evalChunk(luaparser.parse('return 20, 11'), new Lua_Table()),
         value: [20, 11],
       },
     ];
@@ -693,7 +612,7 @@ describe('IfStatement', () => {
       {
         exp: evalChunk(
           luaparser.parse('if true then return 5 end'),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: 5,
       },
@@ -702,7 +621,7 @@ describe('IfStatement', () => {
           luaparser.parse(
             `if false then return 5 elseif true then return 10 end return 20`,
           ),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: 10,
       },
@@ -711,7 +630,7 @@ describe('IfStatement', () => {
           luaparser.parse(
             `if false then return 5 elseif false then return 10 else return 2 end return 20`,
           ),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: 2,
       },
@@ -728,7 +647,7 @@ describe('IfStatement', () => {
                      return 2 
                  end 
                  return 20`),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: 99,
       },
@@ -753,10 +672,7 @@ describe('Errors', () => {
   test('types', () => {
     const tests = [
       {
-        exp: evalChunk(
-          luaparser.parse('return 5 + true'),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('return 5 + true'), new Lua_Table()),
         value: 5,
       },
     ];
@@ -776,37 +692,31 @@ describe('AssignmentStatement', () => {
   test('Global', () => {
     const tests = [
       {
-        exp: evalChunk(
-          luaparser.parse('x = 5; return x'),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('x = 5; return x'), new Lua_Table()),
         value: [5],
       },
       {
-        exp: evalChunk(
-          luaparser.parse('x = 10; return x'),
-          new Lua_Environment(),
-        ),
+        exp: evalChunk(luaparser.parse('x = 10; return x'), new Lua_Table()),
         value: [10],
       },
       {
         exp: evalChunk(
           luaparser.parse('x,y = 10; return x, y'),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [10, null],
       },
       {
         exp: evalChunk(
           luaparser.parse('x,y = 10, 20; return x, y'),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [10, 20],
       },
       {
         exp: evalChunk(
           luaparser.parse('x,y = 10, 20, 30; return x, y'),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [10, 20],
       },
@@ -843,7 +753,7 @@ describe('FunctionDeclaration', () => {
                     end
                     return foo()
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [2],
       },
@@ -856,7 +766,7 @@ describe('FunctionDeclaration', () => {
                     end
                     return foo(5), x
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [5, 1],
       },
@@ -869,7 +779,7 @@ describe('FunctionDeclaration', () => {
                     end
                     return foo(5, 10), x
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [15, 1],
       },
@@ -881,7 +791,7 @@ describe('FunctionDeclaration', () => {
                     end
                     return x(5, 10)
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [15],
       },
@@ -897,7 +807,7 @@ describe('FunctionDeclaration', () => {
                     addTwo = newAdder(2)
                     return addTwo(3)
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [5],
       },
@@ -914,7 +824,7 @@ describe('FunctionDeclaration', () => {
                     end
                     return rec(1)
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [true],
       },
@@ -948,7 +858,7 @@ describe('Builtins', () => {
                    x = tostring(5)
                    return x
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: ['5'],
       },
@@ -986,7 +896,7 @@ describe('Tables', () => {
                     x = { 2, 3 }
                     return x[1]
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [2],
       },
@@ -996,7 +906,7 @@ describe('Tables', () => {
                     x = { name = 1 }
                     return x['name']
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [1],
       },
@@ -1008,7 +918,7 @@ describe('Tables', () => {
                     x = { name = 1 }
                     return x['name']
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [1],
       },
@@ -1019,7 +929,7 @@ describe('Tables', () => {
                     x = { name = 1 }
                     return x['name']
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [1],
       },
@@ -1029,7 +939,7 @@ describe('Tables', () => {
                     x = { name = 1 }
                     return x['na']
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [null],
       },
@@ -1040,7 +950,7 @@ describe('Tables', () => {
                     x = { ['2'] = 1 }
                     return x[2]
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [null],
       },
@@ -1053,7 +963,7 @@ describe('Tables', () => {
                     x[k] = 'yes'
                     return x[k]
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: ['yes'],
       },
@@ -1066,7 +976,7 @@ describe('Tables', () => {
                     x[k] = 'yes'
                     return x[{}]
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [null],
       },
@@ -1078,7 +988,7 @@ describe('Tables', () => {
                     y = x
                     return y[1]
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [3],
       },
@@ -1089,7 +999,7 @@ describe('Tables', () => {
                     local t = { [true] = "yes", [false] = "no" }
                     return t[false]
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: ['no'],
       },
@@ -1099,7 +1009,7 @@ describe('Tables', () => {
                     local t = { sound = { 1, sound = { 31 } } }
                     return t['sound']['sound'][1]
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [31],
       },
@@ -1110,7 +1020,7 @@ describe('Tables', () => {
                     local t = { sound = { 1, sound = { 31 } } }
                     return t.sound.sound[1]
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [31],
       },
@@ -1121,7 +1031,7 @@ describe('Tables', () => {
                     local t = {2, sound = function(xx) return xx[1] end }
                     return t:sound()
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [2],
       },
@@ -1134,7 +1044,7 @@ describe('Tables', () => {
                     end
                     return t:sound()
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [2],
       },
@@ -1174,7 +1084,7 @@ local t = setmetatable({}, { __index = fallback })
 
 return t.a
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [10],
       },
@@ -1190,7 +1100,7 @@ local t = setmetatable({}, {
 
 return t.foo
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [42],
       },
@@ -1203,7 +1113,7 @@ local t = setmetatable({ a = 99 }, { __index = fallback })
 
 return t.a 
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [99],
       },
@@ -1219,7 +1129,7 @@ local t = setmetatable({}, {
 
 return t.missing
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [null],
       },
@@ -1235,12 +1145,13 @@ local t = setmetatable({}, {
 
 return t.missing
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [null],
       },
     ];
 
+    let t = 0;
     for (const test of tests) {
       expect(test.exp).toBeDefined();
       if (!test.exp) throw Error('Return should be defined');
@@ -1256,10 +1167,12 @@ return t.missing
           val.kind !== 'number' &&
           val.kind !== 'boolean' &&
           val.kind !== 'string'
-        )
-          throw Error(` should be a number ${val.kind}`);
-        else expect(val.value).toBe(test.value[i]);
+        ) {
+          console.log(val);
+          throw Error(` test error kind is ${val.kind} -  ${t}`);
+        } else expect(val.value).toBe(test.value[i]);
       }
+      t++;
     }
   });
 });
@@ -1287,7 +1200,7 @@ end
 local p = Person:new('a')
 return p:get_name()
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: ['a'],
       },
@@ -1328,7 +1241,7 @@ local t = setmetatable({}, { __newindex = sink })
 t.foo = 7        -- redirected to sink
 return sink.foo, t.foo   -- expect: 7, nil
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [7, null],
       },
@@ -1371,7 +1284,7 @@ local t = setmetatable({ val = 5 }, mt)
 
 return t(3)   -- expect 8
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [8],
       },
@@ -1415,7 +1328,7 @@ local t2 = setmetatable({ val = "bar" }, mt)
 
 return t1 .. t2   -- expect "foo-bar"
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: ['foo-bar'],
       },
@@ -1495,7 +1408,7 @@ return
   k ^ l,    -- expect 8
   -m        -- expect -7
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [13, 7, 30, 5, 4, 8, -7],
       },
@@ -1545,7 +1458,7 @@ return
   t1 < t3,    -- expect true  (1 < 2)
   t3 > t1    -- expect true  (rewritten as t1 < t3)
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [true, false, true, true, true],
       },
@@ -1587,7 +1500,7 @@ for i = 1, 5 do
 end
 return sum
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [3],
       },
@@ -1602,7 +1515,7 @@ for i = 1, 5 do
 end
 return sum
                 `),
-          new Lua_Environment(),
+          new Lua_Table(),
         ),
         value: [1],
       },
@@ -1650,7 +1563,7 @@ do
 end
 return x
                 `),
-        new Lua_Environment(),
+        new Lua_Table(),
       ),
       value: [1],
     },
@@ -1664,7 +1577,7 @@ do
 end
 return x
                 `),
-        new Lua_Environment(),
+        new Lua_Table(),
       ),
       value: [15],
     },
@@ -1706,7 +1619,7 @@ while x < 5 do
 end
 return x
                 `),
-        new Lua_Environment(),
+        new Lua_Table(),
       ),
       value: [5],
     },
@@ -1720,7 +1633,7 @@ while x < 5 do
 end
 return x
                 `),
-        new Lua_Environment(),
+        new Lua_Table(),
       ),
       value: [10],
     },
@@ -1772,7 +1685,7 @@ local h_ = false or 66   -- false → falsey → picks 66
 
 return a, b, c, d, e, f_, g_, h_
                 `),
-        new Lua_Environment(),
+        new Lua_Table(),
       ),
       value: [99, 'hi', 42, null, 77, null, 0, 66],
     },
@@ -1832,7 +1745,7 @@ local t1, t2 = test()
 
 return r1, r2, r3, r4, r5, r6, r7, s1, s2, s3, t1, t2
                 `),
-        new Lua_Environment(),
+        new Lua_Table(),
       ),
       value: [10, 10, 20, 30, 10, 20, 30, 42, 42, null, null, null],
     },
@@ -1865,7 +1778,7 @@ return
   A2, B2, C2, D2, E2, F2, S2, V3, V4,
   A3, B3, C3, D3, E3, F3, S3, V5, V6
                 `),
-        new Lua_Environment(),
+        new Lua_Table(),
       ),
       value: [
         1,
@@ -1899,7 +1812,9 @@ return
     },
   ];
 
+  let t = 0;
   for (const test of tests) {
+    console.log('current t', t);
     expect(test.exp).toBeDefined();
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
@@ -1923,6 +1838,7 @@ return
         );
       else expect(val.value).toBe(test.value[i]);
     }
+    t++;
   }
 });
 
@@ -1948,7 +1864,7 @@ local b = sum({1, 2, 3})
 
 return a, b
                 `),
-        new Lua_Environment(),
+        new Lua_Table(),
       ),
       value: [6, 6],
     },
@@ -1995,7 +1911,7 @@ local b = shout("hey")
 
 return a, b
                 `),
-        new Lua_Environment(),
+        new Lua_Table(),
       ),
       value: ['hey!', 'hey!'],
     },
@@ -2064,7 +1980,7 @@ inc()                  -- b = 115
 return a, mid_final, inner_final, b
 
                 `),
-        new Lua_Environment(),
+        new Lua_Table(),
       ),
       value: [1, 11, 21, 115],
     },
@@ -2100,7 +2016,7 @@ bump()
 return a, outer
 
                 `),
-        new Lua_Environment(),
+        new Lua_Table(),
       ),
       value: [10, 213],
     },
@@ -2137,9 +2053,512 @@ test('pcall', () => {
         luaparser.parse(`
 return pcall(function() error("bad") end)
         `),
-        new Lua_Environment(),
+        new Lua_Table(),
       ),
       value: [false, 'bad'],
+    },
+  ];
+
+  for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (val.kind === 'null') expect(test.value[i]).toBe(null);
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` should be a number ${val.kind}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('type', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+local r1 = type(nil)
+local r2 = type(123)
+local r3 = type("hi")
+local r4 = type(function() end)
+local r5 = type({})
+return r1, r2, r3, r4, r5
+        `),
+        new Lua_Table(),
+      ),
+      value: ['nil', 'number', 'string', 'function', 'table'],
+    },
+  ];
+
+  for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (val.kind === 'null') expect(test.value[i]).toBe(null);
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` should be a number ${val.kind}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('_VERSION', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+local r1 = _VERSION
+
+_VERSION = "custom"
+local r2 = _VERSION
+
+return r1, r2
+        `),
+        new Lua_Table(),
+      ),
+      value: ['Lua 5.1', 'custom'],
+    },
+  ];
+
+  for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (test.value[i] === null) expect(val.kind).toBe('null');
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` should be a number ${val.kind}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('_G', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+_G.hello = "world"
+return hello
+        `),
+        new Lua_Table(),
+      ),
+      value: ['world'],
+    },
+  ];
+
+  for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (test.value[i] === null) expect(val.kind).toBe('null');
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` the kind is unxpected =  ${val.kind}, ${i}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('getmetatable', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+-- Case 1: simple metatable with some values
+local t1 = {}
+local mt1 = { foo = "bar", num = 123 }
+setmetatable(t1, mt1)
+local r1 = getmetatable(t1).foo    -- "bar"
+local r2 = getmetatable(t1).num    -- 123
+
+-- Case 2: protected metatable
+local t2 = {}
+local mt2 = { __metatable = "locked", hidden = "secret" }
+setmetatable(t2, mt2)
+local r3 = getmetatable(t2)        -- "locked"
+
+-- Case 3: no metatable
+local t3 = {}
+local r4 = getmetatable(t3)        -- nil
+
+return r1, r2, r3, r4
+        `),
+        new Lua_Table(),
+      ),
+      value: ['bar', 123, 'locked', null],
+    },
+  ];
+
+  for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (test.value[i] === null) expect(val.kind).toBe('null');
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` the kind is unxpected =  ${val.kind}, ${i}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('getfenv', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+-- make a function that returns nothing special
+local f = function() return end
+
+-- create a new environment with a = 2
+local env = { a = 2 }
+
+-- set the environment of f
+setfenv(f, env)
+
+-- grab the environment back with getfenv
+local got = getfenv(f)
+
+-- return the 'a' field from that environment
+return got.a
+        `),
+        new Lua_Table(),
+      ),
+      value: [2],
+    },
+  ];
+
+  for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.value : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (test.value[i] === null) expect(val.kind).toBe('null');
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` the kind is unxpected =  ${val.kind}, ${i}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('setfenv', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+-- Case 1: function in default environment
+local f1 = function() return a end
+a = 10
+local r1 = f1()   -- sees global a (10)
+
+-- Case 2: move function into new environment
+local f2 = function() return b end
+local env2 = { b = 20 }
+setfenv(f2, env2)
+local r2 = f2()   -- 20
+
+-- Case 3: environment without needed var
+local f3 = function() return c end
+local env3 = {}   -- no "c" inside
+setfenv(f3, env3)
+local r3 = f3()   -- nil
+
+-- Case 4: assignment goes into environment
+local f4 = function() d = 40; return d end
+local env4 = {}
+setfenv(f4, env4)
+local r4a = f4()       -- 40
+local r4b = env4.d     -- 40
+
+return r1, r2, r3, r4a, r4b
+        `),
+        new Lua_Table(),
+      ),
+      value: [10, 20, null, 40, 40],
+    },
+  ];
+
+  for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.value!.value : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (test.value[i] === null) expect(val.kind).toBe('null');
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` the kind is unxpected =  ${val.kind}, ${i}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('xpcall', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+local r1a, r1b = xpcall(
+  function() return 42 end,
+  function(e) return "handled:" .. e end
+)
+local r2a, r2b = xpcall(
+  function() error("boom") end,
+  function(e) return "handled:" .. e end
+)
+local r3a, r3b = xpcall(
+  function() error("kaboom") end,
+  function(e) end
+)
+local r4a, r4b = xpcall(
+  function() error("oops") end,
+  function(e) error("handler failed") end
+)
+
+return r1a, r1b, 
+       r2a, r2b,
+       r3a, r3b,
+       r4a, r4b
+        `),
+        new Lua_Table(),
+      ),
+      value: [
+        true,
+        42,
+        false,
+        'handled:boom',
+        false,
+        null,
+        false,
+        'handler failed',
+      ],
+    },
+  ];
+
+  for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (val.kind === 'null') expect(test.value[i]).toBe(null);
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` should be a number ${val.kind}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('unpack', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+local a1, b1, c1 = unpack({1, 2, 3})
+local a2, b2, c2 = unpack({1, 2, 3, sound = {1, 2}})
+local a3, b3, c3 = unpack({1, nil, 3})
+return a1, b1, c1,
+       a2, b2, c2,
+       a3, b3, c3
+        `),
+        new Lua_Table(),
+      ),
+      value: [1, 2, 3, 1, 2, 3, 1, null, 3],
+    },
+  ];
+
+  for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (val.kind === 'null') expect(test.value[i]).toBe(null);
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` should be a number ${val.kind}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+//TODO base bullllshit idk fuck you tomorro me
+test('tonumber', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+local r1 = tonumber()
+local r2 = tonumber(123)
+local r3 = tonumber("3.14")
+local r4 = tonumber("101", 2)   
+
+return r1, r2, r3, r4
+        `),
+        new Lua_Table(),
+      ),
+      value: [null, 123, 3.14],
+    },
+  ];
+
+  for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (val.kind === 'null') expect(test.value[i]).toBe(null);
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` should be a number ${val.kind}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('select', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+function test_select(...)
+  -- counting
+  local c = select("#", ...)
+
+  -- from 1
+  local a1, b1, c1 = select(1, ...)
+
+  -- from 2
+  local a2, b2, c2 = select(2, ...)
+
+  -- from 3
+  local a3, b3, c3 = select(3, ...)
+
+  return c,
+         a1, b1, c1,
+         a2, b2, c2,
+         a3, b3, c3
+end
+return test_select("x", "y", "z")
+        `),
+        new Lua_Table(),
+      ),
+      value: [3, 'x', 'y', 'z', 'y', 'z', null, 'z', null, null],
     },
   ];
 
@@ -2194,7 +2613,7 @@ return k1, v1,
        ok4, err4
 
         `),
-        new Lua_Environment(),
+        new Lua_Table(),
       ),
       value: ['a', 10, 'b', 20, null, null, false, "invalid key to 'next'"],
     },
@@ -2249,9 +2668,304 @@ s1, s2 = f2(t2, i2)
 return r1, r2, r3, r4, r5, r6,
        s1, s2
         `),
-        new Lua_Environment(),
+        new Lua_Table(),
       ),
       value: [1, 'a', 2, 'b', null, null, null, null],
+    },
+  ];
+
+  for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (val.kind === 'null') expect(test.value[i]).toBe(null);
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` should be a number ${val.kind}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('print', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+x1 = print("hello", "bye", "bye")  
+        `),
+        new Lua_Table(),
+      ),
+      value: [['hello', 'bye', 'bye'].join('\t') + '\n'],
+    },
+  ];
+
+  for (const test of tests) {
+    for (let i = 0; i < test.value.length; i++) {
+      console.log(test.exp);
+      expect(Lua_GLobal_Console.flush()).toBe(test.value[i]);
+    }
+  }
+});
+
+test('rawset', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+-- 1. Basic set
+t = {}
+a1 = rawset(t, "x", 100)
+v1 = t.x                  -- 100
+
+-- 2. Overwrite existing key
+rawset(t, "x", 200)
+v2 = t.x                  -- 200
+return 100 
+`),
+        new Lua_Table(),
+      ),
+      value: [
+        100, // v1
+      ],
+    },
+  ];
+
+  for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (val.kind === 'null') expect(test.value[i]).toBe(null);
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` should be a number ${val.kind} --- ${i}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('rawget', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+-- 1. Existing key
+t = { a = 123 }
+a1 = rawget(t, "a")             -- 123
+
+-- 2. Missing key
+a2 = rawget(t, "b")             -- nil
+
+-- 3. Ignoring __index metamethod
+mt = { __index = function() return "meta!" end }
+u = setmetatable({ x = 5 }, mt)
+a3 = rawget(u, "y")             -- nil (ignores metamethod)
+
+-- 4. No arguments
+ok4, err4 = pcall(function() return rawget() end)
+-- expected: ok4 = false
+-- expected: err4 = "bad argument #1 to 'rawget' (table expected, got no value)"
+
+-- 5. One argument only
+ok5, err5 = pcall(function() return rawget(t) end)
+-- expected: ok5 = false
+-- expected: err5 = "bad argument #2 to 'rawget' (value expected)"
+
+return a1, a2, a3, ok4, err4, ok5, err5
+        `),
+        new Lua_Table(),
+      ),
+      value: [
+        123, // a1
+        null, // a2
+        null, // a3
+        false, // ok4
+        "bad argument #1 to 'rawget' (value expected)", // err4
+        false, // ok5
+        "bad argument #2 to 'rawget' (value expected)", // err4
+      ],
+    },
+  ];
+
+  for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (val.kind === 'null') expect(test.value[i]).toBe(null);
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` should be a number ${val.kind}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('raweqal', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+
+-- 1. Same number
+a1 = rawequal(42, 42)        -- true
+
+-- 2. Different types
+a2 = rawequal(1, "1")        -- false
+
+-- 3. Same table reference
+t = {}
+a3 = rawequal(t, t)          -- true
+
+-- 4. No arguments
+ok4, err4 = pcall(function() return rawequal() end)
+-- expected: ok4 = false
+-- expected: err4 = "bad argument #1 to 'rawequal' (value expected)"
+
+-- 5. One argument only
+ok5, err5 = pcall(function() return rawequal(123) end)
+-- expected: ok5 = false
+-- expected: err5 = "bad argument #2 to 'rawequal' (value expected)"
+return a1, a2, a3, ok4, err4, ok5, err5
+        `),
+        new Lua_Table(),
+      ),
+      value: [
+        true,
+        false,
+        true,
+        false,
+        `bad argument #1 to 'rawequal' (value expected)`,
+        false,
+        `bad argument #2 to 'rawequal' (value expected)`,
+      ],
+    },
+  ];
+
+  for (const test of tests) {
+    if (!test.exp) throw Error('Return should be defined');
+    if (test.exp.kind !== 'return')
+      throw Error(
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+      );
+
+    expect(test.exp.kind).toBe('return');
+
+    for (let i = 0; i < test.value.length; i++) {
+      const val = test.exp.value[i];
+
+      if (val.kind === 'null') expect(test.value[i]).toBe(null);
+      else if (val.kind === 'error') throw Error('should not be an error');
+      else if (
+        val.kind !== 'number' &&
+        val.kind !== 'boolean' &&
+        val.kind !== 'string'
+      )
+        throw Error(` should be a number ${val.kind}`);
+      else expect(val.value).toBe(test.value[i]);
+    }
+  }
+});
+
+test('pairs', () => {
+  const tests = [
+    {
+      exp: evalChunk(
+        luaparser.parse(`
+-- 1. Basic table
+f1, t1, k1 = pairs({a=10, b=20})
+r1k, r1v = f1(t1, k1)      -- first entry
+r2k, r2v = f1(t1, r1k)     -- next entry
+r3k, r3v = f1(t1, r2k)     -- should end (nil,nil)
+
+-- 2. Empty table
+f2, t2, k2 = pairs({})
+s1k, s1v = f2(t2, k2)      -- should be nil,nil
+
+-- 3. Extra arguments (ignored)
+f3, t3, k3 = pairs({1,2}, "extra", 123)
+x1k, x1v = f3(t3, k3)      -- first entry (1,1)
+
+-- 4. Wrong type
+ok4, err4 = pcall(function() return pairs("not a table") end)
+
+-- 5. No arguments
+ok5, err5 = pcall(function() return pairs() end)
+
+return r1k, r1v,
+       r2k, r2v,
+       r3k, r3v,
+       s1k, s1v,
+       x1k, x1v,
+       ok4, err4,
+       ok5, err5
+        `),
+        new Lua_Table(),
+      ),
+      value: [
+        // r1k, r1v  (first entry from pairs/next)
+        'a',
+        10, // OR "b", 20
+
+        // r2k, r2v  (second entry)
+        'b',
+        20, // OR "a", 10
+
+        // r3k, r3v  (end of table)
+        null,
+        null,
+
+        // s1k, s1v  (empty table)
+        null,
+        null,
+
+        // x1k, x1v  (extra args ignored, first entry in {1,2})
+        1,
+        1, // then next would be 2,2
+
+        // ok4, err4  (wrong type)
+        false,
+        "bad argument #1 to 'pairs' (table expected, got string)",
+
+        // ok5, err5  (no args)
+        false,
+        "bad argument #1 to 'pairs' (table expected, got no value)",
+      ],
     },
   ];
 
@@ -2308,11 +3022,11 @@ e1, e2, e3, e4, e5 = pcall(function() return assert(1, "x", 2, 3) end)
 f1, f2 = pcall(function() return assert() end)
 -- expected: f1 = false, f2 = "bad argument #1 to 'assert' (value expected)"
 
-return a1, a2, b1, b2, c1, c2, c3, d1, d2, e1, e2, e3, e4, e5, f1, f2, 
+return a1, a2, b1, b2, c1, c2, c3, d1, d2, e1, e2, e3, e4, e5, f1, f2
 
 
         `),
-        new Lua_Environment(),
+        new Lua_Table(),
       ),
       value: [
         true,
@@ -2336,7 +3050,6 @@ return a1, a2, b1, b2, c1, c2, c3, d1, d2, e1, e2, e3, e4, e5, f1, f2,
   ];
 
   for (const test of tests) {
-    console.log('WHERE THE FUCK AM I ', test.exp);
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
@@ -2372,7 +3085,7 @@ repeat
 until x > 3
 return x
                 `),
-        new Lua_Environment(),
+        new Lua_Table(),
       ),
       value: [4],
     },

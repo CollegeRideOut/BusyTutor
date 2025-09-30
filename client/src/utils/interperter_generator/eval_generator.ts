@@ -48,13 +48,18 @@ export function* evalChunk(
   node: luaparser.Chunk,
   environment: Lua_Environment,
 ): Generator<
-  [Lua_Object_Visualizer | null, Lua_Environment, typeof branching, Set<Lua_Table>],
+  [
+    Lua_Object_Visualizer | null,
+    Lua_Environment,
+    typeof branching,
+    Set<Lua_Table>,
+  ],
   Lua_Object,
   [Lua_Object_Visualizer | null, Lua_Environment]
 > {
   //TODO
   current_environement = environment;
-Heap = new Set();
+  Heap = new Set();
   let gen = evalStatementsArray(node.body, environment);
   let p: ReturnType<typeof gen.next> = {
     done: true,
@@ -902,7 +907,7 @@ export function* evalExpression(
           } satisfies Lua_String),
         ];
       } else {
-          // TODO the visualization of the memberr indexastion type shii tmy ggggg
+        // TODO the visualization of the memberr indexastion type shii tmy ggggg
         const val = identifier.get({
           id: crypto.randomUUID(),
           kind: 'string',
