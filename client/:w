@@ -1,0 +1,20 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { httpBatchLink, createTRPCReact } from '@trpc/react-query';
+import superjson from 'superjson';
+import type { AppRouter } from '@busytutor/server/src/trpc/routers';
+
+export const trpc = createTRPCReact<AppRouter>();
+const queryClient = new QueryClient();
+
+const trpcClient = trpc.createClient({
+  transformer: superjson,
+  links: [httpBatchLink({ url: 'http://localhost:3000' })],
+});
+
+export function TrpcProvider({ children }) {
+  return (
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </trpc.Provider>
+  );
+}

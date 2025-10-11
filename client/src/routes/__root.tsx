@@ -3,6 +3,10 @@ import { Code2, Menu, Github, Twitter, Mail } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useState } from 'react';
 import { createContext } from 'react';
+import { httpBatchLink } from '@trpc/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import SuperJSON from 'superjson';
+import { trpc } from '../lib/trpc';
 
 //context
 export let CurrentPageContext = createContext({
@@ -15,27 +19,33 @@ export let CurrentPageContext = createContext({
 export const Route = createRootRoute({
   component: () => {
     const [currentPage, setCurrentPage] = useState<
-      'landing' | 'practice' | 'problem'
+      'landing' | 'practice' | 'problem' | 'register'
     >('landing');
-
     return (
-      <div className='min-h-screen flex flex-col flex-1 bg-background'>
-        {currentPage !== 'problem' && (
-          <Header
-            currentPage={currentPage}
-            onNavigate={(e: string) => setCurrentPage(e as any)}
-          />
-        )}
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
+          <div className='min-h-screen flex flex-col flex-1 bg-background'>
+            {currentPage !== 'problem' && (
+              <Header
+                currentPage={currentPage}
+                onNavigate={(e: string) => setCurrentPage(e as any)}
+              />
+            )}
 
-        <CurrentPageContext.Provider
-          value={{ page: currentPage, setCurrentPage: setCurrentPage as any }}
-        >
-          <main className='flex flex-col flex-1'>
-            <Outlet />
-          </main>
-        </CurrentPageContext.Provider>
-        {currentPage !== 'problem' && <Footer />}
-      </div>
+            <CurrentPageContext.Provider
+              value={{
+                page: currentPage,
+                setCurrentPage: setCurrentPage as any,
+              }}
+            >
+              <main className='flex flex-col flex-1'>
+                <Outlet />
+              </main>
+            </CurrentPageContext.Provider>
+            {currentPage !== 'problem' && <Footer />}
+          </div>
+        </QueryClientProvider>
+      </trpc.Provider>
     );
   },
 });
@@ -82,7 +92,17 @@ export function Header({ currentPage, onNavigate }: HeaderProps) {
             </Link>
 
             <Button variant='outline'>Login</Button>
-            <Button variant='outline'>Register</Button>
+            <Link
+              to='/register'
+              className={`hover:text-primary transition-colors ${
+                currentPage === 'register'
+                  ? 'text-primary'
+                  : 'text-muted-foreground'
+              }`}
+              onClick={() => onNavigate('practice')}
+            >
+              Register
+            </Link>
             <Button>Get Started</Button>
           </nav>
 

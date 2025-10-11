@@ -116,8 +116,8 @@
 
 ### Sep 22
 
-- wrap identifiers and tables with the "pixel" border 
-- allow for visual code 
+- wrap identifiers and tables with the "pixel" border
+- allow for visual code
 
 ### Sep 23
 
@@ -131,8 +131,34 @@
 - next()
 - ipairs()
 
+### Sep 30
+
+- bunch of stuff i forgot
+- refactored enviroment into Lua-Tables
+- most built in function complete
+- math global table almost complete
+
+### Oct 7
+
+- string global table started
+- table global table started
 
 ### Up Next
+
+- io, os, package, coroutine TODO and test all global tables
+- table (TODO)
+- table.sort
+- string (TODO)
+- string.dump — implement real function serialization
+- string.find — add full Lua pattern matching
+- string.format — add C-style formatting (%d, %f, %s, etc.)
+- string.gmatch — pattern iterator
+- string.gsub — pattern substitution
+- string.match — pattern captures
+- string.sub — handle pattern captures + finalize negative index logic
+- math.randomseed — proper seedable RNG
+- math.frexp — split float into mantissa & exponent
+- math.ldexp — mantissa \* 2^exp reconstruction
 
 - importnat nothing should return and error is more like a throw that takes over
 - move to server

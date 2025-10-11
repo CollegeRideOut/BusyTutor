@@ -1,0 +1,27 @@
+{
+  "name": "busytutor",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "client",
+    "server",
+    "shared"
+  ],
+  "description": "- Layout & spacing: Wrap environment elements using flex + flex-wrap with proper spacing. - Box highlighting: When indexing a variable, highlight the source box and the target box. - Arrow / visual link: Draw an arrow from the source to the target for chain indexing. - Path finding scaffold",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CollegeRideOut/BusyTutor.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/CollegeRideOut/BusyTutor/issues"
+  },
+  "homepage": "https://github.com/CollegeRideOut/BusyTutor#readme"
+}

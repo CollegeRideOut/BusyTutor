@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ArraysIndexRouteImport } from './routes/arrays/index'
@@ -16,6 +17,11 @@ import { Route as ProblemsIdRouteImport } from './routes/problems/$id'
 import { Route as ArraysTestRouteImport } from './routes/arrays/test'
 import { Route as Arrays217RouteImport } from './routes/arrays/217'
 
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PracticeRoute = PracticeRouteImport.update({
   id: '/practice',
   path: '/practice',
@@ -50,6 +56,7 @@ const Arrays217Route = Arrays217RouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/practice': typeof PracticeRoute
+  '/register': typeof RegisterRoute
   '/arrays/217': typeof Arrays217Route
   '/arrays/test': typeof ArraysTestRoute
   '/problems/$id': typeof ProblemsIdRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/practice': typeof PracticeRoute
+  '/register': typeof RegisterRoute
   '/arrays/217': typeof Arrays217Route
   '/arrays/test': typeof ArraysTestRoute
   '/problems/$id': typeof ProblemsIdRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/practice': typeof PracticeRoute
+  '/register': typeof RegisterRoute
   '/arrays/217': typeof Arrays217Route
   '/arrays/test': typeof ArraysTestRoute
   '/problems/$id': typeof ProblemsIdRoute
@@ -77,6 +86,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/practice'
+    | '/register'
     | '/arrays/217'
     | '/arrays/test'
     | '/problems/$id'
@@ -85,6 +95,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/practice'
+    | '/register'
     | '/arrays/217'
     | '/arrays/test'
     | '/problems/$id'
@@ -93,6 +104,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/practice'
+    | '/register'
     | '/arrays/217'
     | '/arrays/test'
     | '/problems/$id'
@@ -102,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PracticeRoute: typeof PracticeRoute
+  RegisterRoute: typeof RegisterRoute
   Arrays217Route: typeof Arrays217Route
   ArraysTestRoute: typeof ArraysTestRoute
   ProblemsIdRoute: typeof ProblemsIdRoute
@@ -110,6 +123,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/practice': {
       id: '/practice'
       path: '/practice'
@@ -158,6 +178,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PracticeRoute: PracticeRoute,
+  RegisterRoute: RegisterRoute,
   Arrays217Route: Arrays217Route,
   ArraysTestRoute: ArraysTestRoute,
   ProblemsIdRoute: ProblemsIdRoute,

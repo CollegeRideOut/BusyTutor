@@ -1,17 +1,29 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { ArrowRight, Code2, Zap, BookOpen, Trophy, BarChart3 } from 'lucide-react';
+import {
+  ArrowRight,
+  Code2,
+  Zap,
+  BookOpen,
+  Trophy,
+  BarChart3,
+} from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
-import { PixelArt, pixelPatterns, FloatingPixelArt } from '../components/PixelArt';
-
-
+import {
+  PixelArt,
+  pixelPatterns,
+  FloatingPixelArt,
+} from '../components/PixelArt';
+import { trpc } from '../lib/trpc';
 
 export const Route = createFileRoute('/')({
   component: Index,
 });
 
 function Index() {
+  let helloQuery = trpc.user.hello.useQuery({ name: 'world' });
+
   return (
     <div className='min-h-screen relative'>
       <FloatingPixelArt />
@@ -45,7 +57,10 @@ function Index() {
               <Button
                 size='lg'
                 className='text-xl px-12 py-8 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 transition-all duration-300 transform hover:scale-105'
-                onClick={() => onNavigate('practice')}
+                onClick={async () => {
+                  let x = await helloQuery.refetch();
+                  console.log('hello', x.data);
+                }}
               >
                 Start Learning
                 <ArrowRight className='ml-3 h-6 w-6' />
