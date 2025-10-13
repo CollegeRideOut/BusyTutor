@@ -7,7 +7,7 @@ import {
   builtin,
   Lua_Break,
   Lua_Console,
-} from './lua_types';
+} from '@busytutor/shared/lua/lua_types';
 import {
   ipairs,
   pcall,
@@ -26,7 +26,7 @@ import type {
   Lua_Function,
   Lua_String,
   Lua_Builtin,
-} from './lua_types';
+} from '@busytutor/shared/lua/lua_types';
 
 let Lua_Global_Environment = new Lua_Table();
 export let Lua_GLobal_Console = new Lua_Console();
@@ -971,7 +971,7 @@ export function applyFunction(
 ): Lua_Object {
   switch (func.kind) {
     case 'function': {
-        //TODO 
+      //TODO
       const extendedEnv = extendeFunctionEnv(
         func,
         args,

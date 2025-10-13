@@ -1,11 +1,13 @@
-import { createRootRoute, Link, Outlet } from '@tanstack/react-router';
+import {
+  createRootRoute,
+  Link,
+  Outlet,
+  useNavigate,
+} from '@tanstack/react-router';
 import { Code2, Menu, Github, Twitter, Mail } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { createContext } from 'react';
-import { httpBatchLink } from '@trpc/react-query';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import SuperJSON from 'superjson';
 import { trpc } from '../lib/trpc';
 
 //context
@@ -15,37 +17,148 @@ export let CurrentPageContext = createContext({
     void p;
   },
 });
+type AuthContextType = {
+  user: { email: string; id: string } | null;
+  token: string | null;
+  login: (user: { email: string; password: string }) => Promise<boolean>;
+  register: (user: { email: string; password: string }) => Promise<boolean>;
+  logout: () => void;
+};
+
+const AuthContext = createContext<AuthContextType | null>(null);
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  let navigate = useNavigate();
+  let loginMuation = trpc.user.login.useMutation();
+  let registerMuation = trpc.user.register.useMutation();
+
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  let { data, error } = trpc.user.userInfo.useQuery(undefined, {
+    enabled: false,
+    refetchInterval: 200,
+  });
+
+  // load from localStorage once
+  useEffect(() => {
+    const t = localStorage.getItem('token');
+    const u = localStorage.getItem('user');
+    if (t && u) {
+      setToken(t);
+      setUser(JSON.parse(u));
+    }
+  }, []);
+
+  useEffect(() => {
+    console.log(data);
+    if (!token && (!!user || !!token)) {
+      logout();
+    }
+    if (token && (!data?.success || !!error)) {
+      logout();
+    }
+  }, [data, error]);
+
+  const login = async (user: {
+    email: string;
+    password: string;
+  }): Promise<boolean> => {
+    try {
+      let u = await loginMuation.mutateAsync({
+        email: user.email,
+        password: user.password,
+      });
+
+      if (!u.success) throw Error('Login unsucesful');
+      setUser({ email: u.user.email, id: u.user.email });
+      setToken(u.token);
+      localStorage.setItem('token', u.token);
+      localStorage.setItem('user', JSON.stringify(user));
+      return true;
+    } catch (e) {
+      console.log(e);
+      logout();
+      return false;
+    }
+
+    //localStorage.setItem('token', token);
+    //localStorage.setItem('user', JSON.stringify(user));
+  };
+
+  const register = async (user: {
+    email: string;
+    password: string;
+  }): Promise<boolean> => {
+    try {
+      let u = await registerMuation.mutateAsync({
+        email: user.email,
+        password: user.password,
+      });
+      if (!u.success) throw Error('Register unsuccesfull');
+      setUser({ email: u.user.email, id: u.user.email });
+      setToken(u.token);
+      localStorage.setItem('token', u.token);
+      localStorage.setItem('user', JSON.stringify(user));
+      return true;
+    } catch (e) {
+      console.log(e);
+      logout();
+      return false;
+    }
+
+    //localStorage.setItem('token', token);
+    //localStorage.setItem('user', JSON.stringify(user));
+  };
+
+  const logout = () => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    navigate({ to: '/' });
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, token, login, logout, register }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be inside AuthProvider');
+  return ctx;
+};
 
 export const Route = createRootRoute({
   component: () => {
     const [currentPage, setCurrentPage] = useState<
-      'landing' | 'practice' | 'problem' | 'register'
+      'landing' | 'practice' | 'problem' | 'register' | 'login'
     >('landing');
     return (
-      <trpc.Provider client={trpcClient} queryClient={queryClient}>
-        <QueryClientProvider client={queryClient}>
-          <div className='min-h-screen flex flex-col flex-1 bg-background'>
-            {currentPage !== 'problem' && (
-              <Header
-                currentPage={currentPage}
-                onNavigate={(e: string) => setCurrentPage(e as any)}
-              />
-            )}
+      <div className='min-h-screen flex flex-col flex-1 bg-background'>
+        <AuthProvider>
+          {currentPage !== 'problem' && (
+            <Header
+              currentPage={currentPage}
+              onNavigate={(e: string) => setCurrentPage(e as any)}
+            />
+          )}
 
-            <CurrentPageContext.Provider
-              value={{
-                page: currentPage,
-                setCurrentPage: setCurrentPage as any,
-              }}
-            >
-              <main className='flex flex-col flex-1'>
-                <Outlet />
-              </main>
-            </CurrentPageContext.Provider>
-            {currentPage !== 'problem' && <Footer />}
-          </div>
-        </QueryClientProvider>
-      </trpc.Provider>
+          <CurrentPageContext.Provider
+            value={{
+              page: currentPage,
+              setCurrentPage: setCurrentPage as any,
+            }}
+          >
+            <main className='flex flex-col flex-1'>
+              <Outlet />
+            </main>
+          </CurrentPageContext.Provider>
+
+          {currentPage !== 'problem' && <Footer />}
+        </AuthProvider>
+      </div>
     );
   },
 });
@@ -54,6 +167,8 @@ interface HeaderProps {
   onNavigate: (page: string) => void;
 }
 export function Header({ currentPage, onNavigate }: HeaderProps) {
+  let navigate = useNavigate();
+  let auth = useAuth();
   return (
     <header className='border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50'>
       <div className='container mx-auto px-4 py-4'>
@@ -91,19 +206,40 @@ export function Header({ currentPage, onNavigate }: HeaderProps) {
               Practice
             </Link>
 
-            <Button variant='outline'>Login</Button>
-            <Link
-              to='/register'
-              className={`hover:text-primary transition-colors ${
-                currentPage === 'register'
-                  ? 'text-primary'
-                  : 'text-muted-foreground'
-              }`}
-              onClick={() => onNavigate('practice')}
-            >
-              Register
-            </Link>
-            <Button>Get Started</Button>
+            {auth.user === null ? (
+              <>
+                <Button
+                  variant={currentPage === 'login' ? 'default' : 'outline'}
+                  onClick={() => {
+                    navigate({ to: '/login' });
+                  }}
+                >
+                  Login
+                </Button>
+
+                <Button
+                  variant={currentPage === 'register' ? 'default' : 'outline'}
+                  onClick={() => {
+                    navigate({ to: '/register' });
+                  }}
+                >
+                  Register
+                </Button>
+              </>
+            ) : (
+              <div> {auth.user.email}</div>
+            )}
+
+            {auth.user !== null && (
+              <Button
+                onClick={() => {
+                  auth.logout();
+                  //navigate({ to: '/' });
+                }}
+              >
+                Log Out
+              </Button>
+            )}
           </nav>
 
           <Button variant='ghost' size='sm' className='md:hidden'>

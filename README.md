@@ -143,10 +143,16 @@
 - string global table started
 - table global table started
 
+### Oct 12
+
+- login
+- register
+- basics of server
+
 ### Up Next
 
 - io, os, package, coroutine TODO and test all global tables
-- table (TODO)
+- taqle (TODO)
 - table.sort
 - string (TODO)
 - string.dump — implement real function serialization
@@ -205,28 +211,23 @@
 ## Features to Include in MVP
 
 - [ ] Collapsible Tables / Nested Structures
-
   - [ ] Support deep nested objects without overwhelming the UI
   - [ ] Collapsed boxes show summary (e.g., size, keys)
 
 - [ ] Chain Indexing Visualization
-
   - [ ] Support nested access like a.b.c or table[1][2]
   - [ ] Highlight the current part of the chain being accessed
 
 - [ ] Code-Aware Indexing
-
   - [ ] Show line of code currently executing for the operation
   - [ ] Highlight the corresponding element(s) in the environment
 
 - [ ] Multiple Simultaneous Indexing
-
   - [ ] Show multiple accesses happening at the same time
   - [ ] Example: a[1] === b[1] → both elements visually highlighted concurrently
   - [ ] Provides binary-level understanding of comparisons/assignments
 
 - [ ] Code Animations
-
   - [ ] Animate elements when assigned or updated
   - [ ] Smoothly highlight changes to variables/tables
 

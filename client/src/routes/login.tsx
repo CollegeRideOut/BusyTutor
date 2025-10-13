@@ -1,57 +1,44 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useContext, useEffect, useState } from 'react';
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Card } from '../components/ui/card';
 import { PixelArt, pixelPatterns } from '../components/PixelArt';
+import { Button } from '../components/ui/button';
+import { ArrowLeft, Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { Card } from '../components/ui/card';
+import { Label } from '../components/ui/label';
+import { Input } from '../components/ui/input';
 import { CurrentPageContext, useAuth } from './__root';
 
-export const Route = createFileRoute('/register')({
-  component: RegisterPage,
+export const Route = createFileRoute('/login')({
+  component: LoginPage,
 });
 
-export function RegisterPage() {
-  const navigate = useNavigate();
-  const auth = useAuth();
+export function LoginPage() {
   let { setCurrentPage } = useContext(CurrentPageContext);
+  let auth = useAuth();
   useEffect(() => {
-    setCurrentPage('register');
+    setCurrentPage('login');
   }, []);
-  const [email, setEmail] = useState('');
+
+  const navigate = useNavigate();
+  const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<{
-    email?: string;
+    emailOrUsername?: string;
     password?: string;
-    confirmPassword?: string;
   }>({});
 
   const validateForm = () => {
     const newErrors: typeof errors = {};
 
-    // Email validation
-    if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Please enter a valid email address';
+    // Email or username validation
+    if (!emailOrUsername) {
+      newErrors.emailOrUsername = 'Email or username is required';
     }
 
     // Password validation
     if (!password) {
       newErrors.password = 'Password is required';
-    } else if (password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters long';
-    }
-
-    // Confirm password validation
-    if (!confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
     }
 
     setErrors(newErrors);
@@ -61,23 +48,22 @@ export function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      // Here you would typically handle the registration logic
-      let valid = await auth.register({ email, password });
-      if (valid) navigate({ to: '/practice' });
-      else console.log('registragion failed');
-
-      // Navigate to practice page after successful registration
-      //onNavigate('practice');
+      let valid = await auth.login({ email: emailOrUsername, password });
+      if (valid) {
+        navigate({ to: '/practice' });
+      } else {
+        throw new Error('handle loging failed ');
+      }
     }
   };
 
   return (
-    <div className={'w-screen flex flex-col items-center'}>
+    <div className='w-screen flex flex-col items-center'>
       <div
-        className={'min-h-screen py-12 px-4 relative max-w-2'}
-        style={{ maxWidth: 550 }}
+        className='min-h-screen py-12 px-4 relative'
+        style={{ minWidth: 700 }}
       >
-        {/* Background pixel art 
+        {/* Background pixel art */}
         <div className='fixed inset-0 pointer-events-none z-0'>
           <div className='absolute top-20 left-10 opacity-10'>
             <PixelArt pattern={pixelPatterns.code} size={8} />
@@ -92,14 +78,13 @@ export function RegisterPage() {
             <PixelArt pattern={pixelPatterns.database} size={5} />
           </div>
         </div>
-*/}
 
         <div className='container mx-auto max-w-md relative z-10'>
           {/* Back button */}
           <Button
             variant='ghost'
             className='mb-8 text-muted-foreground hover:text-foreground'
-            onClick={() => navigate({ to: '/' })}
+            onClick={() => navigate({ to: '/landing' })}
           >
             <ArrowLeft className='h-4 w-4 mr-2' />
             Back to Home
@@ -111,37 +96,40 @@ export function RegisterPage() {
               <div className='flex justify-center items-center gap-4 mb-4'>
                 <PixelArt pattern={pixelPatterns.variable} size={10} />
                 <h1 className='text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent'>
-                  Join Busy Tutor
+                  Welcome Back
                 </h1>
                 <PixelArt pattern={pixelPatterns.loop} size={10} />
               </div>
               <p className='text-muted-foreground'>
-                Create your account to start mastering programming fundamentals
+                Sign in to continue your programming journey
               </p>
             </div>
 
-            {/* Registration Form */}
+            {/* Login Form */}
             <form onSubmit={handleSubmit} className='space-y-6'>
-              {/* Username Field */}
-
-              {/* Email Field */}
+              {/* Email or Username Field */}
               <div className='space-y-2'>
-                <Label htmlFor='email' className='flex items-center gap-2'>
+                <Label
+                  htmlFor='emailOrUsername'
+                  className='flex items-center gap-2'
+                >
                   <Mail className='h-4 w-4 text-primary' />
-                  Enter Your Email
+                  Enter Email or Username
                 </Label>
                 <Input
-                  id='email'
-                  type='email'
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder='Enter your email'
+                  id='emailOrUsername'
+                  type='text'
+                  value={emailOrUsername}
+                  onChange={(e) => setEmailOrUsername(e.target.value)}
+                  placeholder='Email or username'
                   className={`bg-muted/50 border-muted-foreground/20 focus:border-primary ${
-                    errors.email ? 'border-destructive' : ''
+                    errors.emailOrUsername ? 'border-destructive' : ''
                   }`}
                 />
-                {errors.email && (
-                  <p className='text-sm text-destructive'>{errors.email}</p>
+                {errors.emailOrUsername && (
+                  <p className='text-sm text-destructive'>
+                    {errors.emailOrUsername}
+                  </p>
                 )}
               </div>
 
@@ -149,7 +137,7 @@ export function RegisterPage() {
               <div className='space-y-2'>
                 <Label htmlFor='password' className='flex items-center gap-2'>
                   <Lock className='h-4 w-4 text-primary' />
-                  Enter Your New Password
+                  Enter Password
                 </Label>
                 <div className='relative'>
                   <Input
@@ -157,7 +145,7 @@ export function RegisterPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder='Create a password'
+                    placeholder='Enter your password'
                     className={`bg-muted/50 border-muted-foreground/20 focus:border-primary pr-10 ${
                       errors.password ? 'border-destructive' : ''
                     }`}
@@ -181,66 +169,25 @@ export function RegisterPage() {
                 )}
               </div>
 
-              {/* Confirm Password Field */}
-              <div className='space-y-2'>
-                <Label
-                  htmlFor='confirmPassword'
-                  className='flex items-center gap-2'
-                >
-                  <Lock className='h-4 w-4 text-secondary' />
-                  Confirm the Password
-                </Label>
-                <div className='relative'>
-                  <Input
-                    id='confirmPassword'
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder='Confirm your password'
-                    className={`bg-muted/50 border-muted-foreground/20 focus:border-secondary pr-10 ${
-                      errors.confirmPassword ? 'border-destructive' : ''
-                    }`}
-                  />
-                  <Button
-                    type='button'
-                    variant='ghost'
-                    size='sm'
-                    className='absolute right-0 top-0 h-full px-3 hover:bg-transparent'
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className='h-4 w-4 text-muted-foreground' />
-                    ) : (
-                      <Eye className='h-4 w-4 text-muted-foreground' />
-                    )}
-                  </Button>
-                </div>
-                {errors.confirmPassword && (
-                  <p className='text-sm text-destructive'>
-                    {errors.confirmPassword}
-                  </p>
-                )}
-              </div>
-
               {/* Submit Button */}
               <Button
                 type='submit'
                 className='w-full text-lg py-6 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 transition-all duration-300 transform hover:scale-105'
               >
-                Create Account
+                Sign In
               </Button>
             </form>
 
-            {/* Login Link */}
+            {/* Register Link */}
             <div className='text-center mt-6'>
               <p className='text-muted-foreground'>
-                Already have an account?{' '}
+                Don't have an account?{' '}
                 <Button
                   variant='link'
                   className='p-0 h-auto text-primary hover:text-primary/80'
-                  onClick={() => onNavigate('login')}
+                  onClick={() => navigate({ to: '/register' })}
                 >
-                  Sign in
+                  Create one
                 </Button>
               </p>
             </div>

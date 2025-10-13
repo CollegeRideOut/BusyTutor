@@ -7,7 +7,7 @@ import {
   type Lua_Object,
   type Lua_Return,
   type Lua_String,
-} from './lua_types';
+} from '@busytutor/shared/lua/lua_types';
 
 export const toStringBuilt: Lua_Builtin = {
   id: crypto.randomUUID(),
@@ -777,7 +777,7 @@ export const unpack: Lua_Builtin = {
           id: crypto.randomUUID(),
           kind: 'number',
           value: i,
-        } satisfies Lua_Number),
+        } satisfies Lua_Number)
       );
     }
     return return_obj;
@@ -2002,7 +2002,7 @@ export const string_fn = {
             id: crypto.randomUUID(),
             kind: 'string',
             value: String.fromCharCode(
-              ...args.map((a) => (a as Lua_Number).value as number),
+              ...args.map((a) => (a as Lua_Number).value as number)
             ),
           },
         ];
@@ -2375,13 +2375,13 @@ export const table_fn = {
         }
         if (val_returned.value.length === 0) {
           throw Error(
-            `interperter conversion error ${val.kind} to string came empty`,
+            `interperter conversion error ${val.kind} to string came empty`
           );
         }
         let val_string = val_returned.value[0];
         if (val_string.kind !== 'string') {
           throw Error(
-            `interperter conversion error ${val.kind} to string came not as tring but ${val_string.kind}`,
+            `interperter conversion error ${val.kind} to string came not as tring but ${val_string.kind}`
           );
         }
         result += val_string.value;

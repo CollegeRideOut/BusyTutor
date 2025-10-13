@@ -3,7 +3,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../components/ui/tooltip';
-import { parseLongString } from '../utils/interperter/eval';
+//import { parseLongString } from '../utils/interperter/eval';
 import luaparser from 'luaparse';
 import type { Lua_Object_Visualizer } from '../utils/interperter_generator/generator_types';
 import type { ReactNode } from 'react';

@@ -51,7 +51,11 @@ const theme = {
   },
 };
 
-export function VisualizerToolNew({
+export function VisualizerToolNew(...args: any) {
+  return <div>for now</div>;
+}
+
+export function VisualizerToolOld({
   codeWritten,
   setAstParent,
   setVisual,
@@ -509,7 +513,7 @@ export function VisualizerToolNew({
                   console.log('env visual hapened');
                 } else if (visual.loc) {
                   setCodeLocaltion(visual);
-                  setVisual(visual)
+                  setVisual(visual);
                 }
               }
               //setGlobalEnvironment(
@@ -527,7 +531,7 @@ export function VisualizerToolNew({
           size={30}
           onClick={() => {
             setAst(null);
-            setAstParent(null)
+            setAstParent(null);
             setVisCode([]);
             setGen(undefined);
           }}

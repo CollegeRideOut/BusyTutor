@@ -5,9 +5,9 @@
   "main": "index.ts",
   "type": "commonjs",
   "scripts": {
-    "db:push": "drizzle-kit push:sqlite",
+    "db:push": "npx drizzle-kit push --config=./src/db/drizzle.config.ts",
     "db:studio": "drizzle-kit studio",
-    "db:generate": "drizzle-kit generate:sqlite",
+    "db:generate": "npx drizzle-kit generate --config=./src/db/drizzle.config.ts",
     "dev": "ts-node src/index.ts",
     "build": "tsc",
     "test": "vitest",

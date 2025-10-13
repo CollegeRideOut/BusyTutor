@@ -20,8 +20,8 @@ import {
   getfenv,
   setfenv,
   getmetatable,
-} from './builtin';
-import { applyFunction } from './eval';
+} from '@busytutor/server/src/interperter/builtin';
+import { applyFunction } from '@busytutor/server/src/interperter/eval';
 export type Lua_Object =
   | Lua_Return
   | Lua_Error

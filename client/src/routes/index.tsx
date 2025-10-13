@@ -15,14 +15,18 @@ import {
   pixelPatterns,
   FloatingPixelArt,
 } from '../components/PixelArt';
-import { trpc } from '../lib/trpc';
+import { useContext, useEffect } from 'react';
+import { CurrentPageContext } from './__root';
 
 export const Route = createFileRoute('/')({
   component: Index,
 });
 
 function Index() {
-  let helloQuery = trpc.user.hello.useQuery({ name: 'world' });
+  let { setCurrentPage } = useContext(CurrentPageContext);
+  useEffect(() => {
+    setCurrentPage('landing');
+  }, []);
 
   return (
     <div className='min-h-screen relative'>
@@ -57,10 +61,7 @@ function Index() {
               <Button
                 size='lg'
                 className='text-xl px-12 py-8 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 transition-all duration-300 transform hover:scale-105'
-                onClick={async () => {
-                  let x = await helloQuery.refetch();
-                  console.log('hello', x.data);
-                }}
+                onClick={async () => {}}
               >
                 Start Learning
                 <ArrowRight className='ml-3 h-6 w-6' />

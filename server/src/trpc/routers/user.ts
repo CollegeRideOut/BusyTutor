@@ -17,7 +17,9 @@ export const userRouter = router({
       if (!result.ok) throw toTRPCError(result.error);
 
       let user = { ...result.value, password: undefined };
-      return { success: true, user: user };
+      const token = signToken({ userId: user.id, email: user.email });
+
+      return { success: true, user: user, token };
     }),
 
   login: procedure

@@ -1,8 +1,8 @@
 import luaparser from 'luaparse';
 import { describe, expect, test } from 'vitest';
 import { evalExpression, evalChunk, Lua_GLobal_Console } from './eval';
-import type { Lua_Boolean, Lua_Number } from './lua_types';
-import { Lua_Table } from './lua_types';
+import type { Lua_Boolean, Lua_Number } from '@busytutor/shared/lua/lua_types';
+import { Lua_Table } from '@busytutor/shared/lua/lua_types';
 
 // test expression
 
@@ -195,7 +195,7 @@ describe('BinaryExpression', () => {
       {
         exp: evalChunk(
           luaparser.parse('return 10 + 10 + 10 + 10'),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: 40,
       },
@@ -227,7 +227,7 @@ describe('BinaryExpression', () => {
       {
         exp: evalChunk(
           luaparser.parse('return 10 - 10 - 10 - 10'),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: -20,
       },
@@ -259,7 +259,7 @@ describe('BinaryExpression', () => {
       {
         exp: evalChunk(
           luaparser.parse('return 10 * 10 * 10 * 10'),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: 10000,
       },
@@ -376,14 +376,14 @@ describe('BinaryExpression', () => {
       {
         exp: evalChunk(
           luaparser.parse('x = "he"; return x .. "llo" '),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: 'hello',
       },
       {
         exp: evalChunk(
           luaparser.parse('x, y = "hel", "lo"; return x .. y'),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: 'hello',
       },
@@ -612,25 +612,25 @@ describe('IfStatement', () => {
       {
         exp: evalChunk(
           luaparser.parse('if true then return 5 end'),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: 5,
       },
       {
         exp: evalChunk(
           luaparser.parse(
-            `if false then return 5 elseif true then return 10 end return 20`,
+            `if false then return 5 elseif true then return 10 end return 20`
           ),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: 10,
       },
       {
         exp: evalChunk(
           luaparser.parse(
-            `if false then return 5 elseif false then return 10 else return 2 end return 20`,
+            `if false then return 5 elseif false then return 10 else return 2 end return 20`
           ),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: 2,
       },
@@ -647,7 +647,7 @@ describe('IfStatement', () => {
                      return 2 
                  end 
                  return 20`),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: 99,
       },
@@ -702,21 +702,21 @@ describe('AssignmentStatement', () => {
       {
         exp: evalChunk(
           luaparser.parse('x,y = 10; return x, y'),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [10, null],
       },
       {
         exp: evalChunk(
           luaparser.parse('x,y = 10, 20; return x, y'),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [10, 20],
       },
       {
         exp: evalChunk(
           luaparser.parse('x,y = 10, 20, 30; return x, y'),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [10, 20],
       },
@@ -753,7 +753,7 @@ describe('FunctionDeclaration', () => {
                     end
                     return foo()
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [2],
       },
@@ -766,7 +766,7 @@ describe('FunctionDeclaration', () => {
                     end
                     return foo(5), x
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [5, 1],
       },
@@ -779,7 +779,7 @@ describe('FunctionDeclaration', () => {
                     end
                     return foo(5, 10), x
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [15, 1],
       },
@@ -791,7 +791,7 @@ describe('FunctionDeclaration', () => {
                     end
                     return x(5, 10)
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [15],
       },
@@ -807,7 +807,7 @@ describe('FunctionDeclaration', () => {
                     addTwo = newAdder(2)
                     return addTwo(3)
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [5],
       },
@@ -824,7 +824,7 @@ describe('FunctionDeclaration', () => {
                     end
                     return rec(1)
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [true],
       },
@@ -858,7 +858,7 @@ describe('Builtins', () => {
                    x = tostring(5)
                    return x
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: ['5'],
       },
@@ -896,7 +896,7 @@ describe('Tables', () => {
                     x = { 2, 3 }
                     return x[1]
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [2],
       },
@@ -906,7 +906,7 @@ describe('Tables', () => {
                     x = { name = 1 }
                     return x['name']
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [1],
       },
@@ -918,7 +918,7 @@ describe('Tables', () => {
                     x = { name = 1 }
                     return x['name']
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [1],
       },
@@ -929,7 +929,7 @@ describe('Tables', () => {
                     x = { name = 1 }
                     return x['name']
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [1],
       },
@@ -939,7 +939,7 @@ describe('Tables', () => {
                     x = { name = 1 }
                     return x['na']
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [null],
       },
@@ -950,7 +950,7 @@ describe('Tables', () => {
                     x = { ['2'] = 1 }
                     return x[2]
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [null],
       },
@@ -963,7 +963,7 @@ describe('Tables', () => {
                     x[k] = 'yes'
                     return x[k]
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: ['yes'],
       },
@@ -976,7 +976,7 @@ describe('Tables', () => {
                     x[k] = 'yes'
                     return x[{}]
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [null],
       },
@@ -988,7 +988,7 @@ describe('Tables', () => {
                     y = x
                     return y[1]
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [3],
       },
@@ -999,7 +999,7 @@ describe('Tables', () => {
                     local t = { [true] = "yes", [false] = "no" }
                     return t[false]
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: ['no'],
       },
@@ -1009,7 +1009,7 @@ describe('Tables', () => {
                     local t = { sound = { 1, sound = { 31 } } }
                     return t['sound']['sound'][1]
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [31],
       },
@@ -1020,7 +1020,7 @@ describe('Tables', () => {
                     local t = { sound = { 1, sound = { 31 } } }
                     return t.sound.sound[1]
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [31],
       },
@@ -1031,7 +1031,7 @@ describe('Tables', () => {
                     local t = {2, sound = function(xx) return xx[1] end }
                     return t:sound()
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [2],
       },
@@ -1044,7 +1044,7 @@ describe('Tables', () => {
                     end
                     return t:sound()
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [2],
       },
@@ -1084,7 +1084,7 @@ local t = setmetatable({}, { __index = fallback })
 
 return t.a
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [10],
       },
@@ -1100,7 +1100,7 @@ local t = setmetatable({}, {
 
 return t.foo
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [42],
       },
@@ -1113,7 +1113,7 @@ local t = setmetatable({ a = 99 }, { __index = fallback })
 
 return t.a 
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [99],
       },
@@ -1129,7 +1129,7 @@ local t = setmetatable({}, {
 
 return t.missing
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [null],
       },
@@ -1145,7 +1145,7 @@ local t = setmetatable({}, {
 
 return t.missing
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [null],
       },
@@ -1200,7 +1200,7 @@ end
 local p = Person:new('a')
 return p:get_name()
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: ['a'],
       },
@@ -1241,7 +1241,7 @@ local t = setmetatable({}, { __newindex = sink })
 t.foo = 7        -- redirected to sink
 return sink.foo, t.foo   -- expect: 7, nil
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [7, null],
       },
@@ -1284,7 +1284,7 @@ local t = setmetatable({ val = 5 }, mt)
 
 return t(3)   -- expect 8
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [8],
       },
@@ -1328,7 +1328,7 @@ local t2 = setmetatable({ val = "bar" }, mt)
 
 return t1 .. t2   -- expect "foo-bar"
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: ['foo-bar'],
       },
@@ -1408,7 +1408,7 @@ return
   k ^ l,    -- expect 8
   -m        -- expect -7
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [13, 7, 30, 5, 4, 8, -7],
       },
@@ -1458,7 +1458,7 @@ return
   t1 < t3,    -- expect true  (1 < 2)
   t3 > t1    -- expect true  (rewritten as t1 < t3)
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [true, false, true, true, true],
       },
@@ -1500,7 +1500,7 @@ for i = 1, 5 do
 end
 return sum
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [3],
       },
@@ -1515,7 +1515,7 @@ for i = 1, 5 do
 end
 return sum
                 `),
-          new Lua_Table(),
+          new Lua_Table()
         ),
         value: [1],
       },
@@ -1527,7 +1527,7 @@ return sum
       if (!test.exp) throw Error('Return should be defined');
       if (test.exp.kind !== 'return')
         throw Error(
-          ` heeeeeeeey idx ${t} '${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
+          ` heeeeeeeey idx ${t} '${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`
         );
 
       expect(test.exp.kind).toBe('return');
@@ -1563,7 +1563,7 @@ do
 end
 return x
                 `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [1],
     },
@@ -1577,7 +1577,7 @@ do
 end
 return x
                 `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [15],
     },
@@ -1588,7 +1588,7 @@ return x
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -1619,7 +1619,7 @@ while x < 5 do
 end
 return x
                 `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [5],
     },
@@ -1633,7 +1633,7 @@ while x < 5 do
 end
 return x
                 `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [10],
     },
@@ -1644,7 +1644,7 @@ return x
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -1685,7 +1685,7 @@ local h_ = false or 66   -- false → falsey → picks 66
 
 return a, b, c, d, e, f_, g_, h_
                 `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [99, 'hi', 42, null, 77, null, 0, 66],
     },
@@ -1696,7 +1696,7 @@ return a, b, c, d, e, f_, g_, h_
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -1711,7 +1711,7 @@ return a, b, c, d, e, f_, g_, h_
         val.kind !== 'string'
       )
         throw Error(
-          ` should be a value is ${val.kind} should be value = ${test.value[i]}`,
+          ` should be a value is ${val.kind} should be value = ${test.value[i]}`
         );
       else expect(val.value).toBe(test.value[i]);
     }
@@ -1745,7 +1745,7 @@ local t1, t2 = test()
 
 return r1, r2, r3, r4, r5, r6, r7, s1, s2, s3, t1, t2
                 `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [10, 10, 20, 30, 10, 20, 30, 42, 42, null, null, null],
     },
@@ -1778,7 +1778,7 @@ return
   A2, B2, C2, D2, E2, F2, S2, V3, V4,
   A3, B3, C3, D3, E3, F3, S3, V5, V6
                 `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [
         1,
@@ -1819,7 +1819,7 @@ return
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -1834,7 +1834,7 @@ return
         val.kind !== 'string'
       )
         throw Error(
-          ` should be a value is ${val.kind} should be value = ${test.value[i]}`,
+          ` should be a value is ${val.kind} should be value = ${test.value[i]}`
         );
       else expect(val.value).toBe(test.value[i]);
     }
@@ -1864,7 +1864,7 @@ local b = sum({1, 2, 3})
 
 return a, b
                 `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [6, 6],
     },
@@ -1875,7 +1875,7 @@ return a, b
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? test.exp.message : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? test.exp.message : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -1911,7 +1911,7 @@ local b = shout("hey")
 
 return a, b
                 `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: ['hey!', 'hey!'],
     },
@@ -1922,7 +1922,7 @@ return a, b
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -1980,7 +1980,7 @@ inc()                  -- b = 115
 return a, mid_final, inner_final, b
 
                 `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [1, 11, 21, 115],
     },
@@ -2016,7 +2016,7 @@ bump()
 return a, outer
 
                 `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [10, 213],
     },
@@ -2027,7 +2027,7 @@ return a, outer
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -2053,7 +2053,7 @@ test('pcall', () => {
         luaparser.parse(`
 return pcall(function() error("bad") end)
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [false, 'bad'],
     },
@@ -2063,7 +2063,7 @@ return pcall(function() error("bad") end)
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -2096,7 +2096,7 @@ local r4 = type(function() end)
 local r5 = type({})
 return r1, r2, r3, r4, r5
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: ['nil', 'number', 'string', 'function', 'table'],
     },
@@ -2106,7 +2106,7 @@ return r1, r2, r3, r4, r5
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -2139,7 +2139,7 @@ local r2 = _VERSION
 
 return r1, r2
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: ['Lua 5.1', 'custom'],
     },
@@ -2149,7 +2149,7 @@ return r1, r2
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -2178,7 +2178,7 @@ test('_G', () => {
 _G.hello = "world"
 return hello
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: ['world'],
     },
@@ -2188,7 +2188,7 @@ return hello
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -2233,7 +2233,7 @@ local r4 = getmetatable(t3)        -- nil
 
 return r1, r2, r3, r4
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: ['bar', 123, 'locked', null],
     },
@@ -2243,7 +2243,7 @@ return r1, r2, r3, r4
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -2284,7 +2284,7 @@ local got = getfenv(f)
 -- return the 'a' field from that environment
 return got.a
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [2],
     },
@@ -2294,7 +2294,7 @@ return got.a
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.value : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.value : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -2346,7 +2346,7 @@ local r4b = env4.d     -- 40
 
 return r1, r2, r3, r4a, r4b
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [10, 20, null, 40, 40],
     },
@@ -2356,7 +2356,7 @@ return r1, r2, r3, r4a, r4b
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.value!.value : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.value!.value : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -2404,7 +2404,7 @@ return r1a, r1b,
        r3a, r3b,
        r4a, r4b
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [
         true,
@@ -2423,7 +2423,7 @@ return r1a, r1b,
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -2456,7 +2456,7 @@ return a1, b1, c1,
        a2, b2, c2,
        a3, b3, c3
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [1, 2, 3, 1, 2, 3, 1, null, 3],
     },
@@ -2466,7 +2466,7 @@ return a1, b1, c1,
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -2500,7 +2500,7 @@ local r4 = tonumber("101", 2)
 
 return r1, r2, r3, r4
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [null, 123, 3.14],
     },
@@ -2510,7 +2510,7 @@ return r1, r2, r3, r4
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -2556,7 +2556,7 @@ function test_select(...)
 end
 return test_select("x", "y", "z")
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [3, 'x', 'y', 'z', 'y', 'z', null, 'z', null, null],
     },
@@ -2566,7 +2566,7 @@ return test_select("x", "y", "z")
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -2613,7 +2613,7 @@ return k1, v1,
        ok4, err4
 
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: ['a', 10, 'b', 20, null, null, false, "invalid key to 'next'"],
     },
@@ -2623,7 +2623,7 @@ return k1, v1,
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -2668,7 +2668,7 @@ s1, s2 = f2(t2, i2)
 return r1, r2, r3, r4, r5, r6,
        s1, s2
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [1, 'a', 2, 'b', null, null, null, null],
     },
@@ -2678,7 +2678,7 @@ return r1, r2, r3, r4, r5, r6,
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -2706,7 +2706,7 @@ test('print', () => {
         luaparser.parse(`
 x1 = print("hello", "bye", "bye")  
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [['hello', 'bye', 'bye'].join('\t') + '\n'],
     },
@@ -2735,7 +2735,7 @@ rawset(t, "x", 200)
 v2 = t.x                  -- 200
 return 100 
 `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [
         100, // v1
@@ -2747,7 +2747,7 @@ return 100
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -2797,7 +2797,7 @@ ok5, err5 = pcall(function() return rawget(t) end)
 
 return a1, a2, a3, ok4, err4, ok5, err5
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [
         123, // a1
@@ -2815,7 +2815,7 @@ return a1, a2, a3, ok4, err4, ok5, err5
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -2863,7 +2863,7 @@ ok5, err5 = pcall(function() return rawequal(123) end)
 -- expected: err5 = "bad argument #2 to 'rawequal' (value expected)"
 return a1, a2, a3, ok4, err4, ok5, err5
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [
         true,
@@ -2881,7 +2881,7 @@ return a1, a2, a3, ok4, err4, ok5, err5
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -2935,7 +2935,7 @@ return r1k, r1v,
        ok4, err4,
        ok5, err5
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [
         // r1k, r1v  (first entry from pairs/next)
@@ -2973,7 +2973,7 @@ return r1k, r1v,
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -3026,7 +3026,7 @@ return a1, a2, b1, b2, c1, c2, c3, d1, d2, e1, e2, e3, e4, e5, f1, f2
 
 
         `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [
         true,
@@ -3053,7 +3053,7 @@ return a1, a2, b1, b2, c1, c2, c3, d1, d2, e1, e2, e3, e4, e5, f1, f2
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? 'what is? ' + test.exp.message : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');
@@ -3085,7 +3085,7 @@ repeat
 until x > 3
 return x
                 `),
-        new Lua_Table(),
+        new Lua_Table()
       ),
       value: [4],
     },
@@ -3096,7 +3096,7 @@ return x
     if (!test.exp) throw Error('Return should be defined');
     if (test.exp.kind !== 'return')
       throw Error(
-        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`,
+        `${test.exp.kind === 'error' ? test.exp.kind : test.exp.kind}`
       );
 
     expect(test.exp.kind).toBe('return');

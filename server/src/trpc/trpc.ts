@@ -18,7 +18,6 @@ const isAuthed = t.middleware(async ({ ctx, next }) => {
   }
   return next({
     ctx: {
-      // guarantee that ctx.user is non-null here
       userTokenInfo: ctx.userTokenInfo,
     },
   });

@@ -24,7 +24,7 @@ export const userRepo = {
       const hashed = await bcrypt.hash(data.password, SALT_ROUNDS);
       const [user] = await db
         .insert(users)
-        .values({ ...data, password: hashed })
+        .values({ email: data.email, password: hashed })
         .returning();
 
       return { ok: true, value: user };
@@ -65,26 +65,36 @@ export const userRepo = {
   async verifyUser(data: {
     email: string;
     password: string;
-  }): Promise<Result<any>> {
+  }): Promise<Result<typeof users.$inferSelect>> {
     try {
       const result = await this.findByEmail(data.email);
       if (!result.ok) return result;
-      if (result.value === undefined) {
+      let user = result.value;
+      if (user === undefined) {
+        console.log('here user was undefined');
         return {
           ok: false,
           error: new ValidationError('Invalid credentials'),
         };
       }
 
-      let match = await bcrypt.compare(data.password, result.value.password);
+      let match = await bcrypt.compare(data.password, user.password);
       if (!match) {
+        console.log(
+          'password did not match',
+          data.password,
+          ' |---| ',
+          user.password,
+          ' el jodio email',
+          user.email
+        );
         return {
           ok: false,
           error: new NotFoundError('Invalid credentials'),
         };
       }
 
-      return result;
+      return { ok: result.ok, value: user };
     } catch (err) {
       console.error('[DB ERROR]', err);
       return {
@@ -101,6 +111,8 @@ export const userRepo = {
       const user = await db.query.users.findFirst({
         where: eq(users.email, email),
       });
+      console.log('bucando poer email me da', user);
+
       return { ok: true, value: user };
     } catch (err) {
       console.error('[DB ERROR]', err);
