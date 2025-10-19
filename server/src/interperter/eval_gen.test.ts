@@ -1,39 +1,13 @@
 import luaparser from 'luaparse';
 import { describe, expect, test } from 'vitest';
-import { evalExpression, evalChunk, Lua_GLobal_Console } from './eval';
+import { evalChunkTestHelper, Lua_GLobal_Console } from './eval_gen';
 import type { Lua_Boolean, Lua_Number } from './lua_types';
 import { Lua_Table } from './lua_types';
 
 // test expression
-
-test('NumericLiteral', () => {
-  const tests = [
-    { exp: generateNumericLiteral(5), value: 5 },
-    { exp: generateNumericLiteral(1), value: 1 },
-    { exp: generateNumericLiteral(2), value: 2 },
-    { exp: generateNumericLiteral(50), value: 50 },
-    { exp: generateNumericLiteral(10), value: 10 },
-  ];
-
-  for (const test of tests) {
-    let val = evalExpression(test.exp, new Lua_Table());
-    expect(val.kind).toBe('number');
-    expect((val as Lua_Number).value).toBe(test.value);
-  }
-});
-
-test('BooleanLiteral', () => {
-  const tests = [
-    { exp: generateBooleanLiteral(false), value: false },
-    { exp: generateBooleanLiteral(true), value: true },
-  ];
-
-  for (const test of tests) {
-    let val = evalExpression(test.exp, new Lua_Table());
-    expect(val.kind).toBe('boolean');
-    expect((val as Lua_Boolean).value).toBe(test.value);
-  }
-});
+function evalChunk(ast: luaparser.Chunk, environment: Lua_Table) {
+  return evalChunkTestHelper(ast, environment);
+}
 
 test('StringLiteral', () => {
   const tests = [
@@ -148,6 +122,7 @@ test('LengthOperator #', () => {
 
   for (const test of tests) {
     expect(test.exp).toBeDefined();
+    console.log('hey yoo');
     if (!test.exp) throw Error(`test.exp is not defined`);
 
     expect(test.exp.kind).toBe('return');

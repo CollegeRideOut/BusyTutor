@@ -24,24 +24,13 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from './ui/resizable';
-import { VisualizerToolNew } from './visualizerTool';
 import { EvalChunkFront } from './ast_visualizer';
-import type { Lua_Object_Visualizer } from '../utils/interperter_generator/generator_types';
+import type { Lua_Object_Visualizer } from '@busytutor/server/';
+import { trpc } from '../lib/trpc';
 
 interface ProblemPageProps {
   problemId: number | null;
 }
-
-interface TestRun {
-  id: string;
-  timestamp: string;
-  output: string;
-  status: 'running' | 'passed' | 'failed';
-  message?: string;
-}
-
-// Mock problem data - you can replace this with actual data later
-//
 
 const theme = {
   theme: 'dark',
@@ -65,18 +54,25 @@ const theme = {
 export function ProblemPage({ problemId }: ProblemPageProps) {
   let { setCurrentPage } = useContext(CurrentPageContext);
   const [code, setCode] = useState('');
+  const [idToUse, setIdToUse] = useState('');
   let onNavigate = useNavigate();
   const [problem] = useState(problems.find((p) => p.id === problemId)?.data);
-  const [isConsoleOpen, setIsConsoleOpen] = useState(true);
-  const [isVisual, setIsVisual] = useState(false);
-  const [visual, setVisual] = useState<Lua_Object_Visualizer | null>(null);
+  const [isConsoleOpen, _setIsConsoleOpen] = useState(true);
+  const [isVisual, _setIsVisual] = useState(false);
+  const [visual, _setVisual] = useState<Lua_Object_Visualizer>({
+    loc: { start: { line: 0, column: 0 }, end: { line: 0, column: 0 } },
+  });
   const [ast, setAst] = useState<luarparser.Chunk | null>(null);
-  const [runCounter, setRunCounter] = useState(0);
+
+  let luaRunner = trpc.lua.runLua.useMutation();
+  let nextRUnner = trpc.lua.next.useMutation();
 
   useEffect(() => {
     setCurrentPage('problem');
   }, []);
+
   //TODO  not found
+
   if (!problem) {
     return (
       <div className='h-screen py-12 px-4'>
@@ -105,32 +101,8 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
     setCode(problem.starterCode);
   }
 
-  const handleRunCode = () => {
-    const newRunId = `run-${runCounter + 1}`;
-    const timestamp = new Date().toLocaleTimeString();
-
-    // Create new test run
-    const newTestRun: TestRun = {
-      id: newRunId,
-      timestamp,
-      output: 'Running code...',
-      status: 'running',
-    };
-
-    setRunCounter((prev) => prev + 1);
-
-    // Automatically open console when running code
-    if (!isConsoleOpen) {
-      setIsConsoleOpen(true);
-    }
-
-    // Simulate code execution
-    // TODO
-  };
-
   const handleReset = () => {
     setCode(problem.starterCode);
-    setRunCounter(0);
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -189,19 +161,20 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
           {/* TODO visualizer  des*/}
           {!isVisual ? (
             <ProblemDescription problemId={problemId} />
-          ) : (
-            <VisualizerToolNew
+          ) : /* (
+          <VisualizerToolNew
               codeWritten={code}
               setVisual={setVisual}
               setAstParent={setAst}
             />
-          )}
+
+          )*/ null}
         </ResizablePanel>
 
         {/* Slight Separator */}
         <ResizableHandle className='w-1 bg-border flex-shrink-0' />
 
-        {/* Right Panel - Code Editor & Console (Fixed) */}
+        {/* Ri/*ght Panel - Code Editor & Console (Fixed) */}
         <ResizablePanel className='w-1/2 flex-1 flex flex-col bg-background min-h-0'>
           <ResizablePanelGroup
             direction='vertical'
@@ -230,9 +203,15 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
                     Reset
                   </Button>
                   <Button
-                    onClick={handleRunCode}
                     size='sm'
                     className='bg-primary hover:bg-primary/90 text-primary-foreground'
+                    onClick={async () => {
+                      let vis = await nextRUnner.mutateAsync({ id: idToUse });
+                      if (vis.visual) {
+                        console.log(vis.visual);
+                        _setVisual(vis.visual);
+                      }
+                    }}
                   >
                     <Play className='h-3 w-3 mr-1' />
                     Run
@@ -250,8 +229,11 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
                     className='w-full h-full font-mono text-sm bg-muted/30 border border-border/30 resize-none focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-colors'
                     style={{ minHeight: '100%' }}
                   />
-                ) : visual && ast &&(
-                  <EvalChunkFront theme={theme} visual={visual} node={ast} />
+                ) : (
+                  visual &&
+                  ast && (
+                    <EvalChunkFront theme={theme} visual={visual} node={ast} />
+                  )
                 )}
               </div>
             </ResizablePanel>
@@ -281,9 +263,23 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
                       className='flex-col'
                     >
                       <Button
-                        onClick={() => {
-                          setCode(t.value + '\n' + code);
-                          setIsVisual(true);
+                        onClick={async () => {
+                          let result = await luaRunner.mutateAsync({
+                            code: code,
+                            inputs: t.value,
+                            problemId: '217',
+                          });
+                          if (result.sucess) {
+                            let ast = luarparser.parse(result.userLuaRun!, {
+                              locations: true,
+                            });
+
+                            setAst(ast);
+                            setIdToUse(result.id!);
+                            setCode(result.userLuaRun!);
+                            _setIsVisual(true);
+                          }
+
                           console.log('start visualier');
                         }}
                       >

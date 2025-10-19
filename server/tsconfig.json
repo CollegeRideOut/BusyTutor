@@ -2,8 +2,8 @@
   "compilerOptions": {
     /* base setup */
     "target": "ES2022",              // modern JS output
-    "module": "CommonJS",              // allows import/export syntax
-    "moduleResolution": "Bundler",   // works best in 2025 with Node + modern tools
+    "module": "Commonjs",              // allows import/export syntax
+    "moduleResolution": "bundler",   // works best in 2025 with Node + modern tools
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,

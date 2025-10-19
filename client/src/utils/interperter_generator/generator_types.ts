@@ -1,6 +1,6 @@
 //import type { Lua_Object } from "../interperter/lua_types"
 
-import type { Lua_Object } from '../interperter/lua_types';
+import type { Lua_Object } from '@busytutor/shared/lua/lua_types';
 
 let a: Lua_Object | null = null;
 void a;

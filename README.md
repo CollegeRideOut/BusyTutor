@@ -149,6 +149,10 @@
 - register
 - basics of server
 
+### Oct 17
+
+- Ast Vislizer
+
 ### Up Next
 
 - io, os, package, coroutine TODO and test all global tables

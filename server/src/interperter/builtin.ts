@@ -7,7 +7,7 @@ import {
   type Lua_Object,
   type Lua_Return,
   type Lua_String,
-} from '@busytutor/shared/lua/lua_types';
+} from './lua_types';
 
 export const toStringBuilt: Lua_Builtin = {
   id: crypto.randomUUID(),
@@ -486,7 +486,8 @@ export const rawget: Lua_Builtin = {
       case 'error':
       case 'return':
       default: {
-        return Lua_Null;
+        val = Lua_Null;
+        break;
       }
     }
 

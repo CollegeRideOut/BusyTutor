@@ -5,6 +5,7 @@ import {
   Lua_True,
   Lua_False,
   builtin,
+  Lua_Visualzer,
   Lua_Break,
   Lua_Console,
 } from './lua_types';
@@ -29,22 +30,43 @@ import {
   getfenv,
   math_fn,
 } from './builtin';
+import { parentPort } from 'worker_threads';
+
+function postAndWait(msg: any): Promise<void> {
+  return new Promise((resolve) => {
+    parentPort!.once('message', (ack) => {
+      if (ack === 'ack') resolve();
+    });
+    parentPort!.postMessage(msg);
+  });
+}
+
+parentPort!.once('message', async (code: string) => {
+  let ast = luaparser.parse(code, { locations: true });
+  let gobal = new Lua_Table();
+  let gen = evalChunkGenerator(ast, gobal);
+  let val = gen.next();
+
+  while (!val.done) {
+    val = gen.next();
+    await postAndWait(JSON.stringify(val.value));
+  }
+  parentPort!.postMessage({ type: 'done' });
+});
 
 let Lua_Global_Environment: Lua_Table | null = null;
 export let Lua_GLobal_Console: Lua_Console | null = null;
 
-export function Inspect(obj: Lua_Object) {
-  switch (obj.kind) {
-    case 'null': {
-      return 'null';
-    }
-    case 'error': {
-      return `ERROR: ${obj.message}`;
-    }
-    default: {
-      //return obj.value.toString();
-    }
-  }
+export function evalChunkTestHelper(
+  node: luaparser.Chunk,
+  environment: Lua_Table
+) {
+  const g = evalChunkGenerator(node, environment);
+  let v: ReturnType<typeof g.next> = { done: true, value: Lua_Null };
+  do {
+    v = g.next();
+  } while (!v.done);
+  return v.value;
 }
 
 function setGlobalTables(environment: Lua_Table) {
@@ -82,16 +104,20 @@ function setGlobalTables(environment: Lua_Table) {
 }
 
 let Hidden_Environment: Lua_Table | null = null;
-export function evalChunk(node: luaparser.Chunk, environment?: Lua_Table) {
+export function* evalChunkGenerator(
+  node: luaparser.Chunk,
+  environment?: Lua_Table
+): Generator<Lua_Visualzer, Lua_Object> {
   //TODO
   Lua_Global_Environment = environment || new Lua_Table();
   setGlobalTables(Lua_Global_Environment);
   Lua_GLobal_Console = new Lua_Console();
   Hidden_Environment = new Lua_Table();
   setUp(Hidden_Environment);
-  return evalStatementsArray(node.body, Lua_Global_Environment);
+  return yield* evalStatementsArray(node.body, Lua_Global_Environment);
 }
 const ipairs_aux = 'ipairs_aux';
+
 export function setUp(environment: Lua_Table) {
   let chunk = luaparser.parse(`
 function ${ipairs_aux}(t, i)
@@ -102,17 +128,21 @@ function ${ipairs_aux}(t, i)
   end
 end
 `);
-  let v = evalStatementsArray(chunk.body, environment);
+  let x = evalStatementsArray(chunk.body, environment);
+  let v = x.next();
+  while (!v.done) {
+    v = x.next();
+  }
   void v;
 }
 
-export function evalStatementsArray(
+export function* evalStatementsArray(
   node: luaparser.Statement[],
   environment: Lua_Table
-) {
+): Generator<Lua_Visualzer, Lua_Object> {
   //TODO multiple statements now lets just assume one
   for (let statement of node) {
-    let lua = evalStatements(statement, environment);
+    let lua = yield* evalStatements(statement, environment);
     if (lua.kind === 'return' || lua.kind === 'error' || lua.kind === 'break') {
       return lua;
     }
@@ -120,15 +150,16 @@ export function evalStatementsArray(
 
   return Lua_Null;
 }
-export function evalStatements(
+export function* evalStatements(
   node: luaparser.Statement,
   environment: Lua_Table
-): Lua_Object {
+): Generator<Lua_Visualzer, Lua_Object> {
+  yield { loc: node.loc };
   switch (node.type) {
     case 'ReturnStatement': {
       let vals: Lua_Object[] = [];
       for (let exp of node.arguments) {
-        const obj = evalExpression(exp, environment);
+        const obj = yield* evalExpression(exp, environment);
         if (obj.kind === 'error') return obj;
         // unwrapping returns
         if (obj.kind === 'return') {
@@ -146,7 +177,7 @@ export function evalStatements(
     }
     case 'IfStatement': {
       for (const clause of node.clauses) {
-        const [t, obj] = evalClause(clause, environment);
+        const [t, obj] = yield* evalClause(clause, environment);
         if (obj.kind === 'error') return obj;
         if (t) return obj;
       }
@@ -155,7 +186,7 @@ export function evalStatements(
     case 'LocalStatement': {
       const vals: Lua_Object[] = [];
       for (let v of node.init) {
-        let val = evalExpression(v, environment);
+        let val = yield* evalExpression(v, environment);
         if (val.kind === 'error') return val;
         // TODO idk if this is good unwrapping return
 
@@ -169,7 +200,12 @@ export function evalStatements(
       }
 
       for (let i = 0; i < node.variables.length; i++) {
-        let e = evalAssignment(node.variables[i], vals[i], environment, false);
+        let e = yield* evalAssignment(
+          node.variables[i],
+          vals[i],
+          environment,
+          false
+        );
         if (e.kind === 'error') return e;
       }
 
@@ -180,7 +216,7 @@ export function evalStatements(
       const vals: Lua_Object[] = [];
 
       for (let v of node.init) {
-        let val = evalExpression(v, environment);
+        let val = yield* evalExpression(v, environment);
         if (val.kind === 'error') return val;
         // TODO idk if this is good unwrapping return
         if (val.kind === 'return') vals.push(...val.value);
@@ -195,7 +231,12 @@ export function evalStatements(
 
       for (let i = 0; i < node.variables.length; i++) {
         // check if variable exist
-        let e = evalAssignment(node.variables[i], vals[i], environment, true);
+        let e = yield* evalAssignment(
+          node.variables[i],
+          vals[i],
+          environment,
+          true
+        );
         if (e.kind === 'error') return e;
       }
 
@@ -211,18 +252,18 @@ export function evalStatements(
         environment: environment,
       };
       if (node.identifier) {
-        evalAssignment(node.identifier, func, environment, false);
+        yield* evalAssignment(node.identifier, func, environment, false);
       }
       return func;
     }
     case 'CallStatement': {
       //TODO idk this probably some type of wrong
-      let obj = evalExpression(node.expression, environment);
+      let obj = yield* evalExpression(node.expression, environment);
       if (obj.kind === 'error') return obj;
       return Lua_Null;
     }
     case 'ForNumericStatement': {
-      let start = evalExpression(node.start, environment);
+      let start = yield* evalExpression(node.start, environment);
       if (start.kind === 'return') start = start.value[0] || Lua_Null;
       if (start.kind === 'error') return start;
       if (start.kind !== 'number')
@@ -232,7 +273,7 @@ export function evalStatements(
           message: `${start.kind} cannot be used in a numeric for loop`,
         } satisfies Lua_Error;
 
-      evalAssignment(node.variable, start, environment, false);
+      yield* evalAssignment(node.variable, start, environment, false);
       let start_obj = environment.get(node.variable.name);
       if (start_obj.kind === 'null')
         return {
@@ -248,7 +289,7 @@ export function evalStatements(
           message: `${start_obj.kind} shoudve been a number interpert error`,
         } satisfies Lua_Error;
 
-      let end = evalExpression(node.end, environment);
+      let end = yield* evalExpression(node.end, environment);
       if (end.kind === 'return') end = end.value[0] || Lua_Null;
       if (end.kind === 'error') return end;
       if (end.kind !== 'number')
@@ -259,7 +300,7 @@ export function evalStatements(
         } satisfies Lua_Error;
 
       let step = node.step
-        ? evalExpression(node.step, environment)
+        ? yield* evalExpression(node.step, environment)
         : ({
             id: crypto.randomUUID(),
             kind: 'number',
@@ -286,7 +327,7 @@ export function evalStatements(
           kind: 'number',
           value: i,
         } satisfies Lua_Number);
-        const body = evalStatementsArray(node.body, environment);
+        const body = yield* evalStatementsArray(node.body, environment);
         if (body.kind === 'break') break;
         if (body.kind === 'error' || body.kind === 'return') return body;
         i += step.value;
@@ -299,34 +340,34 @@ export function evalStatements(
     }
     case 'DoStatement': {
       const env = extendEnv(environment);
-      return evalStatementsArray(node.body, env);
+      return yield* evalStatementsArray(node.body, env);
     }
 
     case 'WhileStatement': {
-      let condition = evalExpression(node.condition, environment);
+      let condition = yield* evalExpression(node.condition, environment);
       if (condition.kind === 'error') return condition;
       let is_true = isThruthy(condition).value;
       while (is_true) {
-        let body = evalStatementsArray(node.body, environment);
+        let body = yield* evalStatementsArray(node.body, environment);
         if (body.kind === 'break') break;
         if (body.kind === 'error' || body.kind === 'return') return body;
 
-        condition = evalExpression(node.condition, environment);
+        condition = yield* evalExpression(node.condition, environment);
         if (condition.kind === 'error') return condition;
         is_true = isThruthy(condition).value;
       }
       return Lua_Null;
     }
     case 'RepeatStatement': {
-      let condition = evalExpression(node.condition, environment);
+      let condition = yield* evalExpression(node.condition, environment);
       if (condition.kind === 'error') return condition;
       let is_true = isThruthy(condition).value;
       do {
-        let body = evalStatementsArray(node.body, environment);
+        let body = yield* evalStatementsArray(node.body, environment);
         if (body.kind === 'break') break;
         if (body.kind === 'error' || body.kind === 'return') return body;
 
-        condition = evalExpression(node.condition, environment);
+        condition = yield* evalExpression(node.condition, environment);
         if (condition.kind === 'error') return condition;
         is_true = isThruthy(condition).value;
       } while (!is_true);
@@ -346,15 +387,15 @@ export function evalStatements(
   }
 }
 
-function handleTableIndexAssigment(
+function* handleTableIndexAssigment(
   exp: luaparser.MemberExpression | luaparser.IndexExpression,
   val: Lua_Object,
   environment: Lua_Table,
   identifier: Lua_Table
-) {
+): Generator<Lua_Visualzer, Lua_Object> {
   switch (exp.type) {
     case 'IndexExpression': {
-      let idx = evalExpression(exp.index, environment);
+      let idx = yield* evalExpression(exp.index, environment);
 
       if (idx.kind === 'return') idx = idx.value[0] || Lua_Null;
       if (idx.kind === 'error') return idx;
@@ -375,10 +416,15 @@ function handleTableIndexAssigment(
           value: '__newindex',
         } satisfies Lua_String);
         if (__newindex.kind === 'function') {
-          applyFunction(__newindex, [identifier, idx, val], environment);
+          yield* applyFunction(__newindex, [identifier, idx, val], environment);
           return Lua_Null;
         } else if (__newindex.kind === 'table') {
-          return handleTableIndexAssigment(exp, val, environment, __newindex);
+          return yield* handleTableIndexAssigment(
+            exp,
+            val,
+            environment,
+            __newindex
+          );
         } else if (__newindex.kind !== 'null') {
           return {
             id: crypto.randomUUID(),
@@ -436,7 +482,12 @@ function handleTableIndexAssigment(
 
             return Lua_Null;
           } else if (__newindex.kind === 'table') {
-            return handleTableIndexAssigment(exp, val, environment, __newindex);
+            return yield* handleTableIndexAssigment(
+              exp,
+              val,
+              environment,
+              __newindex
+            );
           } else if (__newindex.kind !== 'null') {
             return {
               id: crypto.randomUUID(),
@@ -461,7 +512,7 @@ function handleTableIndexAssigment(
   }
 }
 
-export function evalAssignment(
+export function* evalAssignment(
   exp:
     | luaparser.Identifier
     | luaparser.MemberExpression
@@ -469,14 +520,14 @@ export function evalAssignment(
   val: Lua_Object,
   environment: Lua_Table,
   global: boolean
-): Lua_Null | Lua_Error {
+): Generator<Lua_Visualzer, Lua_Null | Lua_Error> {
   switch (exp.type) {
     case 'Identifier':
       return evalIdentiferAssignment(exp, val, environment, global);
 
     case 'MemberExpression':
     case 'IndexExpression': {
-      let identifier = evalExpression(exp.base, environment);
+      let identifier = yield* evalExpression(exp.base, environment);
       if (identifier.kind === 'return') {
         identifier = identifier.value.at(0) || Lua_Null;
       }
@@ -488,7 +539,7 @@ export function evalAssignment(
           message: `${identifier.kind} cannot be indexed`,
         } satisfies Lua_Error;
 
-      handleTableIndexAssigment(exp, val, environment, identifier);
+      yield* handleTableIndexAssigment(exp, val, environment, identifier);
 
       return Lua_Null;
     }
@@ -538,29 +589,31 @@ export function evalIdentiferAssignment(
   }
 }
 
-export function evalClause(
+export function* evalClause(
   clause: luaparser.IfClause | luaparser.ElseifClause | luaparser.ElseClause,
   environment: Lua_Table
-): [boolean, Lua_Object] {
+): Generator<Lua_Visualzer, [boolean, Lua_Object]> {
   switch (clause.type) {
     case 'ElseClause': {
-      return [true, evalStatementsArray(clause.body, environment)];
+      return [true, yield* evalStatementsArray(clause.body, environment)];
     }
     default: {
-      let condition = evalExpression(clause.condition, environment);
+      let condition = yield* evalExpression(clause.condition, environment);
       if (condition.kind === 'error') return [false, condition];
       if (isThruthy(condition).value === false) return [false, Lua_Null];
-      else return [true, evalStatementsArray(clause.body, environment)];
+      else return [true, yield* evalStatementsArray(clause.body, environment)];
     }
   }
 }
 
-export function evalExpression(
+export function* evalExpression(
   exp: luaparser.Expression,
   environment: Lua_Table
-): Lua_Object {
+): Generator<Lua_Visualzer, Lua_Object> {
+  yield { loc: exp.loc };
   switch (exp.type) {
     case 'NumericLiteral': {
+      yield {} satisfies Lua_Visualzer;
       return {
         id: crypto.randomUUID(),
         kind: 'number',
@@ -590,20 +643,20 @@ export function evalExpression(
       return Lua_Null;
     }
     case 'UnaryExpression': {
-      const arg = evalExpression(exp.argument, environment);
+      const arg = yield* evalExpression(exp.argument, environment);
       if (arg.kind === 'error') return arg;
-      return evalUnaryExpression(exp.operator, arg);
+      return yield* evalUnaryExpression(exp.operator, arg);
     }
     case 'BinaryExpression': {
-      let left = evalExpression(exp.left, environment);
+      let left = yield* evalExpression(exp.left, environment);
       if (left.kind === 'return') left = left.value[0] || Lua_Null;
       if (left.kind === 'error') return left;
 
-      let right = evalExpression(exp.right, environment);
+      let right = yield* evalExpression(exp.right, environment);
       if (right.kind === 'return') right = right.value[0] || Lua_Null;
       if (right.kind === 'error') return right;
 
-      let val = evalBinaryExpression(exp.operator, left, right);
+      let val = yield* evalBinaryExpression(exp.operator, left, right);
 
       return val;
     }
@@ -619,7 +672,7 @@ export function evalExpression(
       return val_builtin;
     }
     case 'CallExpression': {
-      let func = evalExpression(exp.base, environment);
+      let func = yield* evalExpression(exp.base, environment);
       if (func.kind === 'error') return func;
       if (
         func.kind !== 'function' &&
@@ -664,7 +717,7 @@ export function evalExpression(
       }
 
       for (let a of exp.arguments) {
-        const arg = evalExpression(a, environment);
+        const arg = yield* evalExpression(a, environment);
 
         if (arg.kind === 'error') return arg;
         else if (arg.kind === 'return') args.push(...arg.value);
@@ -674,7 +727,7 @@ export function evalExpression(
       if (func.kind === 'function') {
         if (func.self) func.self = false;
       }
-      const v = applyFunction(func, args, environment);
+      const v = yield* applyFunction(func, args, environment);
       return v;
     }
 
@@ -697,7 +750,7 @@ export function evalExpression(
     case 'TableConstructorExpression': {
       let t = new Lua_Table();
       for (const field of exp.fields) {
-        const [key, val] = evalTableField(field, environment);
+        const [key, val] = yield* evalTableField(field, environment);
         if (key.kind === 'error') return key;
         if (val.kind === 'error') return val;
         if (key.kind === 'null') t.setValue(val);
@@ -706,7 +759,7 @@ export function evalExpression(
       return t;
     }
     case 'IndexExpression': {
-      let identifier = evalExpression(exp.base, environment);
+      let identifier = yield* evalExpression(exp.base, environment);
 
       if (identifier.kind === 'return') {
         identifier = identifier.value.at(0) || Lua_Null;
@@ -719,7 +772,7 @@ export function evalExpression(
           message: `${identifier.kind} cannot be indexed`,
         } satisfies Lua_Error;
 
-      let idx = evalExpression(exp.index, environment);
+      let idx = yield* evalExpression(exp.index, environment);
 
       if (idx.kind === 'return') idx = idx.value[0] || Lua_Null;
       if (idx.kind === 'error') return idx;
@@ -735,7 +788,7 @@ export function evalExpression(
     }
     // TODO a lot of bugs when have to use as ansighemtn  or call expression test has error cause of this
     case 'MemberExpression': {
-      let identifier = evalExpression(exp.base, environment);
+      let identifier = yield* evalExpression(exp.base, environment);
       if (identifier.kind === 'return') {
         identifier = identifier.value.at(0) || Lua_Null;
       }
@@ -766,7 +819,7 @@ export function evalExpression(
         if (__index.kind === 'null') return Lua_Null;
 
         if (__index.kind === 'function') {
-          return applyFunction(
+          return yield* applyFunction(
             __index,
             [
               identifier,
@@ -851,7 +904,7 @@ export function evalExpression(
     }
 
     case 'TableCallExpression': {
-      let func = evalExpression(exp.base, environment);
+      let func = yield* evalExpression(exp.base, environment);
       if (func.kind === 'error') return func;
       if (func.kind !== 'function' && func.kind !== 'builtin')
         return {
@@ -865,17 +918,17 @@ export function evalExpression(
         if (func.self) args.push(func.self);
       }
 
-      const arg = evalExpression(exp.arguments, environment);
+      const arg = yield* evalExpression(exp.arguments, environment);
       if (arg.kind === 'error') return arg;
       args.push(arg);
 
       if (func.kind === 'function') {
         if (func.self) func.self = false;
       }
-      return applyFunction(func, args, environment);
+      return yield* applyFunction(func, args, environment);
     }
     case 'StringCallExpression': {
-      let func = evalExpression(exp.base, environment);
+      let func = yield* evalExpression(exp.base, environment);
       if (func.kind === 'error') return func;
       if (func.kind !== 'function' && func.kind !== 'builtin')
         return {
@@ -889,23 +942,23 @@ export function evalExpression(
         if (func.self) args.push(func.self);
       }
 
-      const arg = evalExpression(exp.argument, environment);
+      const arg = yield* evalExpression(exp.argument, environment);
       if (arg.kind === 'error') return arg;
       args.push(arg);
 
       if (func.kind === 'function') {
         if (func.self) func.self = false;
       }
-      return applyFunction(func, args, environment);
+      return yield* applyFunction(func, args, environment);
     }
 
     case 'LogicalExpression': {
-      let left: Lua_Object = evalExpression(exp.left, environment);
+      let left: Lua_Object = yield* evalExpression(exp.left, environment);
       if (left.kind === 'error') return left;
       if (left.kind === 'return')
         left = left.value.at(0) ? left.value[0] : Lua_Null;
 
-      let right: Lua_Object = evalExpression(exp.right, environment);
+      let right: Lua_Object = yield* evalExpression(exp.right, environment);
       if (right.kind === 'error') return right;
       if (right.kind === 'return')
         right = right.value.at(0) ? right.value[0] : Lua_Null;
@@ -928,13 +981,13 @@ export function evalExpression(
     }
   }
 }
-export function evalTableField(
+export function* evalTableField(
   field: luaparser.TableKey | luaparser.TableKeyString | luaparser.TableValue,
   environment: Lua_Table
-): [Lua_Object, Lua_Object] {
+): Generator<Lua_Visualzer, [Lua_Object, Lua_Object]> {
   switch (field.type) {
     case 'TableKey': {
-      const key = evalExpression(field.key, environment);
+      const key = yield* evalExpression(field.key, environment);
       if (key.kind === 'null')
         return [
           {
@@ -944,11 +997,11 @@ export function evalTableField(
           } satisfies Lua_Error,
           Lua_Null,
         ];
-      const val = evalExpression(field.value, environment);
+      const val = yield* evalExpression(field.value, environment);
       return [key, val];
     }
     case 'TableKeyString': {
-      const val = evalExpression(field.value, environment);
+      const val = yield* evalExpression(field.value, environment);
       return [
         {
           id: crypto.randomUUID(),
@@ -959,17 +1012,17 @@ export function evalTableField(
       ];
     }
     case 'TableValue': {
-      const val = evalExpression(field.value, environment);
+      const val = yield* evalExpression(field.value, environment);
       return [Lua_Null, val];
     }
   }
 }
 
-export function applyFunction(
+export function* applyFunction(
   func: Lua_Function | Lua_Builtin,
   args: Lua_Object[],
   environment?: Lua_Table
-): Lua_Object {
+): Generator<Lua_Visualzer, Lua_Object> {
   switch (func.kind) {
     case 'function': {
       //TODO
@@ -978,7 +1031,7 @@ export function applyFunction(
         args,
         environment || Lua_Global_Environment!
       );
-      const evaulated = evalStatementsArray(func.body, extendedEnv);
+      const evaulated = yield* evalStatementsArray(func.body, extendedEnv);
 
       return evaulated;
     }
@@ -1038,7 +1091,7 @@ export function applyFunction(
               } satisfies Lua_String,
             } satisfies Lua_Error;
 
-          let vals: Lua_Object = applyFunction(func_passed, args);
+          let vals: Lua_Object = yield* applyFunction(func_passed, args);
           let ok = Lua_True;
           if (vals.kind === 'error') {
             ok = Lua_False;
@@ -1053,7 +1106,7 @@ export function applyFunction(
 
           let returned_vals = vals.kind === 'return' ? vals.value : [vals];
           if (ok.value === false) {
-            let handler_val = applyFunction(err_handler, returned_vals);
+            let handler_val = yield* applyFunction(err_handler, returned_vals);
 
             if (handler_val.kind === 'error') {
               returned_vals = [handler_val.value || Lua_Null];
@@ -1096,7 +1149,7 @@ export function applyFunction(
                 value: '',
               } satisfies Lua_String,
             } satisfies Lua_Error;
-          let vals: Lua_Object = applyFunction(func_passed, args);
+          let vals: Lua_Object = yield* applyFunction(func_passed, args);
           let ok = Lua_True;
           if (vals.kind === 'error') {
             ok = Lua_False;
@@ -1287,11 +1340,11 @@ function isBitwiseOperator(
   return (BitwiseOperators as readonly string[]).includes(op);
 }
 
-export function evalBinaryExpression(
+export function* evalBinaryExpression(
   operator: BinaryOperators,
   left: Lua_Object,
   right: Lua_Object
-) {
+): Generator<Lua_Visualzer, Lua_Object> {
   switch (true) {
     case isArithmeticOperators(operator): {
       // TODO take this out and code smells
@@ -1314,7 +1367,7 @@ export function evalBinaryExpression(
               message: 'must be a function',
             } satisfies Lua_Error;
           if (func.kind === 'function') {
-            return applyFunction(func, [left, right]);
+            return yield* applyFunction(func, [left, right]);
           }
         } else if (right.metatable.kind !== 'null') {
           let func = right.metatable.get({
@@ -1329,7 +1382,7 @@ export function evalBinaryExpression(
               message: 'must be a function',
             } satisfies Lua_Error;
           if (func.kind === 'function') {
-            return applyFunction(func, [left, right]);
+            return yield* applyFunction(func, [left, right]);
           }
         }
       }
@@ -1363,14 +1416,14 @@ export function evalBinaryExpression(
             } satisfies Lua_Error;
           if (func.kind === 'function') {
             if (operator === '>' || operator === '>=') {
-              return applyFunction(func, [right, left]);
+              return yield* applyFunction(func, [right, left]);
             }
             if (operator === '~=') {
-              let v = applyFunction(func, [left, right]);
+              let v = yield* applyFunction(func, [left, right]);
               if (v.kind === 'error') return v;
               return isThruthy(v).value ? Lua_False : Lua_True;
             }
-            return applyFunction(func, [left, right]);
+            return yield* applyFunction(func, [left, right]);
           }
         }
       }
@@ -1392,7 +1445,7 @@ export function evalBinaryExpression(
               message: 'must be a function',
             } satisfies Lua_Error;
           if (func.kind === 'function') {
-            return applyFunction(func, [left, right]);
+            return yield* applyFunction(func, [left, right]);
           }
         } else if (right.metatable.kind !== 'null') {
           let func = right.metatable.get({
@@ -1407,7 +1460,7 @@ export function evalBinaryExpression(
               message: 'must be a function',
             } satisfies Lua_Error;
           if (func.kind === 'function') {
-            return applyFunction(func, [left, right]);
+            return yield* applyFunction(func, [left, right]);
           }
         }
       }
@@ -1659,19 +1712,19 @@ function evalLessThanOrEqual(left: Lua_Object, right: Lua_Object) {
   }
 }
 
-export function evalUnaryExpression(
+export function* evalUnaryExpression(
   operator: 'not' | '-' | '~' | '#',
   arg: Lua_Object
-) {
+): Generator<Lua_Visualzer, Lua_Object> {
   switch (operator) {
     case 'not': {
       return evalNotOperator(arg);
     }
     case '-': {
-      return evalUnaryMinuesOperator(arg);
+      return yield* evalUnaryMinuesOperator(arg);
     }
     case '#': {
-      return evalUnaryLengthOperator(arg);
+      return yield* evalUnaryLengthOperator(arg);
     }
     case '~':
     default: {
@@ -1684,7 +1737,9 @@ export function evalUnaryExpression(
     }
   }
 }
-export function evalUnaryLengthOperator(arg: Lua_Object) {
+export function* evalUnaryLengthOperator(
+  arg: Lua_Object
+): Generator<Lua_Visualzer, Lua_Object> {
   switch (arg.kind) {
     case 'string':
       return {
@@ -1700,7 +1755,7 @@ export function evalUnaryLengthOperator(arg: Lua_Object) {
           value: '__len',
         });
         if (fun.kind === 'function') {
-          return applyFunction(fun, [arg]);
+          return yield* applyFunction(fun, [arg]);
         }
       }
       return {
@@ -1719,7 +1774,9 @@ export function evalUnaryLengthOperator(arg: Lua_Object) {
   }
 }
 
-export function evalUnaryMinuesOperator(arg: Lua_Object) {
+export function* evalUnaryMinuesOperator(
+  arg: Lua_Object
+): Generator<Lua_Visualzer, Lua_Object> {
   switch (arg.kind) {
     case 'number': {
       return {
@@ -1736,7 +1793,7 @@ export function evalUnaryMinuesOperator(arg: Lua_Object) {
           value: '__unm',
         });
         if (fun.kind === 'function') {
-          return applyFunction(fun, [arg]);
+          return yield* applyFunction(fun, [arg]);
         }
       }
       return {
@@ -1801,4 +1858,29 @@ export function parseLongString(input: string): string {
   const content = input.substring(contentStart, closeIndex);
 
   return content;
+}
+
+export function make_replacer() {
+  const seen = new WeakSet();
+  return (_key: any, value: any) => {
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) {
+        return { id: value.id };
+      }
+      seen.add(value);
+    }
+    if (value instanceof Map) {
+      return {
+        dataType: 'Map',
+        value: Array.from(value.entries()), // or with spread: value: [...value]
+      };
+    } else if (value instanceof Set) {
+      return {
+        dataType: 'Set',
+        value: Array.from(value.values()), // or with spread: value: [...value]
+      };
+    } else {
+      return value;
+    }
+  };
 }

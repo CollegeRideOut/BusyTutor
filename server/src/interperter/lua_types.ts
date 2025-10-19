@@ -95,7 +95,7 @@ export const builtin: Map<string, Lua_Builtin> = new Map<string, Lua_Builtin>(
     unpack: unpack,
     xpcall: xpcall,
     setfenv: setfenv,
-  }),
+  })
 );
 
 export type Lua_Builtin = {
@@ -254,7 +254,20 @@ export class Lua_Table {
     this.idx = 0;
   }
 
-  setValue(val: Lua_Object): Lua_Null | Lua_Error {
+  setValue(val: Lua_Object | string | number): Lua_Null | Lua_Error {
+    if (typeof val === 'number') {
+      val = {
+        id: crypto.randomUUID(),
+        kind: 'number',
+        value: val,
+      } satisfies Lua_Number;
+    } else if (typeof val === 'string') {
+      val = {
+        id: crypto.randomUUID(),
+        kind: 'string',
+        value: val,
+      } satisfies Lua_String;
+    }
     switch (val.kind) {
       case 'string':
       case 'number':
@@ -287,7 +300,7 @@ export class Lua_Table {
 
   set(
     key: Lua_Object | string | number,
-    val: Lua_Object,
+    val: Lua_Object
   ): Lua_Null | Lua_Error {
     if (typeof key === 'string') {
       key = {
@@ -405,3 +418,16 @@ export class Lua_Table {
     return __index.get(key);
   }
 }
+
+export type Lua_Visualzer = {
+  loc?: {
+    start: {
+      line: number;
+      column: number;
+    };
+    end: {
+      line: number;
+      column: number;
+    };
+  };
+};
