@@ -4,8 +4,7 @@
   "version": "1.0.0",
   "workspaces": [
     "client",
-    "server",
-    "shared"
+    "server"
   ],
   "description": "- Layout & spacing: Wrap environment elements using flex + flex-wrap with proper spacing. - Box highlighting: When indexing a variable, highlight the source box and the target box. - Arrow / visual link: Draw an arrow from the source to the target for chain indexing. - Path finding scaffold",
   "main": "index.js",

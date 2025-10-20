@@ -1,12 +1,13 @@
 import luaparser from 'luaparse';
 import { describe, expect, test } from 'vitest';
-import { evalChunkTestHelper, Lua_GLobal_Console } from './eval_gen';
+import { selfContainedEvalGenerator } from './eval_gen';
 import type { Lua_Boolean, Lua_Number } from './lua_types';
 import { Lua_Table } from './lua_types';
+let { evalChunkTestHelper, getGlobal} = selfContainedEvalGenerator();
 
 // test expression
 function evalChunk(ast: luaparser.Chunk, environment: Lua_Table) {
-  return evalChunkTestHelper(ast, environment);
+  return evalChunkTestHelper!(ast, environment);
 }
 
 test('StringLiteral', () => {
@@ -2686,6 +2687,8 @@ x1 = print("hello", "bye", "bye")
       value: [['hello', 'bye', 'bye'].join('\t') + '\n'],
     },
   ];
+
+  let {Lua_GLobal_Console} = getGlobal()
 
   for (const test of tests) {
     for (let i = 0; i < test.value.length; i++) {

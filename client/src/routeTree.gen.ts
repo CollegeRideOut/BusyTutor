@@ -16,7 +16,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ArraysIndexRouteImport } from './routes/arrays/index'
 import { Route as ProblemsIdRouteImport } from './routes/problems/$id'
 import { Route as ArraysTestRouteImport } from './routes/arrays/test'
-import { Route as Arrays217RouteImport } from './routes/arrays/217'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -53,18 +52,12 @@ const ArraysTestRoute = ArraysTestRouteImport.update({
   path: '/arrays/test',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Arrays217Route = Arrays217RouteImport.update({
-  id: '/arrays/217',
-  path: '/arrays/217',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/register': typeof RegisterRoute
-  '/arrays/217': typeof Arrays217Route
   '/arrays/test': typeof ArraysTestRoute
   '/problems/$id': typeof ProblemsIdRoute
   '/arrays': typeof ArraysIndexRoute
@@ -74,7 +67,6 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/register': typeof RegisterRoute
-  '/arrays/217': typeof Arrays217Route
   '/arrays/test': typeof ArraysTestRoute
   '/problems/$id': typeof ProblemsIdRoute
   '/arrays': typeof ArraysIndexRoute
@@ -85,7 +77,6 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/register': typeof RegisterRoute
-  '/arrays/217': typeof Arrays217Route
   '/arrays/test': typeof ArraysTestRoute
   '/problems/$id': typeof ProblemsIdRoute
   '/arrays/': typeof ArraysIndexRoute
@@ -97,7 +88,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/practice'
     | '/register'
-    | '/arrays/217'
     | '/arrays/test'
     | '/problems/$id'
     | '/arrays'
@@ -107,7 +97,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/practice'
     | '/register'
-    | '/arrays/217'
     | '/arrays/test'
     | '/problems/$id'
     | '/arrays'
@@ -117,7 +106,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/practice'
     | '/register'
-    | '/arrays/217'
     | '/arrays/test'
     | '/problems/$id'
     | '/arrays/'
@@ -128,7 +116,6 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PracticeRoute: typeof PracticeRoute
   RegisterRoute: typeof RegisterRoute
-  Arrays217Route: typeof Arrays217Route
   ArraysTestRoute: typeof ArraysTestRoute
   ProblemsIdRoute: typeof ProblemsIdRoute
   ArraysIndexRoute: typeof ArraysIndexRoute
@@ -185,13 +172,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArraysTestRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/arrays/217': {
-      id: '/arrays/217'
-      path: '/arrays/217'
-      fullPath: '/arrays/217'
-      preLoaderRoute: typeof Arrays217RouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -200,7 +180,6 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PracticeRoute: PracticeRoute,
   RegisterRoute: RegisterRoute,
-  Arrays217Route: Arrays217Route,
   ArraysTestRoute: ArraysTestRoute,
   ProblemsIdRoute: ProblemsIdRoute,
   ArraysIndexRoute: ArraysIndexRoute,

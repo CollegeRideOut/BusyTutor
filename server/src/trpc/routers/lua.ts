@@ -1,27 +1,7 @@
+import { NotFoundError, toTRPCError } from '../../utils/errors';
 import { createWorker, workers } from '../../utils/worker';
 import { protectedUserProcedure, router } from '../trpc';
 import { z } from 'zod';
-
-const luaSolutions = {
-  '217': (input: string, userCode: string) => {
-    return `
-        ${input}
-        function our_solution(nums)
-    for i = 1, #nums do
-        for j = i + 1, #nums do
-            if nums[i] == nums[j] then
-                return true
-            end
-        end
-    end
-    return false
-end
-${userCode}
-return our_solution(nums) == solution(nums);
-
-        `;
-  },
-};
 
 export const luaRouter = router({
   runLua: protectedUserProcedure
@@ -31,17 +11,50 @@ export const luaRouter = router({
     .mutation(async ({ input }) => {
       let userLuaRun =
         `${input.inputs} \n` + input.code + `\n return solution(nums)`;
+
       let w = createWorker();
-      let n_w = workers.get(w.id);
-      if (!n_w) {
-        throw new Error('where is the worker');
-      }
-      n_w.worker.postMessage(userLuaRun);
+      w.worker.postMessage({ type: 'start', code: userLuaRun });
+      w.status = 'RUNNING';
 
       return { sucess: true, id: w.id, userLuaRun };
     }),
 
-  next: protectedUserProcedure
-    .input(z.object({ id: z.string() }))
-    .mutation(async ({ input }) => {}),
+  progress: protectedUserProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        limit: z.number().min(1).max(100),
+        cursor: z.number().min(0).default(0),
+      })
+    )
+    .query(async ({ input }) => {
+      const worker = workers.get(input.id);
+      if (!worker) throw toTRPCError(new NotFoundError('worker'));
+      const timeline = worker.timeline;
+      const start = input.cursor;
+      const end = Math.min(start + input.limit, timeline.length);
+      console.log(
+        'router',
+        'time line length',
+        timeline.length,
+        'start',
+        start,
+        'end',
+        end
+      );
+
+      // slice out the next chunk
+      const items = timeline.slice(start, end);
+
+      // if there’s more data after this chunk, return next cursor
+      const hasMore = end < timeline.length;
+      const nextCursor = hasMore ? end : null;
+
+      return {
+        items,
+        nextCursor,
+        hasMore,
+        total: timeline.length, // optional, useful for client logic
+      };
+    }),
 });

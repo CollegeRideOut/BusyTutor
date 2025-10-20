@@ -21,7 +21,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@busytutor/shared": "*",
     "@libsql/client": "^0.15.15",
     "@trpc/server": "^11.6.0",
     "@types/luaparse": "^0.2.13",

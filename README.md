@@ -153,6 +153,11 @@
 
 - Ast Vislizer
 
+### Oct 19
+
+- worker
+- server sends stringified data back to user
+
 ### Up Next
 
 - io, os, package, coroutine TODO and test all global tables

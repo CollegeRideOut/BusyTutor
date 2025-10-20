@@ -107,6 +107,7 @@ export type Lua_Builtin = {
 type Lua_Builtin_Function = (...args: Lua_Object[]) => Lua_Return | Lua_Error;
 
 export type Lua_Function = {
+  name?: string;
   id: string;
   kind: 'function';
   self: Lua_Object | false;
@@ -177,6 +178,21 @@ export class Lua_Table {
   metatable: Lua_Table | Lua_Null = Lua_Null;
   idx: number;
 
+  constructor(t?: Lua_Table | null) {
+    this.kind = 'table';
+    if (t) {
+      this.id = t.id;
+      this.store = t.store;
+      this.idx = t.idx;
+      this.__index = t.__index ||  Lua_Null;
+      this.metatable = t.metatable || Lua_Null;
+    } else {
+      this.id = crypto.randomUUID();
+      this.store = new Map();
+      this.idx = 0;
+    }
+  }
+
   climbEnv(n: number): Lua_Table | Lua_Error {
     if (n === 0) {
       return this;
@@ -222,6 +238,7 @@ export class Lua_Table {
     }
     return outer.climbEnv(n - 1);
   }
+
   findTopTable(): Lua_Table {
     if (this.metatable.kind === 'null') {
       // TODO should be an error
@@ -247,11 +264,6 @@ export class Lua_Table {
     if (!v) return outer.findEnvCotaining(name);
 
     return this;
-  }
-  constructor() {
-    this.id = crypto.randomUUID();
-    this.store = new Map();
-    this.idx = 0;
   }
 
   setValue(val: Lua_Object | string | number): Lua_Null | Lua_Error {
@@ -430,4 +442,6 @@ export type Lua_Visualzer = {
       column: number;
     };
   };
+  type?: 'CURRENT' | 'NEW' | 'EXIT';
+  name?: string;
 };

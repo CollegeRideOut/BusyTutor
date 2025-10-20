@@ -27,6 +27,7 @@ import {
 import { EvalChunkFront } from './ast_visualizer';
 import type { Lua_Object_Visualizer } from '@busytutor/server/';
 import { trpc } from '../lib/trpc';
+import { LuaVisualizer } from './luaVisualizer';
 
 interface ProblemPageProps {
   problemId: number | null;
@@ -54,7 +55,7 @@ const theme = {
 export function ProblemPage({ problemId }: ProblemPageProps) {
   let { setCurrentPage } = useContext(CurrentPageContext);
   const [code, setCode] = useState('');
-  const [idToUse, setIdToUse] = useState('');
+  const [idToUse, setIdToUse] = useState<string | null>(null);
   let onNavigate = useNavigate();
   const [problem] = useState(problems.find((p) => p.id === problemId)?.data);
   const [isConsoleOpen, _setIsConsoleOpen] = useState(true);
@@ -65,7 +66,6 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
   const [ast, setAst] = useState<luarparser.Chunk | null>(null);
 
   let luaRunner = trpc.lua.runLua.useMutation();
-  let nextRUnner = trpc.lua.next.useMutation();
 
   useEffect(() => {
     setCurrentPage('problem');
@@ -153,22 +153,17 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
       {/* Main Content - With top padding for fixed header */}
       <ResizablePanelGroup
         direction='horizontal'
-        className='flex-1 flex overflow-hidden pt-16'
+        className='flex-1 flex overflow-hidden'
       >
         {/* Left Panel - Problem Description (Scrollable) */}
 
         <ResizablePanel className='w-1/2 bg-card flex flex-col min-h-0'>
           {/* TODO visualizer  des*/}
-          {!isVisual ? (
+          {!isVisual || idToUse === null ? (
             <ProblemDescription problemId={problemId} />
-          ) : /* (
-          <VisualizerToolNew
-              codeWritten={code}
-              setVisual={setVisual}
-              setAstParent={setAst}
-            />
-
-          )*/ null}
+          ) : (
+            <LuaVisualizer id={idToUse} />
+          )}
         </ResizablePanel>
 
         {/* Slight Separator */}
@@ -269,6 +264,7 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
                             inputs: t.value,
                             problemId: '217',
                           });
+
                           if (result.sucess) {
                             let ast = luarparser.parse(result.userLuaRun!, {
                               locations: true,

@@ -1084,19 +1084,6 @@ function Node({
   );
 }
 
-const css = `
-/* draw a short vertical line from the connectors bar to each child card */
-.child-drop::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 2px;
-  height: 12px;
-  background: rgb(71 85 105); /* slate-600 */
-}
-`;
 
 // --- Demo usage (optional) ---
 let global_env = 0;
