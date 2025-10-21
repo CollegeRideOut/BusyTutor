@@ -36,6 +36,10 @@ export function selfContainedEvalGenerator() {
   let Lua_GLobal_Console: Lua_Console = new Lua_Console();
   let Lua_Current_Environment = Lua_Global_Environment;
   let Lua_Heap: Map<string, Lua_Table> = new Map();
+  Lua_Current_Environment.set(
+    Lua_Current_Environment.id,
+    Lua_Current_Environment
+  );
 
   function evalChunkTestHelper(node: luaparser.Chunk, environment: Lua_Table) {
     const g = evalChunkGenerator(node, environment);
@@ -52,6 +56,7 @@ export function selfContainedEvalGenerator() {
         id: crypto.randomUUID(),
         kind: 'string',
         value: '_VERSION',
+        hidden: true,
       } satisfies Lua_String,
       _VERSION
     );
@@ -61,11 +66,13 @@ export function selfContainedEvalGenerator() {
         id: crypto.randomUUID(),
         kind: 'string',
         value: '_G',
+        hidden: true,
       } satisfies Lua_String,
       environment
     );
 
     let math_table = new Lua_Table();
+    math_table.hidden = true;
     for (let [k, v] of Object.entries(math_fn)) {
       math_table.set(k, v);
     }
@@ -75,6 +82,7 @@ export function selfContainedEvalGenerator() {
         id: crypto.randomUUID(),
         kind: 'string',
         value: 'math',
+        hidden: true,
       } satisfies Lua_String,
       math_table
     );
@@ -95,7 +103,9 @@ export function selfContainedEvalGenerator() {
     Hidden_Environment = new Lua_Table();
     setUp(Hidden_Environment);
     yield { type: 'NEW', name: 'main' };
-    return yield* evalStatementsArray(node.body, Lua_Global_Environment);
+    let val = yield* evalStatementsArray(node.body, Lua_Global_Environment);
+    yield { type: 'EXIT', name: 'main' };
+    return val;
   }
   const ipairs_aux = 'ipairs_aux';
 
@@ -124,6 +134,7 @@ end
     //TODO multiple statements now lets just assume one
     for (let statement of node) {
       let lua = yield* evalStatements(statement, environment);
+      yield { clearIndexingVisuals: true };
       if (
         lua.kind === 'return' ||
         lua.kind === 'error' ||
@@ -327,8 +338,10 @@ end
         // generator specific
         let prev_env = environment;
         const env = extendEnv(environment);
+        Lua_Heap.set(env.id, env);
         Lua_Current_Environment = env;
         let val = yield* evalStatementsArray(node.body, env);
+        Lua_Heap.delete(env.id);
         Lua_Current_Environment = prev_env;
         return val;
       }
@@ -608,7 +621,7 @@ end
     yield { loc: exp.loc };
     switch (exp.type) {
       case 'NumericLiteral': {
-        yield {} satisfies Lua_Visualzer;
+        //yield {} satisfies Lua_Visualzer;
         return {
           id: crypto.randomUUID(),
           kind: 'number',
@@ -657,13 +670,29 @@ end
       }
       case 'Identifier': {
         let val = environment.get(exp.name);
-        if (val.kind !== 'null') return val;
+
+        if (val.kind !== 'null') {
+          yield {
+            expresion: { identifier: { name: exp.name, valId: val.id } },
+          };
+          return val;
+        }
 
         val = Lua_Global_Environment!.get(exp.name);
-        if (val.kind !== 'null') return val;
+        if (val.kind !== 'null') {
+          yield {
+            expresion: { identifier: { name: exp.name, valId: val.id } },
+          };
+          return val;
+        }
 
         let val_builtin = builtin.get(exp.name);
         if (!val_builtin) return Lua_Null;
+
+        yield {
+          expresion: { identifier: { name: exp.name, valId: val_builtin.id } },
+        };
+
         return val_builtin;
       }
       case 'CallExpression': {
@@ -743,6 +772,7 @@ end
 
       case 'TableConstructorExpression': {
         let t = new Lua_Table();
+        Lua_Heap.set(t.id, t);
         for (const field of exp.fields) {
           const [key, val] = yield* evalTableField(field, environment);
           if (key.kind === 'error') return key;
@@ -750,35 +780,85 @@ end
           if (key.kind === 'null') t.setValue(val);
           else t.set(key, val);
         }
-        Lua_Heap.set(t.id, t);
         return t;
       }
       case 'IndexExpression': {
+        yield { expresion: { indexExpresssion: { status: 'start' } } };
+        yield { expresion: { indexExpresssion: { status: 'identifier' } } };
         let identifier = yield* evalExpression(exp.base, environment);
 
         if (identifier.kind === 'return') {
           identifier = identifier.value.at(0) || Lua_Null;
         }
         if (identifier.kind === 'error') return identifier;
-        if (identifier.kind !== 'table')
+        if (identifier.kind !== 'table') {
+          yield { expresion: { indexExpresssion: { status: 'end' } } };
           return {
             id: crypto.randomUUID(),
             kind: 'error',
             message: `${identifier.kind} cannot be indexed`,
           } satisfies Lua_Error;
+        }
+
+        yield {
+          expresion: {
+            indexExpresssion: {
+              status: 'identifier',
+              identifierId: identifier.id,
+            },
+          },
+        };
+
+        yield {
+          expresion: {
+            indexExpresssion: { status: 'idx' },
+          },
+        };
 
         let idx = yield* evalExpression(exp.index, environment);
 
         if (idx.kind === 'return') idx = idx.value[0] || Lua_Null;
-        if (idx.kind === 'error') return idx;
-        if (idx.kind === 'null')
+        if (idx.kind === 'error') {
+          yield {
+            expresion: {
+              indexExpresssion: { status: 'end' },
+            },
+          };
+          return idx;
+        }
+        if (idx.kind === 'null') {
+          yield {
+            expresion: {
+              indexExpresssion: { status: 'end' },
+            },
+          };
           return {
             id: crypto.randomUUID(),
             kind: 'error',
             message: 'nil cannot be used as index for table',
           } satisfies Lua_Error;
+        }
+
+        yield {
+          expresion: {
+            indexExpresssion: { status: 'idx', idxId: idx.id },
+          },
+        };
 
         const val = identifier.get(idx);
+
+        yield {
+          expresion: {
+            indexExpresssion: { status: 'val', valId: val.id },
+          },
+        };
+
+        yield {
+          expresion: {
+            indexExpresssion: { status: 'end' },
+          },
+        };
+
         return val;
       }
       // TODO a lot of bugs when have to use as ansighemtn  or call expression test has error cause of this
@@ -1029,9 +1109,12 @@ end
           environment || Lua_Global_Environment!
         );
         Lua_Current_Environment = extendedEnv;
+
+        Lua_Heap.set(extendedEnv.id, extendedEnv);
         yield { type: 'NEW', name: func.id };
         const evaulated = yield* evalStatementsArray(func.body, extendedEnv);
         Lua_Current_Environment = prevEnv;
+        Lua_Heap.delete(extendedEnv.id);
         yield { type: 'EXIT' };
 
         return evaulated;
@@ -1250,6 +1333,9 @@ end
 
   function extendEnv(environment: Lua_Table) {
     const partial_env = new Lua_Table();
+    partial_env.hidden = true;
+
+    // TODO figure out a way to delete it fater we are done with it
     partial_env.set(
       {
         id: crypto.randomUUID(),
@@ -1258,7 +1344,9 @@ end
       } satisfies Lua_String,
       environment
     );
-    let returned_env = setmetatable.fn!(new Lua_Table(), partial_env);
+    let partial_helper = new Lua_Table();
+    partial_helper.hidden = true;
+    let returned_env = setmetatable.fn!(partial_helper, partial_env);
     if (returned_env.kind === 'error') {
       throw Error('interperter error extend function setmetable');
     }
@@ -1269,8 +1357,11 @@ end
       throw Error(
         'interper error extendfunction setmetatable did not return table'
       );
+
+    // TODO figure out a way to delete it fater we are done with it
     return env;
   }
+
   function extendeFunctionEnv(
     func: Lua_Function,
     args: Lua_Object[],

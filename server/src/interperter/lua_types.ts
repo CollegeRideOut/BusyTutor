@@ -100,6 +100,7 @@ export const builtin: Map<string, Lua_Builtin> = new Map<string, Lua_Builtin>(
 
 export type Lua_Builtin = {
   id: string;
+  hidden?: true;
   kind: 'builtin';
   fn?: Lua_Builtin_Function;
 };
@@ -107,6 +108,7 @@ export type Lua_Builtin = {
 type Lua_Builtin_Function = (...args: Lua_Object[]) => Lua_Return | Lua_Error;
 
 export type Lua_Function = {
+  hidden?: true;
   name?: string;
   id: string;
   kind: 'function';
@@ -116,7 +118,12 @@ export type Lua_Function = {
   environment: Lua_Table;
 };
 
-export type Lua_Return = { id: string; kind: 'return'; value: Lua_Object[] };
+export type Lua_Return = {
+  id: string;
+  kind: 'return';
+  value: Lua_Object[];
+  hidden?: true;
+};
 
 export type Lua_Identifier = { id: string; kind: 'identifier'; name: string };
 
@@ -126,19 +133,35 @@ export type Lua_Error = {
   kind: 'error';
   message?: string;
   value?: Lua_Object;
+  hidden?: true;
 };
 
-export type Lua_Number = { id: string; kind: 'number'; value: number };
+export type Lua_Number = {
+  id: string;
+  kind: 'number';
+  value: number;
+  hidden?: true;
+};
 
-export type Lua_Boolean = { id: string; kind: 'boolean'; value: boolean };
+export type Lua_Boolean = {
+  id: string;
+  kind: 'boolean';
+  value: boolean;
+  hidden?: true;
+};
 
-export type Lua_String = { id: string; kind: 'string'; value: string };
+export type Lua_String = {
+  id: string;
+  kind: 'string';
+  value: string;
+  hidden?: true;
+};
 
-export type Lua_Null = { id: string; kind: 'null' };
+export type Lua_Null = { id: string; kind: 'null'; value: null; hidden?: true };
 
-export type Lua_Break = { id: string; kind: 'break' };
+export type Lua_Break = { id: string; kind: 'break'; hidden?: true };
 
-export type Lua_Vargs = { id: string; kind: 'varg' };
+export type Lua_Vargs = { id: string; kind: 'varg'; hidden?: true };
 
 // constants
 export const Lua_True: Lua_Boolean = {
@@ -151,7 +174,11 @@ export const Lua_False: Lua_Boolean = {
   kind: 'boolean',
   value: false,
 };
-export const Lua_Null: Lua_Null = { id: crypto.randomUUID(), kind: 'null' };
+export const Lua_Null: Lua_Null = {
+  id: crypto.randomUUID(),
+  kind: 'null',
+  value: null,
+};
 export const Lua_Break: Lua_Break = { id: crypto.randomUUID(), kind: 'break' };
 export const Lua_Vargs: Lua_Vargs = { id: crypto.randomUUID(), kind: 'varg' };
 
@@ -172,6 +199,7 @@ export class Lua_Console {
 //TODO delete if value is set to null and do something about the idx is suppsed to be contiguos numeric values
 export class Lua_Table {
   id: string;
+  hidden?: true;
   kind: 'table' = 'table';
   store: Map<Lua_Object | string | number, Lua_Object>;
   __index: Lua_Object = Lua_Null;
@@ -184,7 +212,7 @@ export class Lua_Table {
       this.id = t.id;
       this.store = t.store;
       this.idx = t.idx;
-      this.__index = t.__index ||  Lua_Null;
+      this.__index = t.__index || Lua_Null;
       this.metatable = t.metatable || Lua_Null;
     } else {
       this.id = crypto.randomUUID();
@@ -431,7 +459,23 @@ export class Lua_Table {
   }
 }
 
+export type indexingVisual = {
+  identifier?: {
+    name: string;
+    valId: string;
+  };
+  idexer?: {
+    name: string;
+    valId: string;
+  };
+  val?: {
+    valId: string;
+  };
+};
+
 export type Lua_Visualzer = {
+  indexingVisual?: indexingVisual[];
+  clearIndexingVisuals?: true;
   loc?: {
     start: {
       line: number;
@@ -441,6 +485,18 @@ export type Lua_Visualzer = {
       line: number;
       column: number;
     };
+  };
+  expresion?: {
+    identifier?: { name: string; valId: string };
+    indexExpresssion?: {
+      status: 'start' | 'end' | 'identifier' | 'idx' | 'val';
+      identifierId?: string;
+      valId?: string;
+      idxId?: string;
+    };
+  };
+  identifierExpressionValue?: {
+    name?: string;
   };
   type?: 'CURRENT' | 'NEW' | 'EXIT';
   name?: string;

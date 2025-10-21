@@ -157,7 +157,7 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
       >
         {/* Left Panel - Problem Description (Scrollable) */}
 
-        <ResizablePanel className='w-1/2 bg-card flex flex-col min-h-0'>
+        <ResizablePanel className='w-1/2 bg-card flex flex-col min-h-0 '>
           {/* TODO visualizer  des*/}
           {!isVisual || idToUse === null ? (
             <ProblemDescription problemId={problemId} />
@@ -306,7 +306,7 @@ function ProblemDescription({ problemId }: ProblemPageProps) {
   };
 
   return (
-    <div className=' flex flex-col flex-1 overflow-y-auto'>
+    <div className='flex flex-col flex-1 overflow-y-auto'>
       <div className='p-6 space-y-6'>
         {/* Problem Description */}
         <div>

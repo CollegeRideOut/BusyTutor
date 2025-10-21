@@ -1,4 +1,8 @@
-import { useState, useEffect } from 'react';
+import type {
+  Lua_Object,
+  Lua_Table,
+} from '@busytutor/server/src/interperter/lua_types';
+import { useState, useEffect, useMemo } from 'react';
 
 interface PixelArtProps {
   pattern: number[][];
@@ -188,3 +192,207 @@ export function FloatingPixelArt({ className = '' }: { className?: string }) {
     </div>
   );
 }
+
+export const PixelVariable = ({
+  name,
+  value,
+  skipObj = false,
+  isHighlighted = false,
+}: {
+  name: string;
+  value: Lua_Object;
+  skipObj?: boolean;
+  isHighlighted?: boolean;
+}) => {
+  const typeColor = getTypeColor(value);
+  const stringVal = useMemo(() => {
+    switch (value.kind) {
+      case 'null': {
+        return 'null';
+      }
+      case 'string':
+      case 'number':
+      case 'boolean': {
+        return String(value.value);
+      }
+      case 'function':
+      case 'return':
+      case 'error':
+      case 'builtin':
+      case 'table':
+      case 'break':
+      case 'varg': {
+        return value.id;
+      }
+    }
+  }, [value]);
+  return (
+    <div className='w-fit' id={`var-${name}`}>
+      <PixelBox
+        isHighlighted={isHighlighted}
+        borderColor={typeColor}
+        id={`variable-${name}`}
+      >
+        <span>
+          {name} {!skipObj ? ' = ' + stringVal : null}
+        </span>
+      </PixelBox>
+    </div>
+  );
+};
+
+const PixelBox = ({
+  children,
+  isHighlighted = false,
+  borderColor,
+  id,
+}: {
+  children: React.ReactNode;
+  isHighlighted?: boolean;
+  borderColor?: string;
+  id?: string;
+}) => {
+  const style: React.CSSProperties = {
+    clipPath:
+      'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px)) w-fit',
+    ...(borderColor && !isHighlighted
+      ? {
+          borderColor: borderColor,
+          backgroundColor: `${borderColor}15`,
+        }
+      : {}),
+  };
+
+  return (
+    <div
+      id={id}
+      className={`
+          inline-block border-2 p-2 font-mono text-xs pixel-container w-fit max-w-fit
+          ${isHighlighted ? 'border-yellow-400 bg-yellow-400/20 pixel-glow reference-highlight' : ''}
+          pixel-border relative transition-all duration-300
+        `}
+      style={style}
+    >
+      {children}
+    </div>
+  );
+};
+
+const getTypeColor = (value: Lua_Object | null): string => {
+  if (!value) {
+    return '#f59e0b'; // Default amber
+  }
+  switch (value.kind) {
+    case 'string':
+      return '#10b981'; // Green
+    case 'number':
+      return '#ef4444'; // Red
+    case 'boolean':
+      return '#eab308'; // Yellow
+    case 'table':
+      return '#14b8a6';
+    case 'function':
+    case 'null':
+      return '#92400e'; // Brown
+    case 'return':
+    case 'error':
+    case 'builtin':
+    case 'break':
+    case 'varg':
+      return '#f59e0b'; // Default amber
+  }
+};
+
+export const PixelTable = ({
+  table,
+  ref,
+  highlighted,
+}: {
+  ref: React.RefObject<Map<string, HTMLElement>>;
+  table: Lua_Table;
+  highlighted: Set<string>;
+}) => {
+  let typeColor = getTypeColor(table);
+  let entries = useMemo(() => {
+    return [...table.store.entries()];
+  }, [table]);
+  return (
+    <PixelBox
+      isHighlighted={highlighted.has(table.id)}
+      borderColor={typeColor}
+      id={`variable-${table.id}`}
+    >
+      <div className='flex gap-2 flex-wrap w-fit items-center'>
+        <div
+          ref={(el) => {
+            el && ref.current.set(table.id, el);
+          }}
+        >
+          <PixelVariable name={''} value={table} skipObj={true} />
+        </div>
+        {entries
+          .map(([identifier, item], index) => {
+            // TODO special thing for circular  dpendency / pointing to itself
+
+            let stringIdentifier = '';
+            if (typeof identifier === 'object') {
+              if ('value' in identifier) {
+                stringIdentifier = String(identifier.value);
+              } else {
+                stringIdentifier = identifier.id;
+              }
+            } else {
+              stringIdentifier = String(identifier);
+            }
+
+            if (item.hidden) return null;
+            if (item.id === table.id) return null;
+            if (
+              item.kind === 'table' ||
+              item.kind === 'function' ||
+              item.kind === 'builtin'
+            ) {
+              if (item.hidden) return null;
+              if (item.id === table.id) return null;
+              if (item.kind === 'table' && item.metatable.kind !== 'null')
+                return null;
+              return (
+                <div
+                  key={`${table.id}-${stringIdentifier}-${index}-${item.id}`}
+                  ref={(el) => {
+                    el &&
+                      ref.current.set(`${table.id}-${stringIdentifier}`, el);
+                  }}
+                >
+                  <PixelVariable
+                    name={stringIdentifier}
+                    value={item}
+                    skipObj={true}
+                    isHighlighted={highlighted.has(
+                      `${table.id}-${stringIdentifier}`,
+                    )}
+                  />
+                </div>
+              );
+            }
+            return (
+              <div
+                key={`${table.id}-${stringIdentifier}-${index}-${item.id}`}
+                ref={(el) => {
+                  el && ref.current.set(item.id, el);
+                }}
+              >
+                <PixelVariable
+                  name={stringIdentifier}
+                  value={item}
+                  skipObj={false}
+                  isHighlighted={highlighted.has(item.id)}
+                />
+              </div>
+            );
+          })
+          .filter((i) => i !== null)}
+      </div>
+    </PixelBox>
+  );
+};

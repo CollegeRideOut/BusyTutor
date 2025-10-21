@@ -833,6 +833,7 @@ export const setfenv: Lua_Builtin = {
 export const _VERSION: Lua_String = {
   id: crypto.randomUUID(),
   kind: 'string',
+  hidden: true,
   value: 'Lua 5.1',
 };
 

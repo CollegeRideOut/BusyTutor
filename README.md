@@ -158,8 +158,19 @@
 - worker
 - server sends stringified data back to user
 
+### Oct 21
+
+- fixed pathfinding (relly dumb erros)
+- eval_gen idexing
+- rastertizing
+- Bad arrows
+- a lot
+
 ### Up Next
 
+- BETTER PATH FINDING
+- optimize layout
+- optimize serialization (send table divs? not full tables? cachinf also)
 - io, os, package, coroutine TODO and test all global tables
 - taqle (TODO)
 - table.sort
