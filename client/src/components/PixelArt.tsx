@@ -375,6 +375,8 @@ export const PixelTable = ({
                 </div>
               );
             }
+
+            console.log(item.id, item.kind === 'number' && item.value);
             return (
               <div
                 key={`${table.id}-${stringIdentifier}-${index}-${item.id}`}

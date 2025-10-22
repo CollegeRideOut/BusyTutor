@@ -28,6 +28,7 @@
     "@trpc/react-query": "^11.6.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "datastructures-js": "^8.0.0",
     "fengari-web": "^0.1.4",
     "luaparse": "^0.3.1",
     "lucide-react": "^0.536.0",

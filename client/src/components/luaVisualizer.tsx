@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Lua_Table } from '@busytutor/server/src/interperter/lua_types';
 import type { Lua_Visualzer } from '@busytutor/server/src/interperter/lua_types';
-
+import { MinHeap } from 'datastructures-js';
 import { reviver, revive_heap } from '../utils/jsonParser';
 import { PixelTable, PixelVariable } from './PixelArt';
 
@@ -249,10 +249,13 @@ function VisualizeExecution({
         let rect1 = visualEnvironmentRef.current
           .get(i.idexer?.valId || '')
           ?.getBoundingClientRect();
+
         let rect2 = visualEnvironmentRef.current
           .get(i.val?.valId || '')
           ?.getBoundingClientRect();
+
         if (rect1 === undefined || rect2 === undefined) return null;
+
         let x: [[DOMRect, DOMRect], [string, string]] = [
           [rect1, rect2],
           [i.idexer!.valId, i.val!.valId],
@@ -264,27 +267,26 @@ function VisualizeExecution({
     let parentRefRect = parentRef.current?.getBoundingClientRect();
     if (!parentRefRect)
       throw new Error('parent ref does not exist visualize execution');
-    //const newlayout = rasterize({
-    //  ref: visualEnvironmentRef,
-    //  parentRef: parentRefRect,
-    //});
+    const newlayout = rasterize({
+      ref: visualEnvironmentRef,
+      parentRef: parentRefRect,
+    });
 
     //drawCellsSVG(newlayout, svgRef.current);
     //console.log('layout', newlayout);
     //    layoutRef.current = newlayout;
     let i = 0;
     for (let [[rect1, rect2], [rect1Id, rect2Id]] of pairedRects) {
-      pathFindSmart(rect1, rect2, svgRef.current, parentRefRect);
-      //pathFind(
-      //  newlayout,
-      //  svgRef.current,
-      //  rect1,
-      //  rect2,
-      //  rect1Id,
-      //  rect2Id,
-      //  parentRefRect,
-      //  i === 0 ? 'primary' : 'secondary',
-      //);
+      pathFind(
+        newlayout,
+        svgRef.current,
+        rect1,
+        rect2,
+        rect1Id,
+        rect2Id,
+        parentRefRect,
+        i === 0 ? 'primary' : 'secondary',
+      );
       i++;
     }
   }, [env, heap, currentIdx, visual, svgRef.current]);
@@ -686,109 +688,47 @@ export function rasterize({
   return grid;
 }
 
-type Point = { x: number; y: number };
-type Node = { id: string; pos: Point };
-
-function getConnectionPoints(rect: DOMRect, margin = 20) {
-  return {
-    top: { x: rect.x + rect.width / 2, y: rect.y - margin },
-    bottom: { x: rect.x + rect.width / 2, y: rect.y + rect.height + margin },
-    left: { x: rect.x - margin, y: rect.y + rect.height / 2 },
-    right: { x: rect.x + rect.width + margin, y: rect.y + rect.height / 2 },
-  };
-}
-
-function computeOrthogonalPath(
-  start: Point,
-  end: Point,
-  spacing = 20,
-  entry = 'top',
-) {
-  const points = [start];
-  const midX = (start.x + end.x) / 2;
-
-  // horizontal halfway
-  points.push({ x: midX, y: start.y });
-
-  // go vertical toward the rect2 entry
-  if (entry === 'top') {
-    points.push({ x: midX, y: end.y + spacing }); // approach from below
-    points.push({ x: end.x, y: end.y + spacing });
-    points.push(end); // final short upward segment
-  } else if (entry === 'bottom') {
-    points.push({ x: midX, y: end.y - spacing }); // approach from above
-    points.push({ x: end.x, y: end.y - spacing });
-    points.push(end); // final short downward segment
-  } else {
-    // default sideways
-    points.push({ x: midX, y: end.y });
-    points.push(end);
-  }
-
-  return points
-    .map((p, i) => (i === 0 ? `M${p.x} ${p.y}` : `L${p.x} ${p.y}`))
-    .join(' ');
-}
-
-function pickEntryExit(rect1: DOMRect, rect2: DOMRect) {
-  const p1 = getConnectionPoints(rect1);
-  const p2 = getConnectionPoints(rect2);
-
-  // Start = left or right depending on relative position
-  const start = rect2.x > rect1.x ? p1.right : p1.left;
-
-  // End = whichever of top/bottom is closer vertically to rect1
-  const centerY = rect1.y + rect1.height / 2;
-  const topDist = Math.abs(p2.top.y - centerY);
-  const bottomDist = Math.abs(p2.bottom.y - centerY);
-  const end = topDist < bottomDist ? p2.top : p2.bottom;
-
-  return { start, end };
-}
-
-function pathFindSmart(
-  rect1: DOMRect,
-  rect2: DOMRect,
-  svg: SVGSVGElement,
-  parentRef: DOMRect,
-) {
-  const { start, end } = pickEntryExit(rect1, rect2);
-
-  // Pick facing points
-  start.x -= parentRef.left;
-  start.y -= parentRef.top;
-
-  end.x -= parentRef.left;
-  end.y -= parentRef.top;
-
-  const svg_path = computeOrthogonalPath(start, end, 20);
-
-  drawArrow(svg, svg_path, 'primary');
+function highlightRect(rect: DOMRect) {
+  const div = document.createElement('div');
+  Object.assign(div.style, {
+    position: 'absolute',
+    left: rect.left + 'px',
+    top: rect.top + 'px',
+    width: rect.width + 'px',
+    height: rect.height + 'px',
+    background: 'rgba(255, 255, 0, 0.3)',
+    pointerEvents: 'none',
+    zIndex: 9999,
+  });
+  document.body.appendChild(div);
 }
 
 function pathFind(
   grid: cell[][],
   svg: SVGSVGElement,
-  _rect1: DOMRect,
+  rect1: DOMRect,
   rect2: DOMRect,
   rect1Id: string,
   rect2Id: string,
-  _parentRef: DOMRect,
+  parentRef: DOMRect,
   lineType: keyof typeof Lines,
 ) {
-  let start = { i: -1, j: -1 };
-  let end = { i: -1, j: -1 };
+  highlightRect(rect2);
+  type Point = { i: number; j: number };
+  let start: Point = { i: -1, j: -1 };
+  let end: Point = { i: -1, j: -1 };
   // TODO busca una forma de hacer esto mejor y ma bacano
+  //  set starting points
   for (let i = 0; i < grid.length; i++) {
     for (let j = 0; j < grid[i].length; j++) {
       if (grid[i][j].id === rect1Id) {
-        start = { i: i, j: j };
+        if (end.i === -1) start = { i: i, j: j };
         grid[i][j].occupied = false;
         grid[i][j].start = true;
       } else if (grid[i][j].id === rect2Id) {
-        //        if (end.i === -1) end = { i: i, j: j };
-        grid[i][j].end = true;
+        if (end.i === -1) end = { i: i, j: j };
         grid[i][j].occupied = false;
+        grid[i][j].end = true;
       }
     }
   }
@@ -810,95 +750,122 @@ function pathFind(
   console.log(printGrid(grid));
   console.log('start', start, 'end', end);
 
-  let vistited_parent: Map<string, string> = new Map();
-  vistited_parent.set(`${start.i}-${start.j}`, `${start.i}-${start.j}`);
-  let dirs = [
+  type Acell = {
+    parent: null | Acell;
+    i: number;
+    j: number;
+    g: number;
+    h: number;
+    f: number;
+    occupied: boolean;
+    id?: string;
+  };
+  const calculateHeuristic = (s: Acell, e: Acell) => {
+    return Math.abs(s.i - e.i) + Math.abs(s.j - e.j);
+  };
+  const makeCellToAcell = (c: cell, p: Point): Acell => {
+    return {
+      h: 0,
+      parent: null,
+      g: 0,
+      f: 0,
+      i: p.i,
+      j: p.j,
+      occupied: c.occupied,
+      id: c.id,
+    };
+  };
+
+  // A*
+  let startNode = makeCellToAcell(grid[start.i][start.j], start);
+  let endNode = makeCellToAcell(grid[end.i][end.j], end);
+  startNode.g = 0;
+  startNode.h = calculateHeuristic(startNode, endNode);
+  startNode.f = startNode.g + startNode.h;
+
+  let openList = new MinHeap<Acell>((c: Acell) => c.f);
+  openList.insert(startNode);
+  let openDict: Map<string, Acell> = new Map();
+  let closedSet: Set<string> = new Set();
+
+  function isValid(c: Acell | Point) {
+    if (c.i < 0 || c.j < 0 || c.i >= grid.length || c.j >= grid[0].length)
+      return false;
+    if (grid[c.i][c.j].occupied) return false;
+    return true;
+  }
+  let directions: Point[] = [
     { i: 1, j: 0 },
-    { i: -1, j: 0 },
     { i: 0, j: 1 },
+    { i: -1, j: 0 },
     { i: 0, j: -1 },
   ];
-  let q = [start];
-  // shortest path
-  parent: while (q.length > 0) {
-    let n = q.length;
-    for (let i = 0; i < n; i++) {
-      let curr = q.shift();
-      if (curr === undefined) {
-        console.log('error');
-        break;
-      }
-      if (grid[curr.i][curr.j].end === true) {
-        end = curr;
-        console.log('PATH COMPLETED');
-        break parent;
-      }
+  const getValidNeighbors = (c: Acell) =>
+    directions
+      .map((p) => {
+        return { i: c.i - p.i, j: c.j - p.j } satisfies Point;
+      })
+      .filter(isValid)
+      .map((p) => makeCellToAcell(grid[p.i][p.j], p));
 
-      for (let dir of dirs) {
-        let new_node = { i: curr.i + dir.i, j: curr.j + dir.j };
-        if (
-          new_node.i < 0 ||
-          new_node.j < 0 ||
-          new_node.i >= grid.length ||
-          new_node.j >= grid[0].length ||
-          grid[new_node.i][new_node.j].occupied ||
-          vistited_parent.has(`${new_node.i}-${new_node.j}`)
-        ) {
-          continue;
-        } else {
-          vistited_parent.set(
-            `${new_node.i}-${new_node.j}`,
-            `${curr.i}-${curr.j}`,
-          );
-          q.push(new_node);
-        }
+  const reconstructPath = (c: Acell) => {
+    let path: Acell[] = [];
+    while (c.parent !== null) {
+      path.push(c);
+      c = c.parent;
+    }
+    return path.reverse();
+  };
+  let path: Acell[] = [];
+  while (openList.size() > 0) {
+    let { _key } = openList.extractRoot();
+    let currNode = _key;
+
+    // is goal
+    if (currNode.i === end.i && currNode.j === end.j) {
+      path = reconstructPath(currNode);
+      break;
+    }
+    closedSet.add(`${currNode.i}-${currNode.j}`);
+    let validNeighbors = getValidNeighbors(currNode);
+    for (let n of validNeighbors) {
+      if (closedSet.has(`${n.i}-${n.j}`)) continue;
+
+      const tentativeG = currNode.g + calculateHeuristic(currNode, n);
+
+      if (!openDict.has(`${n.i}-${n.j}`)) {
+        n.g = tentativeG;
+        n.h = calculateHeuristic(n, endNode);
+        n.f = n.g + n.h;
+        n.parent = currNode;
+        openList.insert(n);
+        openDict.set(`${n.i}-${n.j}`, n);
+      } else if (tentativeG < openDict.get(`${n.i}-${n.j}`)!.g) {
+        n.g = tentativeG;
+        n.f = tentativeG + n.h;
+        n.parent = currNode;
       }
     }
   }
-  // TODO give grid values?
 
-  let path: { i: number; j: number }[] = [];
-  let last = `${end.i}-${end.j}`;
-  let parent_v = vistited_parent.get(last);
-  console.log('first parent_v', parent_v);
-  //
-  while (last !== parent_v) {
-    console.log('hello');
-    let split = last.split('-');
-    path.push({ i: parseInt(split[0]), j: parseInt(split[1]) });
-    last = parent_v!;
-    parent_v = vistited_parent.get(parent_v!);
-  }
-
-  path = path.reverse();
-  console.log('the path', path);
+  // A* end
+  console.log(`this is the path`, path, path);
 
   let svg_path =
-    `M${grid[start.i][start.j].right} ${grid[start.i][start.j].top} ` +
+    `M${rect1.left - parentRef.left + rect1.x / 2} ${rect1.top - parentRef.top - 4} ` +
+    `L${grid[start.i][start.j].left} ${grid[start.i][start.j].top} ` +
     path
       .map(({ i, j }, idx) => {
         let curr_cell = grid[i][j];
-        let x = curr_cell.right;
+        let x = curr_cell.left + rect2.x / 2 / (path.length + 2);
         let y = curr_cell.top;
-
         if (idx === 0) return `L${x} ${y}`;
+        if (idx === path.length - 1) return `L${x} ${y - 10}`;
 
-        return `L${curr_cell.right - (rect2.right - rect2.left)} ${grid[i][j].top}`;
+        return `L${x} ${y}`;
       })
       .join(' ');
-
-  for (let i = 0; i < grid.length; i++) {
-    for (let j = 0; j < grid[i].length; j++) {
-      if (grid[i][j].id === rect1Id) {
-        grid[i][j].occupied = true;
-        grid[i][j].start = false;
-      }
-      if (grid[i][j].id === rect2Id) {
-        grid[i][j].occupied = true;
-        grid[i][j].end = false;
-      }
-    }
-  }
+  // remove that is start
 
   drawArrow(svg, svg_path, lineType);
 }

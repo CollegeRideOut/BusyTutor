@@ -166,9 +166,14 @@
 - Bad arrows
 - a lot
 
+### Oct 21
+
+- Switch to A\* path finding
+
 ### Up Next
 
-- BETTER PATH FINDING
+- fix boxes
+- using clerance based A\* algorithim
 - optimize layout
 - optimize serialization (send table divs? not full tables? cachinf also)
 - io, os, package, coroutine TODO and test all global tables
