@@ -380,7 +380,7 @@ export const PixelTable = ({
               <div
                 key={`${table.id}-${stringIdentifier}-${index}-${item.id}`}
                 ref={(el) => {
-                  console.log(item.id, item.kind === 'number' && item.value);
+                  //console.log(item.id, item.kind === 'number' && item.value);
                   el && ref.current.set(item.id, el);
                 }}
               >

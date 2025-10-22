@@ -17,6 +17,7 @@ const ArrowHead = {
   primary: { id: 'arrowhead-primary', color: '#4c6ef5' },
   secondary: { id: 'arrowhead-secondary', color: '#6c5ce7' },
 };
+
 const Lines = {
   primary: { color: '#4c6ef5' },
   secondary: { color: '#6c5ce7' },
@@ -214,6 +215,9 @@ function VisualizeExecution({
   const parentRef = useRef<HTMLDivElement | null>(null);
   const layoutRef = useRef<ReturnType<typeof rasterize> | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const arrowRef = useRef<SVGSVGElement>(null);
+  const lineRef = useRef<SVGSVGElement>(null);
+
   const highlighted = useMemo(() => {
     let HighlightedSet: Set<string> = new Set();
     if (visual.indexingVisual && visual.indexingVisual.length > 0) {
@@ -238,12 +242,19 @@ function VisualizeExecution({
   }, [heap, env, currentIdx]);
 
   useLayoutEffect(() => {
-    console.log(visual);
-    if (svgRef === null || !svgRef.current) return;
-
-    Array.from(svgRef.current.children).forEach((child) => {
-      if (child.tagName !== 'defs') svgRef!.current!.removeChild(child);
+    if (
+      svgRef.current === null ||
+      arrowRef.current === null ||
+      lineRef.current === null
+    )
+      return;
+    Array.from(arrowRef!.current!.children).forEach((child) => {
+      arrowRef!.current!.removeChild(child);
     });
+    Array.from(lineRef!.current!.children).forEach((child) => {
+      lineRef!.current!.removeChild(child);
+    });
+
     if (!visual.indexingVisual || visual.indexingVisual.length === 0) {
       return;
     }
@@ -283,7 +294,8 @@ function VisualizeExecution({
     for (let [[rect1, rect2], [rect1Id, rect2Id]] of pairedRects) {
       pathFind(
         newlayout,
-        svgRef.current,
+        arrowRef.current!,
+        lineRef.current!,
         rect1,
         rect2,
         rect1Id,
@@ -293,7 +305,15 @@ function VisualizeExecution({
       );
       i++;
     }
-  }, [env, heap, currentIdx, visual, svgRef.current]);
+  }, [
+    env,
+    heap,
+    currentIdx,
+    visual,
+    svgRef.current,
+    arrowRef.current,
+    lineRef.current,
+  ]);
 
   return (
     <div
@@ -312,19 +332,19 @@ function VisualizeExecution({
             id={ArrowHead.primary.id}
             markerWidth='10'
             markerHeight='10'
-            refX='8'
+            refX='7'
             refY='4'
             orient='auto-start-reverse'
             markerUnits='strokeWidth'
           >
-            <path d='M0,0 L10,5 L0,10 Z' fill={`${ArrowHead.primary.color}`} />
+            <path d='M0,0 L0,8 L8,4 Z' fill={ArrowHead.primary.color} />
           </marker>
 
           <marker
             id={ArrowHead.secondary.id}
             markerWidth='10'
             markerHeight='10'
-            refX='8'
+            refX='7'
             refY='4'
             orient='auto'
             markerUnits='strokeWidth'
@@ -333,6 +353,24 @@ function VisualizeExecution({
           </marker>
         </defs>
       </svg>
+
+      <svg
+        id='line-layer'
+        ref={lineRef}
+        width='100%'
+        height='100%'
+        preserveAspectRatio='none'
+        className='absolute top-0 left-0 w-full h-full pointer-events-none'
+      />
+
+      <svg
+        id='arrow-layer'
+        ref={arrowRef}
+        width='100%'
+        height='100%'
+        preserveAspectRatio='none'
+        className='absolute top-0 left-0 w-full h-full pointer-events-none'
+      />
       <VisulizeEnvironment
         env={env}
         ref={visualEnvironmentRef}
@@ -371,7 +409,7 @@ function VisulizeHeap({
     })
     .filter((i) => i !== null);
   return (
-    <div className='flex flex-col gap-y-10'>
+    <div className='flex flex-col gap-y-10 w-1/2'>
       <div>Heap:</div>
       {rc}
     </div>
@@ -457,7 +495,7 @@ function VisulizeEnvironment({
   //globalEnv--;
 
   return (
-    <div className='flex flex-col gap-y-10'>
+    <div className='flex flex-col gap-y-10 w-1/2'>
       <div>Current Environment:</div>
       {curr}
     </div>
@@ -677,7 +715,6 @@ export function rasterize({
 
           if (overlappedTopOrBottom) {
             cell.id = rect.id;
-            console.log('top');
             cell.id = rect.id;
           }
           break;
@@ -709,14 +746,16 @@ function highlightRect(rect: DOMRect) {
 
 function pathFind(
   grid: cell[][],
-  svg: SVGSVGElement,
+  arrowRef: SVGSVGElement,
+  lineRef: SVGSVGElement,
   rect1: DOMRect,
   rect2: DOMRect,
   rect1Id: string,
   rect2Id: string,
-  parentRef: DOMRect,
+  _parentRef: DOMRect,
   lineType: keyof typeof Lines,
 ) {
+  console.log('we pathfinding bois');
   //highlightRect(rect2);
   type Point = { i: number; j: number };
   let start: Point = { i: -1, j: -1 };
@@ -726,13 +765,13 @@ function pathFind(
   for (let i = 0; i < grid.length; i++) {
     for (let j = 0; j < grid[i].length; j++) {
       if (grid[i][j].id === rect1Id) {
-        if (end.i === -1) start = { i: i, j: j };
-        grid[i][j].occupied = false;
+        if (start.i === -1) start = { i: i, j: j };
         grid[i][j].start = true;
+        grid[i][j].occupied = false;
       } else if (grid[i][j].id === rect2Id) {
         if (end.i === -1) end = { i: i, j: j };
-        grid[i][j].occupied = false;
         grid[i][j].end = true;
+        grid[i][j].occupied = false;
       }
     }
   }
@@ -751,8 +790,7 @@ function pathFind(
     return lines.join('\n');
   }
 
-  console.log(printGrid(grid));
-  console.log('start', start, 'end', end);
+  //console.log(printGrid(grid));
 
   type Acell = {
     parent: null | Acell;
@@ -780,6 +818,8 @@ function pathFind(
     };
   };
 
+  if (start.i === -1) throw new Error('start not found');
+  if (end.j === -1) throw new Error('end not found');
   // A*
   let startNode = makeCellToAcell(grid[start.i][start.j], start);
   let endNode = makeCellToAcell(grid[end.i][end.j], end);
@@ -853,31 +893,57 @@ function pathFind(
   }
 
   // A* end
+  //
+  let curr_cell = grid[start.i][start.j];
+  let x = curr_cell.left + rect1.x / 2 / (path.length + 2);
 
+  let y = curr_cell.top;
+  let pend = ``;
   let svg_path =
-    `M${rect1.left - parentRef.left + rect1.x / 2} ${rect1.top - parentRef.top - 4} ` +
-    `L${grid[start.i][start.j].left} ${grid[start.i][start.j].top} ` +
+    `M${x} ${y}` +
     path
       .map(({ i, j }, idx) => {
         let curr_cell = grid[i][j];
         let x = curr_cell.left + rect2.x / 2 / (path.length + 2);
         let y = curr_cell.top;
         if (idx === 0) return `L${x} ${y}`;
-        if (idx === path.length - 1) return `L${x} ${y - 10}`;
+
+        if (idx === path.length - 2) {
+          pend = `M${x} ${y}`;
+        }
+        if (idx === path.length - 1) {
+          pend += `L${x} ${y}`;
+          return `L${x} ${y}`;
+        }
 
         return `L${x} ${y}`;
       })
       .join(' ');
-  // remove that is start
 
-  drawArrow(svg, svg_path, lineType);
+  // remove that is start
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      if (grid[i][j].id === rect1Id) {
+        grid[i][j].start = false;
+        grid[i][j].occupied = true;
+      } else if (grid[i][j].id === rect2Id) {
+        grid[i][j].end = false;
+        grid[i][j].occupied = true;
+      }
+    }
+  }
+
+  drawArrow(arrowRef, lineRef, svg_path, lineType, pend);
 }
 
 function drawArrow(
-  svg: SVGSVGElement,
+  arrowRef: SVGSVGElement,
+  lineRef: SVGSVGElement,
   svg_path: string,
   lineType: keyof typeof Lines,
+  pend: string,
 ) {
+  console.log('we drawing bois');
   // 🧹 Clear previous drawings
 
   // remove all children except <defs>
@@ -890,16 +956,27 @@ function drawArrow(
 
   // Path (the actual arrow)
   const path = document.createElementNS(svgNS, 'path');
-  svg.setAttribute('viewBox', `0 0 ${svg.clientWidth} ${svg.clientHeight}`);
-  svg.setAttribute('preserveAspectRatio', 'none');
+  lineRef.setAttribute(
+    'viewBox',
+    `0 0 ${lineRef.clientWidth} ${lineRef.clientHeight}`,
+  );
+  lineRef.setAttribute('preserveAspectRatio', 'none');
   path.setAttribute('d', svg_path);
   path.setAttribute('stroke', color);
   path.setAttribute('fill', 'none');
   path.setAttribute('stroke-linecap', 'round');
   path.setAttribute('stroke-linejoin', 'round');
   path.setAttribute('stroke-width', '4');
-  path.setAttribute('marker-end', `url(#${ArrowHead[lineType].id})`);
-  svg.appendChild(path);
+  lineRef.appendChild(path);
+
+  const arrowPath = document.createElementNS(svgNS, 'path');
+  arrowPath.setAttribute('d', pend); // tiny line, just to host the marker
+  arrowPath.setAttribute('stroke', color);
+  arrowPath.setAttribute('stroke-width', '4');
+  arrowPath.setAttribute('fill', 'none');
+  arrowPath.setAttribute('marker-end', `url(#${ArrowHead[lineType].id})`);
+
+  arrowRef.appendChild(arrowPath);
 
   // Draw rect boxes
   //appendRectBox(svg, rect1, parentRef, color);

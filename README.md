@@ -170,6 +170,7 @@
 
 - Switch to A\* path finding
 - fixed box not showing the cool way
+- SVG arrows always on top of lines
 
 ### Up Next
 
