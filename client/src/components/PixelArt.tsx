@@ -231,7 +231,7 @@ export const PixelVariable = ({
       <PixelBox
         isHighlighted={isHighlighted}
         borderColor={typeColor}
-        id={`variable-${name}`}
+        id={`var-${name}`}
       >
         <span>
           {name} {!skipObj ? ' = ' + stringVal : null}
@@ -254,7 +254,7 @@ const PixelBox = ({
 }) => {
   const style: React.CSSProperties = {
     clipPath:
-      'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px)) w-fit',
+      'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))',
     ...(borderColor && !isHighlighted
       ? {
           borderColor: borderColor,
@@ -267,7 +267,7 @@ const PixelBox = ({
     <div
       id={id}
       className={`
-          inline-block border-2 p-2 font-mono text-xs pixel-container w-fit max-w-fit
+          inline-block border-2 p-2 font-mono text-xs pixel-container
           ${isHighlighted ? 'border-yellow-400 bg-yellow-400/20 pixel-glow reference-highlight' : ''}
           pixel-border relative transition-all duration-300
         `}
@@ -376,11 +376,11 @@ export const PixelTable = ({
               );
             }
 
-            console.log(item.id, item.kind === 'number' && item.value);
             return (
               <div
                 key={`${table.id}-${stringIdentifier}-${index}-${item.id}`}
                 ref={(el) => {
+                  console.log(item.id, item.kind === 'number' && item.value);
                   el && ref.current.set(item.id, el);
                 }}
               >

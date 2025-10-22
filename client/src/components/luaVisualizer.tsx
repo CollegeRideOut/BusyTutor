@@ -3,7 +3,10 @@ import type { ReactNode } from 'react';
 import { trpc } from '../lib/trpc';
 import { Button } from './ui/button';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
-import { Lua_Table } from '@busytutor/server/src/interperter/lua_types';
+import {
+  Lua_Null,
+  Lua_Table,
+} from '@busytutor/server/src/interperter/lua_types';
 import type { Lua_Visualzer } from '@busytutor/server/src/interperter/lua_types';
 import { MinHeap } from 'datastructures-js';
 import { reviver, revive_heap } from '../utils/jsonParser';
@@ -271,6 +274,7 @@ function VisualizeExecution({
       ref: visualEnvironmentRef,
       parentRef: parentRefRect,
     });
+    layoutRef.current = newlayout;
 
     //drawCellsSVG(newlayout, svgRef.current);
     //console.log('layout', newlayout);
@@ -713,7 +717,7 @@ function pathFind(
   parentRef: DOMRect,
   lineType: keyof typeof Lines,
 ) {
-  highlightRect(rect2);
+  //highlightRect(rect2);
   type Point = { i: number; j: number };
   let start: Point = { i: -1, j: -1 };
   let end: Point = { i: -1, j: -1 };
@@ -849,7 +853,6 @@ function pathFind(
   }
 
   // A* end
-  console.log(`this is the path`, path, path);
 
   let svg_path =
     `M${rect1.left - parentRef.left + rect1.x / 2} ${rect1.top - parentRef.top - 4} ` +

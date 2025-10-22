@@ -169,10 +169,10 @@
 ### Oct 21
 
 - Switch to A\* path finding
+- fixed box not showing the cool way
 
 ### Up Next
 
-- fix boxes
 - using clerance based A\* algorithim
 - optimize layout
 - optimize serialization (send table divs? not full tables? cachinf also)

@@ -342,7 +342,7 @@ export function ElementsPage() {
     );
   };
 
-  const PixelVariable = ({
+   const PixelVariable = ({
     name,
     value,
     isHighlighted = false,
