@@ -32,6 +32,7 @@
     "fengari-web": "^0.1.4",
     "luaparse": "^0.3.1",
     "lucide-react": "^0.536.0",
+    "mnemonist": "^0.40.3",
     "motion": "^12.23.12",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

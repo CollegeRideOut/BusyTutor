@@ -3,25 +3,34 @@ import type { ReactNode } from 'react';
 import { trpc } from '../lib/trpc';
 import { Button } from './ui/button';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
-import {
-  Lua_Null,
-  Lua_Table,
-} from '@busytutor/server/src/interperter/lua_types';
+import { Lua_Table } from '@busytutor/server/src/interperter/lua_types';
 import type { Lua_Visualzer } from '@busytutor/server/src/interperter/lua_types';
-import { MinHeap } from 'datastructures-js';
+import { Heap } from 'mnemonist';
 import { reviver, revive_heap } from '../utils/jsonParser';
 import { PixelTable, PixelVariable } from './PixelArt';
 
 //const VIUAL_PARENT_ID = '.%!@#PARENT';
-const ArrowHead = {
-  primary: { id: 'arrowhead-primary', color: '#4c6ef5' },
-  secondary: { id: 'arrowhead-secondary', color: '#6c5ce7' },
-};
+//const ArrowHead = {
+//  primary: { id: 'arrowhead-primary', color: '#4c6ef5' },
+//  secondary: { id: 'arrowhead-secondary', color: '#6c5ce7' },
+//  pointer: {
+//    id: 'arrowhead-pointer',
+//    color: '#4C6EF54C',
+//    strokeDasharray: '4,4',
+//  },
+//};
 
 const Lines = {
-  primary: { color: '#4c6ef5' },
-  secondary: { color: '#6c5ce7' },
+  primary: { color: '#4c6ef5', strokeDasharray: '' },
+  secondary: { color: '#6c5ce7', strokeDasharray: '' },
+  pointer: {
+    color: 'rgba(76, 110, 245, 0.3)',
+    strokeDasharray: '10 20',
+
+    colorHover: '#14b8a6',
+  },
 };
+const PIXEL_WIDTH = 5;
 
 export function LuaVisualizer({ id }: { id: string }) {
   const [enabled, setEnabled] = useState(false);
@@ -212,11 +221,11 @@ function VisualizeExecution({
   visual: Lua_Visualzer;
 }) {
   const visualEnvironmentRef = useRef<Map<string, HTMLElement>>(new Map());
+  const visualPointersRef = useRef<Map<string, string>>(new Map());
   const parentRef = useRef<HTMLDivElement | null>(null);
   const layoutRef = useRef<ReturnType<typeof rasterize> | null>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-  const arrowRef = useRef<SVGSVGElement>(null);
   const lineRef = useRef<SVGSVGElement>(null);
+  const currentHover = useRef<[string, string]>(['', '']);
 
   const highlighted = useMemo(() => {
     let HighlightedSet: Set<string> = new Set();
@@ -241,24 +250,13 @@ function VisualizeExecution({
     visualEnvironmentRef.current = new Map();
   }, [heap, env, currentIdx]);
 
-  useLayoutEffect(() => {
-    if (
-      svgRef.current === null ||
-      arrowRef.current === null ||
-      lineRef.current === null
-    )
-      return;
-    Array.from(arrowRef!.current!.children).forEach((child) => {
-      arrowRef!.current!.removeChild(child);
-    });
+  function updateVIsuals() {
+    if (lineRef.current === null) return;
     Array.from(lineRef!.current!.children).forEach((child) => {
       lineRef!.current!.removeChild(child);
     });
 
-    if (!visual.indexingVisual || visual.indexingVisual.length === 0) {
-      return;
-    }
-    const pairedRects = visual.indexingVisual
+    let indexed = (visual.indexingVisual || [])
       .map((i) => {
         let rect1 = visualEnvironmentRef.current
           .get(i.idexer?.valId || '')
@@ -278,6 +276,27 @@ function VisualizeExecution({
       })
       .filter((pr) => !!pr);
 
+    let pairedRects = [...visualPointersRef.current.entries()]
+      .map(([rect1id, rect2id]) => {
+        let rect1 = visualEnvironmentRef.current
+          .get(rect1id)
+          ?.getBoundingClientRect();
+
+        let rect2 = visualEnvironmentRef.current
+          .get(rect2id)
+          ?.getBoundingClientRect();
+
+        if (rect1 === undefined || rect2 === undefined) return null;
+
+        let x: [[DOMRect, DOMRect], [string, string]] = [
+          [rect1, rect2],
+          [rect1id, rect2id],
+        ];
+        return x;
+      })
+      .filter((pr) => !!pr);
+    pairedRects = pairedRects.concat(indexed);
+
     let parentRefRect = parentRef.current?.getBoundingClientRect();
     if (!parentRefRect)
       throw new Error('parent ref does not exist visualize execution');
@@ -285,74 +304,62 @@ function VisualizeExecution({
       ref: visualEnvironmentRef,
       parentRef: parentRefRect,
     });
-    layoutRef.current = newlayout;
+    //layoutRef.current = newlayout;
 
     //drawCellsSVG(newlayout, svgRef.current);
     //console.log('layout', newlayout);
     //    layoutRef.current = newlayout;
     let i = 0;
     for (let [[rect1, rect2], [rect1Id, rect2Id]] of pairedRects) {
+      let linetype: keyof typeof Lines = 'primary';
+      if (i > 0) linetype = 'secondary';
+      if (visualPointersRef.current.has(rect1Id)) linetype = 'pointer';
+
       pathFind(
         newlayout,
-        arrowRef.current!,
+        currentHover,
         lineRef.current!,
         rect1,
         rect2,
         rect1Id,
         rect2Id,
         parentRefRect,
-        i === 0 ? 'primary' : 'secondary',
+        linetype,
       );
       i++;
     }
-  }, [
-    env,
-    heap,
-    currentIdx,
-    visual,
-    svgRef.current,
-    arrowRef.current,
-    lineRef.current,
-  ]);
+  }
+
+  useLayoutEffect(() => {
+    updateVIsuals();
+  }, [env, heap, currentIdx, visual, lineRef.current, currentHover]);
 
   return (
     <div
       className='w-full flex flex-row justify-between relative'
       ref={parentRef}
     >
-      <svg
-        ref={svgRef}
-        width='100%'
-        height='100%'
-        preserveAspectRatio='none'
-        className='absolute top-0 left-0 w-full h-full pointer-events-none'
-      >
-        <defs>
-          <marker
-            id={ArrowHead.primary.id}
-            markerWidth='10'
-            markerHeight='10'
-            refX='7'
-            refY='4'
-            orient='auto-start-reverse'
-            markerUnits='strokeWidth'
-          >
-            <path d='M0,0 L0,8 L8,4 Z' fill={ArrowHead.primary.color} />
-          </marker>
-
-          <marker
-            id={ArrowHead.secondary.id}
-            markerWidth='10'
-            markerHeight='10'
-            refX='7'
-            refY='4'
-            orient='auto'
-            markerUnits='strokeWidth'
-          >
-            <path d='M0,0 L0,8 L8,4 Z' fill={ArrowHead.secondary.color} />
-          </marker>
-        </defs>
-      </svg>
+      <VisulizeEnvironment
+        env={env}
+        ref={visualEnvironmentRef}
+        pointerRef={visualPointersRef}
+        highlighted={highlighted}
+        setHovered={(val: [string, string]) => {
+          currentHover.current = val;
+          updateVIsuals();
+        }}
+      />
+      <VisulizeHeap
+        heap={heap}
+        env={env}
+        ref={visualEnvironmentRef}
+        pointerRef={visualPointersRef}
+        setHovered={(val: [string, string]) => {
+          currentHover.current = val;
+          updateVIsuals();
+        }}
+        highlighted={highlighted}
+      />
 
       <svg
         id='line-layer'
@@ -362,26 +369,6 @@ function VisualizeExecution({
         preserveAspectRatio='none'
         className='absolute top-0 left-0 w-full h-full pointer-events-none'
       />
-
-      <svg
-        id='arrow-layer'
-        ref={arrowRef}
-        width='100%'
-        height='100%'
-        preserveAspectRatio='none'
-        className='absolute top-0 left-0 w-full h-full pointer-events-none'
-      />
-      <VisulizeEnvironment
-        env={env}
-        ref={visualEnvironmentRef}
-        highlighted={highlighted}
-      />
-      <VisulizeHeap
-        heap={heap}
-        env={env}
-        ref={visualEnvironmentRef}
-        highlighted={highlighted}
-      />
     </div>
   );
 }
@@ -390,11 +377,15 @@ function VisulizeHeap({
   env,
   ref,
   highlighted,
+  setHovered,
+  pointerRef,
 }: {
   heap: Map<string, Lua_Table>;
   highlighted: Set<string>;
   env: Lua_Table;
   ref: React.RefObject<Map<string, HTMLElement>>;
+  setHovered: (val: [string, string]) => void;
+  pointerRef: React.RefObject<Map<string, string>>;
 }) {
   let rc = [...heap.entries()]
     .map(([key, table], index) => {
@@ -403,14 +394,26 @@ function VisulizeHeap({
       if (ref.current.has(table.id)) return null;
       return (
         <div key={`${key}-${index}`} className='w-fit'>
-          <PixelTable table={table} ref={ref} highlighted={highlighted} />
+          <PixelTable
+            table={table}
+            ref={ref}
+            highlighted={highlighted}
+            pointerRef={pointerRef}
+            setHovered={setHovered}
+          />
         </div>
       );
     })
     .filter((i) => i !== null);
   return (
     <div className='flex flex-col gap-y-10 w-1/2'>
-      <div>Heap:</div>
+      <div
+        ref={(el) => {
+          el && ref.current.set('+_CurrHeap', el);
+        }}
+      >
+        Heap:
+      </div>
       {rc}
     </div>
   );
@@ -420,9 +423,13 @@ function VisulizeEnvironment({
   env,
   ref,
   highlighted,
+  pointerRef,
+  setHovered,
 }: {
   env: Lua_Table;
   highlighted: Set<string>;
+  setHovered: (val: [string, string]) => void;
+  pointerRef: React.RefObject<Map<string, string>>;
   ref: React.RefObject<Map<string, HTMLElement>>;
 }) {
   //let rc: ReactNode[] = [];
@@ -474,8 +481,17 @@ function VisulizeEnvironment({
           <div
             key={`${obj.id}-${identiferString}`}
             className='w-fit'
+            onMouseEnter={() => {
+              //console.log('hover');
+              setHovered([`${obj.id}-${identiferString}`, obj.id]);
+            }}
+            onMouseLeave={() => {
+              setHovered(['', '']);
+            }}
             ref={(el) => {
               el && ref.current.set(`${obj.id}-${identiferString}`, el);
+              el &&
+                pointerRef.current.set(`${obj.id}-${identiferString}`, obj.id);
             }}
           >
             <PixelVariable
@@ -496,7 +512,13 @@ function VisulizeEnvironment({
 
   return (
     <div className='flex flex-col gap-y-10 w-1/2'>
-      <div>Current Environment:</div>
+      <div
+        ref={(el) => {
+          el && ref.current.set('+_CurrEnv', el);
+        }}
+      >
+        Current Environment:
+      </div>
       {curr}
     </div>
   );
@@ -636,7 +658,127 @@ const css = `
 }
 `;
 
+function printGrid(grid: cell[][]) {
+  const lines = grid.map((row) =>
+    row
+      .map((cell) => {
+        if (cell.start) return 'S'; // start
+        if (cell.end) return 'E'; // end
+        if (cell.occupied) return 'X'; // occupied
+        return 'O'; // open
+      })
+      .join(' '),
+  );
+  return lines.join('\n');
+}
+
 export function rasterize({
+  ref,
+  parentRef,
+}: {
+  ref: React.RefObject<Map<string, HTMLElement>>;
+  parentRef: DOMRect;
+}): cell[][] {
+  let topLeft = { x: parentRef.left, y: parentRef.top };
+  let bottomRight = { x: parentRef.right, y: parentRef.bottom };
+
+  let rows = Math.ceil(Math.abs((topLeft.y - bottomRight.y) / PIXEL_WIDTH));
+  let cols = Math.ceil(Math.abs((topLeft.x - bottomRight.x) / PIXEL_WIDTH));
+
+  let grid: cell[][] = [];
+  let rects = [...ref.current.entries()].map(([id, el]) => {
+    const r = el.getBoundingClientRect();
+    const rect: cell = {
+      id: id,
+      left: r.left - parentRef.left - PIXEL_WIDTH,
+      right: r.right - parentRef.left + PIXEL_WIDTH,
+      top: r.top - parentRef.top - PIXEL_WIDTH,
+      bottom: r.bottom - parentRef.top + PIXEL_WIDTH,
+      occupied: true,
+      start: false,
+      end: false,
+    };
+    return rect;
+  });
+
+  let rectOverlapTop: Map<string, cell[]> = new Map();
+  let rectOverlapBottom: Map<string, cell[]> = new Map();
+
+  for (let r = 0; r < rows; r++) {
+    let cellRow: cell[] = [];
+    for (let c = 0; c < cols; c++) {
+      let newCell: cell = {
+        left: c * PIXEL_WIDTH,
+        right: (c + 1) * PIXEL_WIDTH,
+        top: r * PIXEL_WIDTH,
+        bottom: (r + 1) * PIXEL_WIDTH,
+        occupied: false,
+        start: false,
+        end: false,
+      };
+      for (let rect of rects) {
+        const horizontalOverlap = !(
+          newCell.right <= rect.left || newCell.left >= rect.right
+        );
+        const verticalOverlap = !(
+          newCell.bottom <= rect.top || newCell.top >= rect.bottom
+        );
+
+        const overlaps = horizontalOverlap && verticalOverlap;
+        const overlappedTop =
+          overlaps && newCell.top <= rect.top && newCell.bottom >= rect.top; // touching/overlapping rect’s top
+
+        const overlappedBottom =
+          overlaps &&
+          newCell.top <= rect.bottom &&
+          newCell.bottom >= rect.bottom; // touching/overlapping rect’s bottom
+        //if (overlaps) console.log('we overlap boi');
+
+        if (overlaps) {
+          newCell.occupied = true;
+
+          if (overlappedTop) {
+            if (!rectOverlapTop.has(rect.id!)) {
+              rectOverlapTop.set(rect.id!, [newCell])!;
+            } else {
+              let top = rectOverlapTop.get(rect.id!)!;
+              top.push(newCell);
+            }
+          }
+
+          if (overlappedBottom) {
+            if (!rectOverlapBottom.has(rect.id!)) {
+              rectOverlapBottom.set(rect.id!, [newCell])!;
+            } else {
+              let top = rectOverlapBottom.get(rect.id!)!;
+              top.push(newCell);
+            }
+          }
+          //      newCell.id = rect.id;
+          //     newCell.id = rect.id;
+        }
+      }
+      cellRow.push(newCell);
+    }
+    grid.push(cellRow);
+  }
+
+  [...rectOverlapTop.entries(), ...rectOverlapBottom.entries()].forEach(
+    ([id, cells]) => {
+      if (cells.length !== 0) {
+        let c = cells.at(Math.floor((cells.length - 1) / 2));
+        if (c) c.id = id;
+      }
+    },
+  );
+
+  //console.log(grid.slice(10))
+  //console.log(printGrid(grid.slice(10)));
+
+  return grid;
+}
+
+export function old_rasterize({
   ref,
   parentRef,
 }: {
@@ -656,7 +798,7 @@ export function rasterize({
     bottom: number;
   }[] = [];
 
-  // --- 1️⃣ Collect element bounds (normalized to parent)
+  // Collect element bounds (normalized to parent)
   for (const [id, el] of ref.current.entries()) {
     const r = el.getBoundingClientRect();
 
@@ -675,11 +817,11 @@ export function rasterize({
     yLines.add(rect.bottom);
   }
 
-  // --- 2️⃣ Sort grid lines
+  // Sort grid lines
   const xSorted = Array.from(xLines).sort((a, b) => a - b);
   const ySorted = Array.from(yLines).sort((a, b) => a - b);
 
-  // --- 3️⃣ Build cells
+  // Build cells
   const grid: cell[][] = [];
 
   for (let j = 0; j < ySorted.length - 1; j++) {
@@ -695,7 +837,7 @@ export function rasterize({
         end: false,
       };
 
-      // --- 4️⃣ Check if cell overlaps any element
+      //  Check if cell overlaps any element
       for (const rect of rects) {
         const horizontalOverlap = !(
           cell.right <= rect.left || cell.left >= rect.right
@@ -746,65 +888,17 @@ function highlightRect(rect: DOMRect) {
 
 function pathFind(
   grid: cell[][],
-  arrowRef: SVGSVGElement,
+  hovered: React.RefObject<[string, string]>,
   lineRef: SVGSVGElement,
   rect1: DOMRect,
   rect2: DOMRect,
   rect1Id: string,
   rect2Id: string,
-  _parentRef: DOMRect,
+  parentRef: DOMRect,
   lineType: keyof typeof Lines,
 ) {
   console.log('we pathfinding bois');
-  //highlightRect(rect2);
-  type Point = { i: number; j: number };
-  let start: Point = { i: -1, j: -1 };
-  let end: Point = { i: -1, j: -1 };
-  // TODO busca una forma de hacer esto mejor y ma bacano
-  //  set starting points
-  for (let i = 0; i < grid.length; i++) {
-    for (let j = 0; j < grid[i].length; j++) {
-      if (grid[i][j].id === rect1Id) {
-        if (start.i === -1) start = { i: i, j: j };
-        grid[i][j].start = true;
-        grid[i][j].occupied = false;
-      } else if (grid[i][j].id === rect2Id) {
-        if (end.i === -1) end = { i: i, j: j };
-        grid[i][j].end = true;
-        grid[i][j].occupied = false;
-      }
-    }
-  }
 
-  function printGrid(grid: cell[][]) {
-    const lines = grid.map((row) =>
-      row
-        .map((cell) => {
-          if (cell.start) return 'S'; // start
-          if (cell.end) return 'E'; // end
-          if (cell.occupied) return 'X'; // occupied
-          return 'O'; // open
-        })
-        .join(' '),
-    );
-    return lines.join('\n');
-  }
-
-  //console.log(printGrid(grid));
-
-  type Acell = {
-    parent: null | Acell;
-    i: number;
-    j: number;
-    g: number;
-    h: number;
-    f: number;
-    occupied: boolean;
-    id?: string;
-  };
-  const calculateHeuristic = (s: Acell, e: Acell) => {
-    return Math.abs(s.i - e.i) + Math.abs(s.j - e.j);
-  };
   const makeCellToAcell = (c: cell, p: Point): Acell => {
     return {
       h: 0,
@@ -818,17 +912,69 @@ function pathFind(
     };
   };
 
-  if (start.i === -1) throw new Error('start not found');
-  if (end.j === -1) throw new Error('end not found');
-  // A*
-  let startNode = makeCellToAcell(grid[start.i][start.j], start);
-  let endNode = makeCellToAcell(grid[end.i][end.j], end);
-  startNode.g = 0;
-  startNode.h = calculateHeuristic(startNode, endNode);
-  startNode.f = startNode.g + startNode.h;
+  let openList = new Heap<Acell>((a, b) => a.f - b.f);
+  //highlightRect(rect2);
+  type Point = { i: number; j: number };
+  // TODO busca una forma de hacer esto mejor y ma bacano
+  //  set starting points
+  let startingNodes: Acell[] = [];
+  let endNodes: Acell[] = [];
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      if (grid[i][j].id === rect1Id) {
+        grid[i][j].start = true;
+        grid[i][j].occupied = false;
 
-  let openList = new MinHeap<Acell>((c: Acell) => c.f);
-  openList.insert(startNode);
+        let startNode = makeCellToAcell(grid[i][j], { i, j });
+        startingNodes.push(startNode);
+      } else if (grid[i][j].id === rect2Id) {
+        grid[i][j].end = true;
+
+        grid[i][j].occupied = false;
+
+        let endNode = makeCellToAcell(grid[i][j], { i, j });
+        endNodes.push(endNode);
+      }
+    }
+  }
+
+  const calculateHeuristic = (s: Acell, e: Acell) => {
+    return Math.abs(s.i - e.i) + Math.abs(s.j - e.j);
+  };
+  const calculateHeuristicMultipleEnd = (s: Acell, ends: Acell[]) => {
+    return Math.min(...ends.map((e) => calculateHeuristic(s, e)));
+  };
+
+  startingNodes.forEach((n) => {
+    n.g = 0;
+    n.h = calculateHeuristicMultipleEnd(n, endNodes);
+    n.f = n.g + n.h;
+    openList.push(n);
+  });
+
+  type Acell = {
+    parent: null | Acell;
+    i: number;
+    j: number;
+    g: number;
+    h: number;
+    f: number;
+    occupied: boolean;
+    id?: string;
+  };
+
+  //
+  // -------- A*
+  //
+
+  if (startingNodes.length === 0 || endNodes.length === 0) {
+    throw new Error(
+      (startingNodes.length === 0 &&
+        'No starting nodes' +
+          ((endNodes.length === 0 && 'NO endingNodes') || '')) ||
+        '',
+    );
+  }
   let openDict: Map<string, Acell> = new Map();
   let closedSet: Set<string> = new Set();
 
@@ -847,7 +993,7 @@ function pathFind(
   const getValidNeighbors = (c: Acell) =>
     directions
       .map((p) => {
-        return { i: c.i - p.i, j: c.j - p.j } satisfies Point;
+        return { i: c.i + p.i, j: c.j + p.j } satisfies Point;
       })
       .filter(isValid)
       .map((p) => makeCellToAcell(grid[p.i][p.j], p));
@@ -860,33 +1006,56 @@ function pathFind(
     }
     return path.reverse();
   };
+
   let path: Acell[] = [];
-  while (openList.size() > 0) {
-    let { _key } = openList.extractRoot();
-    let currNode = _key;
+
+  console.log('current node hello');
+
+  while (openList.size > 0) {
+    let currNode = openList.pop()!;
+    console.log('current node', currNode);
+    //let currNode = _key;
 
     // is goal
-    if (currNode.i === end.i && currNode.j === end.j) {
+    if (currNode.id === rect2Id) {
       path = reconstructPath(currNode);
       break;
     }
     closedSet.add(`${currNode.i}-${currNode.j}`);
     let validNeighbors = getValidNeighbors(currNode);
+
+    let parent = currNode.parent;
+    let currentDirection = { i: 0, j: 0 };
+    if (parent) {
+      currentDirection = { i: currNode.i - parent.i, j: currNode.j - parent.j };
+    }
     for (let n of validNeighbors) {
       if (closedSet.has(`${n.i}-${n.j}`)) continue;
 
-      const tentativeG = currNode.g + calculateHeuristic(currNode, n);
+      let directionPenalty = 0;
+      let newDirection = { i: n.i - currNode.i, j:   n.j - currNode.j };
+
+      if (
+        newDirection.i - currentDirection.i !== 0 ||
+        newDirection.j - currentDirection.j !== 0
+      ) {
+        directionPenalty = 1;
+      }
+
+      const tentativeG = currNode.g + 1 + directionPenalty;
+      n.h = calculateHeuristicMultipleEnd(n, endNodes);
+      n.f = n.g + n.h;
 
       if (!openDict.has(`${n.i}-${n.j}`)) {
         n.g = tentativeG;
-        n.h = calculateHeuristic(n, endNode);
+        n.h = calculateHeuristicMultipleEnd(n, endNodes);
         n.f = n.g + n.h;
         n.parent = currNode;
-        openList.insert(n);
+        openList.push(n);
         openDict.set(`${n.i}-${n.j}`, n);
       } else if (tentativeG < openDict.get(`${n.i}-${n.j}`)!.g) {
         n.g = tentativeG;
-        n.f = tentativeG + n.h;
+        n.f = tentativeG + n.h * 1.001;
         n.parent = currNode;
       }
     }
@@ -894,31 +1063,35 @@ function pathFind(
 
   // A* end
   //
-  let curr_cell = grid[start.i][start.j];
-  let x = curr_cell.left + rect1.x / 2 / (path.length + 2);
-
-  let y = curr_cell.top;
+  console.log('the path', path);
   let pend = ``;
-  let svg_path =
-    `M${x} ${y}` +
-    path
-      .map(({ i, j }, idx) => {
-        let curr_cell = grid[i][j];
-        let x = curr_cell.left + rect2.x / 2 / (path.length + 2);
-        let y = curr_cell.top;
-        if (idx === 0) return `L${x} ${y}`;
+  let lastXY = { x: -1, y: -1 };
+  let blastXY = { x: -1, y: -1 };
+  let svg_path = path
+    .map(({ i, j }, idx) => {
+      let curr_cell = grid[i][j];
 
-        if (idx === path.length - 2) {
-          pend = `M${x} ${y}`;
-        }
-        if (idx === path.length - 1) {
-          pend += `L${x} ${y}`;
-          return `L${x} ${y}`;
-        }
+      let x = curr_cell.left + rect2.x / 2 / (path.length + 2);
+      let y = curr_cell.top;
+      if (idx === 0) return `M${x} ${y}`;
 
+      curr_cell.occupied = true;
+      if (path.length - idx <= 10) {
+        curr_cell.occupied = false;
+      }
+      if (idx === path.length - 2) {
+        blastXY = { x, y };
+        pend = `M${x} ${y}`;
+      }
+      if (idx === path.length - 1) {
+        lastXY = { x, y };
+        pend += `L${x} ${y}`;
         return `L${x} ${y}`;
-      })
-      .join(' ');
+      }
+
+      return `L${x} ${y}`;
+    })
+    .join(' ');
 
   // remove that is start
   for (let i = 0; i < grid.length; i++) {
@@ -932,19 +1105,35 @@ function pathFind(
       }
     }
   }
+  let plast = path.at(-2)!;
+  let last = path.at(-1)!;
 
-  drawArrow(arrowRef, lineRef, svg_path, lineType, pend);
+  drawArrow(
+    hovered,
+    lineRef,
+    svg_path,
+    lineType,
+    pend,
+    [blastXY, lastXY],
+    rect1Id,
+    rect2Id,
+    parentRef,
+  );
 }
 
 function drawArrow(
-  arrowRef: SVGSVGElement,
+  hovered: React.RefObject<[string, string]>,
   lineRef: SVGSVGElement,
   svg_path: string,
   lineType: keyof typeof Lines,
-  pend: string,
+  _pend: string,
+  lastOnes: { x: number; y: number }[],
+  rect1id: string,
+  rect2id: string,
+  _parentRef: DOMRect,
 ) {
-  console.log('we drawing bois');
-  // 🧹 Clear previous drawings
+  //console.log('we drawing bois');
+  //Clear previous drawings
 
   // remove all children except <defs>
   //Array.from(svg.children).forEach((child) => {
@@ -953,6 +1142,9 @@ function drawArrow(
 
   const svgNS = 'http://www.w3.org/2000/svg';
   const color = Lines[lineType].color;
+  const group = document.createElementNS(svgNS, 'g');
+  group.classList.add('arrow-group');
+  group.classList.add(lineType);
 
   // Path (the actual arrow)
   const path = document.createElementNS(svgNS, 'path');
@@ -962,30 +1154,106 @@ function drawArrow(
   );
   lineRef.setAttribute('preserveAspectRatio', 'none');
   path.setAttribute('d', svg_path);
-  path.setAttribute('stroke', color);
+  if (lineType === 'pointer' && hovered.current[0] === rect1id) {
+    path.setAttribute('stroke', Lines[lineType].colorHover);
+  } else {
+    path.setAttribute('stroke', color);
+  }
   path.setAttribute('fill', 'none');
   path.setAttribute('stroke-linecap', 'round');
   path.setAttribute('stroke-linejoin', 'round');
   path.setAttribute('stroke-width', '4');
-  lineRef.appendChild(path);
+  path.setAttribute('stroke-width', '4');
+  path.setAttribute('stroke-dasharray', Lines[lineType].strokeDasharray || '');
 
-  const arrowPath = document.createElementNS(svgNS, 'path');
-  arrowPath.setAttribute('d', pend); // tiny line, just to host the marker
-  arrowPath.setAttribute('stroke', color);
-  arrowPath.setAttribute('stroke-width', '4');
-  arrowPath.setAttribute('fill', 'none');
-  arrowPath.setAttribute('marker-end', `url(#${ArrowHead[lineType].id})`);
+  const sy = lastOnes[0].y;
+  const ex = lastOnes[1].x;
+  const ey = lastOnes[1].y;
 
-  arrowRef.appendChild(arrowPath);
+  const dy = ey - sy;
+  let direction: 'up' | 'down' | 'left' | 'right';
+  direction = dy > 0 ? 'down' : 'up';
+
+  const size = 20; // size of the triangle
+  let d = '';
+  switch (direction) {
+    case 'up':
+      d = `M${ex} ${ey - size} L${ex - size / 2} ${ey + size / 2} L${ex + size / 2} ${ey + size / 2} Z`;
+      break;
+    case 'down':
+      d = `M${ex} ${ey + size} L${ex - size / 2} ${ey - size / 2} L${ex + size / 2} ${ey - size / 2} Z`;
+      break;
+  }
+
+  path.classList.add(lineType);
+  group.appendChild(path);
+
+  const arrowHead = document.createElementNS(svgNS, 'path');
+
+  arrowHead.setAttribute('d', d);
+  arrowHead.setAttribute('fill', 'none');
+  arrowHead.setAttribute('stroke', color);
+
+  if (lineType === 'pointer' && hovered.current[0] === rect1id) {
+    arrowHead.setAttribute('stroke', Lines[lineType].colorHover);
+  } else {
+    arrowHead.setAttribute('stroke', color);
+  }
+
+  arrowHead.setAttribute('stroke-width', '4');
+
+  group.appendChild(arrowHead);
+  //
+  //drawBoxOverlay(group, rect1, parentRef, '#00000000');
+  //drawBoxOverlay(group, rect2, parentRef, '#00000000');
+
+  lineRef.appendChild(group);
+
+  //const arrowPath = document.createElementNS(svgNS, 'path');
+  //arrowPath.setAttribute('d', pend); // tiny line, just to host the marker
+  //arrowPath.setAttribute('stroke', color);
+  //arrowPath.setAttribute('stroke-width', '4');
+  //arrowPath.setAttribute('fill', 'none');
+  //arrowPath.setAttribute('marker-end', `url(#${ArrowHead[lineType].id})`);
+  //arrowPath.classList.add(lineType);
+  //
+  //arrowRef.appendChild(arrowPath);
 
   // Draw rect boxes
-  //appendRectBox(svg, rect1, parentRef, color);
-  //appendRectBox(svg, rect2, parentRef, color);
 }
 
 void appendRectBox;
+
+function drawBoxOverlay(
+  svg: SVGElement,
+  rect: DOMRect,
+  parent: DOMRect,
+  color = 'rgba(0, 0, 255, 0.2)',
+) {
+  const svgNS = 'http://www.w3.org/2000/svg';
+
+  const x1 = rect.left - parent.left;
+  const y1 = rect.top - parent.top;
+  const x2 = rect.right - parent.left;
+  const y2 = rect.bottom - parent.top;
+
+  // path for a rectangle: M -> L -> L -> L -> Z
+  const d = `M${x1} ${y1} L${x2} ${y1} L${x2} ${y2} L${x1} ${y2} Z`;
+
+  const path = document.createElementNS(svgNS, 'path');
+  path.classList.add('box');
+  path.setAttribute('d', d);
+  path.setAttribute('fill', color);
+  path.setAttribute('stroke', color);
+  path.setAttribute('stroke-width', '0');
+  //  path.style.pointerEvents = 'visibleFill'; // so hover triggers inside
+
+  svg.appendChild(path);
+  return path;
+}
+
 function appendRectBox(
-  svg: SVGSVGElement,
+  svg: SVGElement,
   rect: DOMRect,
   parentRef: DOMRect,
   color: string,
@@ -998,7 +1266,8 @@ function appendRectBox(
     line.setAttribute('y1', String(y1 - parentRef.y));
     line.setAttribute('x2', String(x2 - parentRef.x));
     line.setAttribute('y2', String(y2 - parentRef.y));
-    line.setAttribute('stroke', color);
+    line.setAttribute('stroke', 'blue');
+    line.setAttribute('fill', 'blue');
     line.setAttribute('stroke-width', '4');
     svg.appendChild(line);
   };
@@ -1014,7 +1283,7 @@ export function drawCellsSVG(grid: cell[][], parent: SVGSVGElement) {
 
   const svgNS = 'http://www.w3.org/2000/svg';
 
-  // 🧹 Remove previous debug cells (keep defs/arrowheads)
+  //Remove previous debug cells (keep defs/arrowheads)
   Array.from(parent.querySelectorAll('.debug-cell')).forEach((el) =>
     el.remove(),
   );
@@ -1029,7 +1298,7 @@ export function drawCellsSVG(grid: cell[][], parent: SVGSVGElement) {
       rect.setAttribute('width', String(c.right - c.left));
       rect.setAttribute('height', String(c.bottom - c.top));
 
-      // 🟨 Fill occupied cells yellow, empty transparent
+      // Fill occupied cells yellow, empty transparent
       if (c.occupied) {
         rect.setAttribute('fill', 'rgba(255, 255, 0, 0.4)');
         rect.setAttribute('stroke', 'orange');

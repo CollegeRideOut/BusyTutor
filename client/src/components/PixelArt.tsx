@@ -307,10 +307,14 @@ export const PixelTable = ({
   table,
   ref,
   highlighted,
+  setHovered,
+  pointerRef,
 }: {
   ref: React.RefObject<Map<string, HTMLElement>>;
   table: Lua_Table;
   highlighted: Set<string>;
+  setHovered: (val: [string, string]) => void;
+  pointerRef: React.RefObject<Map<string, string>>;
 }) => {
   let typeColor = getTypeColor(table);
   let entries = useMemo(() => {
@@ -359,9 +363,19 @@ export const PixelTable = ({
               return (
                 <div
                   key={`${table.id}-${stringIdentifier}-${index}-${item.id}`}
+                  onMouseEnter={() => {
+                    setHovered([`${table.id}-${stringIdentifier}`, item.id]);
+                  }}
+                  onMouseLeave={() => {
+                    setHovered(['', '']);
+                  }}
                   ref={(el) => {
                     el &&
                       ref.current.set(`${table.id}-${stringIdentifier}`, el);
+                    pointerRef.current.set(
+                      `${table.id}-${stringIdentifier}`,
+                      item.id,
+                    );
                   }}
                 >
                   <PixelVariable

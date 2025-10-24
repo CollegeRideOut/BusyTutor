@@ -172,8 +172,19 @@
 - fixed box not showing the cool way
 - SVG arrows always on top of lines
 
+### Oct 23
+
+- pointer arrows
+
+### Oct 24
+
+- New Rasterizing
+- new pathfinding
+
 ### Up Next
 
+- optomoze
+- clerance base a\*
 - using clerance based A\* algorithim
 - optimize layout
 - optimize serialization (send table divs? not full tables? cachinf also)
