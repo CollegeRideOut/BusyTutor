@@ -1,8 +1,6 @@
-import { userRepo } from '../../db/repositories/user.repo';
 import { procedure, protectedUserProcedure, router } from '../trpc';
 import { z } from 'zod';
 import { toTRPCError } from '../../utils/errors';
-import { signToken } from '../../utils/auth/jwt';
 import * as userService from '../../modules/user/service';
 
 export const userRouter = router({
