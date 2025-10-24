@@ -18,26 +18,20 @@ export const userRouter = router({
   login: procedure
     .input(z.object({ email: z.string(), password: z.string() }))
     .mutation(async ({ input }) => {
-      let result = await userRepo.verifyUser(input);
-
+      const result = await userService.loginUser(input);
       if (!result.ok) throw toTRPCError(result.error);
-
-      const user = { ...result.value, password: undefined };
-      const token = signToken({ userId: user.id, email: user.email });
 
       return {
         success: true,
-        token,
-        user,
+        ...result.value,
       };
     }),
 
   userInfo: protectedUserProcedure.query(async ({ ctx }) => {
-    let result = await userRepo.findById(ctx.userTokenInfo.id);
+    let result = await userService.profileUser({ id: ctx.userTokenInfo.id });
 
     if (!result.ok) throw toTRPCError(result.error);
-    let user = { ...result.value, password: undefined };
 
-    return { success: true, user };
+    return { success: true, ...result.value };
   }),
 });
