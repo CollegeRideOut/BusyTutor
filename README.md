@@ -180,6 +180,7 @@
 
 - New Rasterizing
 - new pathfinding
+- User service layer
 
 ### Up Next
 
