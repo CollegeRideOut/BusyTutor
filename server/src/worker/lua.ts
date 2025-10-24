@@ -1,11 +1,7 @@
 import { parentPort } from 'worker_threads';
 import luaparser from 'luaparse';
-import { selfContainedEvalGenerator } from '../interperter/eval_gen';
-import {
-  indexingVisual,
-  Lua_Table,
-  Lua_Visualzer,
-} from '../interperter/lua_types';
+import { selfContainedEvalGenerator } from '../interpreter';
+import { indexingVisual, Lua_Table, Lua_Visualzer } from '../interpreter';
 import { make_replacer, serialize_heap } from '../utils/stringify';
 
 function postAndWait(msg: any): Promise<void> {

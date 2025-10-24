@@ -1,4 +1,4 @@
-import { Lua_Table } from '../interperter/lua_types';
+import { Lua_Table } from '../interpreter';
 
 export function make_replacer() {
   const seen = new WeakSet();

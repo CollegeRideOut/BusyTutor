@@ -1,7 +1,7 @@
 import type {
   Lua_Object,
   Lua_Table,
-} from '@busytutor/server/src/interperter/lua_types';
+} from '@busytutor/server/src/interpreter';
 import { useState, useEffect, useMemo } from 'react';
 
 interface PixelArtProps {

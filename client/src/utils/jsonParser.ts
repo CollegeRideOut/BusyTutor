@@ -1,4 +1,4 @@
-import { Lua_Table } from '@busytutor/server/src/interperter/lua_types';
+import { Lua_Table } from '@busytutor/server/src/interpreter';
 
 export function reviver(_key: any, value: any) {
   if (typeof value === 'object' && value !== null) {
