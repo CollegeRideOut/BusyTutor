@@ -964,7 +964,7 @@ function pathFind(
   };
 
   //
-  // -------- A*
+  // -------- A*   <--- clerance based 
   //
 
   if (startingNodes.length === 0 || endNodes.length === 0) {
@@ -1039,7 +1039,7 @@ function pathFind(
         newDirection.i - currentDirection.i !== 0 ||
         newDirection.j - currentDirection.j !== 0
       ) {
-        directionPenalty = 1;
+        directionPenalty = 2;
       }
 
       const tentativeG = currNode.g + 1 + directionPenalty;
