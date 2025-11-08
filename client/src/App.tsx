@@ -12,7 +12,7 @@ function trpcHelper() {
   return trpc.createClient({
     links: [
       httpBatchLink({
-        url: 'http://localhost:3000',
+        url: '/api',
         transformer: SuperJSON,
         headers() {
           const token = localStorage.getItem('authToken'); // Example: get from localStorage
@@ -43,7 +43,7 @@ export function App() {
     trpc.createClient({
       links: [
         httpBatchLink({
-          url: 'http://localhost:3000',
+          url: '/api',
           transformer: SuperJSON,
           headers() {
             let token = localStorage.getItem('token');

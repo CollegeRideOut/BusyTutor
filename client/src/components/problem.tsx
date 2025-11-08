@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ArrowLeft,
   Play,
@@ -17,20 +17,18 @@ import {
 } from './ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { useNavigate } from '@tanstack/react-router';
-import { problems } from '../db.json' with { type: 'json' };
-import { CurrentPageContext } from '../routes/__root';
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from './ui/resizable';
 import { EvalChunkFront } from './ast_visualizer';
-import type { Lua_Object_Visualizer } from '@busytutor/server/';
+import type { Lua_Visualzer } from '@busytutor/server/src/interpreter/lua_types';
 import { trpc } from '../lib/trpc';
 import { LuaVisualizer } from './luaVisualizer';
 
 interface ProblemPageProps {
-  problemId: number | null;
+  problemId: string;
 }
 
 const theme = {
@@ -53,26 +51,47 @@ const theme = {
   },
 };
 export function ProblemPage({ problemId }: ProblemPageProps) {
-  let { setCurrentPage } = useContext(CurrentPageContext);
   const [code, setCode] = useState('');
   const [idToUse, setIdToUse] = useState<string | null>(null);
   let onNavigate = useNavigate();
-  const [problem] = useState(problems.find((p) => p.id === problemId)?.data);
+  console.log(`the id -${problemId}-`);
+
+  let { data, isLoading } = trpc.problem.getById.useQuery({
+    id: String(problemId),
+  });
+
+  const problem = useMemo(() => {
+    if (!data?.problem) return undefined;
+    let p = {
+      ...data.problem,
+      starterCode: data.problem.starterCode,
+      tests: JSON.parse(data.problem.tests) as any[],
+      examples: JSON.parse(data.problem.examples) as {
+        input: string;
+        output: string;
+        explanation: string;
+      }[],
+      constraints: JSON.parse(data.problem.constraints) as string[],
+      hints: JSON.parse(data.problem.hints) as string[],
+    };
+    return p;
+  }, [data]);
+
   const [isConsoleOpen, _setIsConsoleOpen] = useState(true);
   const [isVisual, _setIsVisual] = useState(false);
-  const [visual, _setVisual] = useState<Lua_Object_Visualizer>({
+  const [didSolutionPass, setDidSolutionPass] = useState<boolean>();
+  const [visual, _setVisual] = useState<Lua_Visualzer>({
     loc: { start: { line: 0, column: 0 }, end: { line: 0, column: 0 } },
   });
   const [ast, setAst] = useState<luarparser.Chunk | null>(null);
 
   let luaRunner = trpc.lua.runLua.useMutation();
 
-  useEffect(() => {
-    setCurrentPage('problem');
-  }, []);
-
   //TODO  not found
 
+  if (isLoading) {
+    return <div> isloading </div>;
+  }
   if (!problem) {
     return (
       <div className='h-screen py-12 px-4'>
@@ -144,7 +163,7 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
 
         <Badge
           variant='secondary'
-          className={getDifficultyColor(problem.difficulty)}
+          className={getDifficultyColor(problem.difficulty!)}
         >
           {problem.difficulty}
         </Badge>
@@ -160,9 +179,13 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
         <ResizablePanel className='w-1/2 bg-card flex flex-col min-h-0 '>
           {/* TODO visualizer  des*/}
           {!isVisual || idToUse === null ? (
-            <ProblemDescription problemId={problemId} />
+            <ProblemDescription problem={problem} />
           ) : (
-            <LuaVisualizer id={idToUse} />
+            <LuaVisualizer
+              id={idToUse}
+              didSolutionPass={didSolutionPass}
+              setDidSolutionPass={setDidSolutionPass}
+            />
           )}
         </ResizablePanel>
 
@@ -188,6 +211,10 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
                   </select>
                 </div>
                 <div className='flex items-center gap-2'>
+                  Grade:{' '}
+                  {didSolutionPass === undefined
+                    ? 'IDK'
+                    : String(didSolutionPass)}
                   <Button
                     variant='outline'
                     size='sm'
@@ -196,20 +223,6 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
                   >
                     <RotateCcw className='h-3 w-3 mr-1' />
                     Reset
-                  </Button>
-                  <Button
-                    size='sm'
-                    className='bg-primary hover:bg-primary/90 text-primary-foreground'
-                    onClick={async () => {
-                      let vis = await nextRUnner.mutateAsync({ id: idToUse });
-                      if (vis.visual) {
-                        console.log(vis.visual);
-                        _setVisual(vis.visual);
-                      }
-                    }}
-                  >
-                    <Play className='h-3 w-3 mr-1' />
-                    Run
                   </Button>
                 </div>
               </div>
@@ -261,27 +274,26 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
                         onClick={async () => {
                           let result = await luaRunner.mutateAsync({
                             code: code,
-                            inputs: t.value,
+                            testIdx: 0,
                             problemId: '217',
                           });
-
+                          //
                           if (result.sucess) {
-                            let ast = luarparser.parse(result.userLuaRun!, {
+                            let ast = luarparser.parse(code, {
                               locations: true,
                             });
 
                             setAst(ast);
                             setIdToUse(result.id!);
-                            setCode(result.userLuaRun!);
                             _setIsVisual(true);
                           }
-
-                          console.log('start visualier');
+                          //
+                          //console.log('start visualier');
                         }}
                       >
                         Run
                       </Button>
-                      <div>{t.input}</div>
+                      <div>{JSON.stringify(t)}</div>
                     </TabsContent>
                   );
                 })}
@@ -294,8 +306,8 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
   );
 }
 
-function ProblemDescription({ problemId }: ProblemPageProps) {
-  const [problem] = useState(problems.find((p) => p.id === problemId)!.data);
+function ProblemDescription({ problem }: { problem: any }) {
+  //TODO
 
   const [openHints, setOpenHints] = useState<number[]>([]);
 

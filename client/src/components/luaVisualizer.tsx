@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { trpc } from '../lib/trpc';
 import { Button } from './ui/button';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
@@ -32,7 +32,15 @@ const Lines = {
 };
 const PIXEL_WIDTH = 5;
 
-export function LuaVisualizer({ id }: { id: string }) {
+export function LuaVisualizer({
+  id,
+  didSolutionPass,
+  setDidSolutionPass,
+}: {
+  id: string;
+  didSolutionPass?: boolean;
+  setDidSolutionPass: Dispatch<SetStateAction<boolean | undefined>>;
+}) {
   const [enabled, setEnabled] = useState(false);
   const [isTree, setIsTree] = useState(true);
   const [currentOnStack, setCurrentOnStack] = useState(0);
@@ -63,6 +71,11 @@ export function LuaVisualizer({ id }: { id: string }) {
 
   const timeline = useMemo(() => {
     let flatData = data?.pages.flatMap((page) => page.items) ?? [];
+    let lastOne = data?.pages[data.pages.length - 1].didSolutionPass;
+    console.log(lastOne)
+    if (didSolutionPass !== lastOne) {
+      setDidSolutionPass(lastOne);
+    }
     return flatData.map((d) => {
       let refs = JSON.parse(d.currEnv, reviver) as { refid: string };
       let heap = revive_heap(JSON.parse(d.heap) as Record<string, any>);
@@ -223,7 +236,7 @@ function VisualizeExecution({
   const visualEnvironmentRef = useRef<Map<string, HTMLElement>>(new Map());
   const visualPointersRef = useRef<Map<string, string>>(new Map());
   const parentRef = useRef<HTMLDivElement | null>(null);
-  const layoutRef = useRef<ReturnType<typeof rasterize> | null>(null);
+  //const layoutRef = useRef<ReturnType<typeof rasterize> | null>(null);
   const lineRef = useRef<SVGSVGElement>(null);
   const currentHover = useRef<[string, string]>(['', '']);
 
@@ -658,7 +671,7 @@ const css = `
 }
 `;
 
-function printGrid(grid: cell[][]) {
+export function printGrid(grid: cell[][]) {
   const lines = grid.map((row) =>
     row
       .map((cell) => {
@@ -871,7 +884,7 @@ export function old_rasterize({
   return grid;
 }
 
-function highlightRect(rect: DOMRect) {
+export function highlightRect(rect: DOMRect) {
   const div = document.createElement('div');
   Object.assign(div.style, {
     position: 'absolute',
@@ -890,7 +903,7 @@ function pathFind(
   grid: cell[][],
   hovered: React.RefObject<[string, string]>,
   lineRef: SVGSVGElement,
-  rect1: DOMRect,
+  _rect1: DOMRect,
   rect2: DOMRect,
   rect1Id: string,
   rect2Id: string,
@@ -964,17 +977,20 @@ function pathFind(
   };
 
   //
-  // -------- A*   <--- clerance based 
+  // -------- A*   <--- clerance based
   //
 
   if (startingNodes.length === 0 || endNodes.length === 0) {
-    throw new Error(
-      (startingNodes.length === 0 &&
-        'No starting nodes' +
-          ((endNodes.length === 0 && 'NO endingNodes') || '')) ||
-        '',
-    );
+    console.log('IS NO STARTING NODES');
+    return;
+    //throw new Error(
+    //  (startingNodes.length === 0 &&
+    //    'No starting nodes' +
+    //      ((endNodes.length === 0 && 'NO endingNodes') || '')) ||
+    //    '',
+    //);
   }
+
   let openDict: Map<string, Acell> = new Map();
   let closedSet: Set<string> = new Set();
 
@@ -984,6 +1000,7 @@ function pathFind(
     if (grid[c.i][c.j].occupied) return false;
     return true;
   }
+
   let directions: Point[] = [
     { i: 1, j: 0 },
     { i: 0, j: 1 },
@@ -1009,11 +1026,8 @@ function pathFind(
 
   let path: Acell[] = [];
 
-  console.log('current node hello');
-
   while (openList.size > 0) {
     let currNode = openList.pop()!;
-    console.log('current node', currNode);
     //let currNode = _key;
 
     // is goal
@@ -1033,7 +1047,7 @@ function pathFind(
       if (closedSet.has(`${n.i}-${n.j}`)) continue;
 
       let directionPenalty = 0;
-      let newDirection = { i: n.i - currNode.i, j:   n.j - currNode.j };
+      let newDirection = { i: n.i - currNode.i, j: n.j - currNode.j };
 
       if (
         newDirection.i - currentDirection.i !== 0 ||
@@ -1063,7 +1077,6 @@ function pathFind(
 
   // A* end
   //
-  console.log('the path', path);
   let pend = ``;
   let lastXY = { x: -1, y: -1 };
   let blastXY = { x: -1, y: -1 };
@@ -1073,6 +1086,7 @@ function pathFind(
 
       let x = curr_cell.left + rect2.x / 2 / (path.length + 2);
       let y = curr_cell.top;
+
       if (idx === 0) return `M${x} ${y}`;
 
       curr_cell.occupied = true;
@@ -1105,8 +1119,9 @@ function pathFind(
       }
     }
   }
-  let plast = path.at(-2)!;
-  let last = path.at(-1)!;
+
+  //let plast = path.at(-2)!;
+  //let last = path.at(-1)!;
 
   drawArrow(
     hovered,
@@ -1129,7 +1144,7 @@ function drawArrow(
   _pend: string,
   lastOnes: { x: number; y: number }[],
   rect1id: string,
-  rect2id: string,
+  _rect2id: string,
   _parentRef: DOMRect,
 ) {
   //console.log('we drawing bois');
@@ -1224,7 +1239,7 @@ function drawArrow(
 
 void appendRectBox;
 
-function drawBoxOverlay(
+export function drawBoxOverlay(
   svg: SVGElement,
   rect: DOMRect,
   parent: DOMRect,
@@ -1256,7 +1271,7 @@ function appendRectBox(
   svg: SVGElement,
   rect: DOMRect,
   parentRef: DOMRect,
-  color: string,
+  _color: string,
 ) {
   const svgNS = 'http://www.w3.org/2000/svg';
 

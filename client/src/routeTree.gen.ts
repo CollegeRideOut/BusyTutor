@@ -12,10 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ArraysIndexRouteImport } from './routes/arrays/index'
 import { Route as ProblemsIdRouteImport } from './routes/problems/$id'
-import { Route as ArraysTestRouteImport } from './routes/arrays/test'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -32,14 +31,14 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ArraysIndexRoute = ArraysIndexRouteImport.update({
-  id: '/arrays/',
-  path: '/arrays/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProblemsIdRoute = ProblemsIdRouteImport.update({
@@ -47,78 +46,60 @@ const ProblemsIdRoute = ProblemsIdRouteImport.update({
   path: '/problems/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ArraysTestRoute = ArraysTestRouteImport.update({
-  id: '/arrays/test',
-  path: '/arrays/test',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/register': typeof RegisterRoute
-  '/arrays/test': typeof ArraysTestRoute
   '/problems/$id': typeof ProblemsIdRoute
-  '/arrays': typeof ArraysIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/register': typeof RegisterRoute
-  '/arrays/test': typeof ArraysTestRoute
   '/problems/$id': typeof ProblemsIdRoute
-  '/arrays': typeof ArraysIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/register': typeof RegisterRoute
-  '/arrays/test': typeof ArraysTestRoute
   '/problems/$id': typeof ProblemsIdRoute
-  '/arrays/': typeof ArraysIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/login'
     | '/practice'
     | '/register'
-    | '/arrays/test'
     | '/problems/$id'
-    | '/arrays'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/login'
-    | '/practice'
-    | '/register'
-    | '/arrays/test'
-    | '/problems/$id'
-    | '/arrays'
+  to: '/' | '/admin' | '/login' | '/practice' | '/register' | '/problems/$id'
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/login'
     | '/practice'
     | '/register'
-    | '/arrays/test'
     | '/problems/$id'
-    | '/arrays/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   LoginRoute: typeof LoginRoute
   PracticeRoute: typeof PracticeRoute
   RegisterRoute: typeof RegisterRoute
-  ArraysTestRoute: typeof ArraysTestRoute
   ProblemsIdRoute: typeof ProblemsIdRoute
-  ArraysIndexRoute: typeof ArraysIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -144,18 +125,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/arrays/': {
-      id: '/arrays/'
-      path: '/arrays'
-      fullPath: '/arrays'
-      preLoaderRoute: typeof ArraysIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/problems/$id': {
@@ -165,24 +146,16 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProblemsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/arrays/test': {
-      id: '/arrays/test'
-      path: '/arrays/test'
-      fullPath: '/arrays/test'
-      preLoaderRoute: typeof ArraysTestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   LoginRoute: LoginRoute,
   PracticeRoute: PracticeRoute,
   RegisterRoute: RegisterRoute,
-  ArraysTestRoute: ArraysTestRoute,
   ProblemsIdRoute: ProblemsIdRoute,
-  ArraysIndexRoute: ArraysIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

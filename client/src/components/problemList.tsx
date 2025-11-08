@@ -1,8 +1,9 @@
 import { CheckCircle, Circle, Clock } from 'lucide-react';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
-import { problems } from '../db.json' with { type: 'json' };
 import { useNavigate } from '@tanstack/react-router';
+import { useMemo } from 'react';
+import { trpc } from '../lib/trpc';
 
 interface Problem {
   id: number;
@@ -14,6 +15,18 @@ interface Problem {
 }
 
 export function ProblemList() {
+  let problemsQuery = trpc.problem.getProblems.useInfiniteQuery(
+    { limit: 10 },
+    {
+      getNextPageParam: (p) => p.cursor,
+      initialCursor: 0,
+    },
+  );
+
+  const problems = useMemo(() => {
+    return problemsQuery.data?.pages.flatMap((item) => item.problems) || [];
+  }, [problemsQuery.data]);
+
   const navigation = useNavigate();
   const getStatusIcon = (status: Problem['status']) => {
     switch (status) {
@@ -65,7 +78,8 @@ export function ProblemList() {
           >
             <div className='flex items-center justify-between'>
               <div className='flex items-center gap-4'>
-                {getStatusIcon(problem.status as any)}
+                {/*getStatusIcon(problem.status as any)*/}
+                some status
                 <div className='flex items-center gap-2'>
                   <span className='text-muted-foreground text-sm'>
                     #{problem.id}
@@ -75,11 +89,9 @@ export function ProblemList() {
               </div>
 
               <div className='flex items-center gap-4'>
+                <span className='text-sm text-muted-foreground'>category</span>
                 <span className='text-sm text-muted-foreground'>
-                  {problem.category}
-                </span>
-                <span className='text-sm text-muted-foreground'>
-                  {problem.acceptance}
+                  acceptance
                 </span>
                 {getDifficultyBadge(problem.difficulty as any)}
               </div>

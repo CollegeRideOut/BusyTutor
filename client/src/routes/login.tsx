@@ -6,18 +6,14 @@ import { ArrowLeft, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { Card } from '../components/ui/card';
 import { Label } from '../components/ui/label';
 import { Input } from '../components/ui/input';
-import { CurrentPageContext, useAuth } from './__root';
+import { useAuth } from './__root';
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
 });
 
 export function LoginPage() {
-  let { setCurrentPage } = useContext(CurrentPageContext);
   let auth = useAuth();
-  useEffect(() => {
-    setCurrentPage('login');
-  }, []);
 
   const navigate = useNavigate();
   const [emailOrUsername, setEmailOrUsername] = useState('');

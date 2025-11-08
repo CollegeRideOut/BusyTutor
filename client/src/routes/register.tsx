@@ -1,12 +1,12 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useContext, useEffect, useState } from 'react';
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card } from '../components/ui/card';
 import { PixelArt, pixelPatterns } from '../components/PixelArt';
-import { CurrentPageContext, useAuth } from './__root';
+import {  useAuth } from './__root';
 
 export const Route = createFileRoute('/register')({
   component: RegisterPage,
@@ -15,10 +15,6 @@ export const Route = createFileRoute('/register')({
 export function RegisterPage() {
   const navigate = useNavigate();
   const auth = useAuth();
-  let { setCurrentPage } = useContext(CurrentPageContext);
-  useEffect(() => {
-    setCurrentPage('register');
-  }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -238,7 +234,7 @@ export function RegisterPage() {
                 <Button
                   variant='link'
                   className='p-0 h-auto text-primary hover:text-primary/80'
-                  onClick={() => onNavigate('login')}
+                  onClick={() => navigate({ to: '/login' })}
                 >
                   Sign in
                 </Button>
