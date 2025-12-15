@@ -5,7 +5,13 @@ interface ManagedWorker {
   id: string;
   worker: Worker;
   status: 'RUNNING' | 'FINISHED';
-  timeline: { visual: string; currEnv: string; heap: string }[];
+  timeline: {
+    visual: string;
+    currEnv: string;
+    valueRegistry: string;
+    heap: string;
+  }[];
+  didSolutionPass?: boolean;
 }
 
 export const workers = new Map<string, ManagedWorker>();
@@ -24,9 +30,17 @@ export function createWorker(): ManagedWorker {
       visual?: string;
       currEnv?: string;
       heap?: string;
+      valueRegistry?: string;
+      didSolutionPass?: boolean;
     }) => {
       let w = workers.get(id);
       if (!w) throw new Error('ERROR occured in the workers');
+
+      if (msg.didSolutionPass !== undefined) {
+        w.didSolutionPass = msg.didSolutionPass;
+      }
+
+      console.log('worker message  didSolutionPass', w.didSolutionPass);
       if (msg.type === 'done') {
         console.log('done');
         w.status = 'FINISHED';
@@ -40,6 +54,7 @@ export function createWorker(): ManagedWorker {
         w.timeline.push({
           visual: msg.visual,
           currEnv: msg.currEnv,
+          valueRegistry: msg.valueRegistry!,
           heap: msg.heap,
         });
       } else {

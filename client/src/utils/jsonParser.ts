@@ -21,6 +21,7 @@ export function revive_heap(heap: Record<string, any>) {
     t.idx = data.idx;
     t.kind = data.kind;
     t.hidden = data.hidden;
+    t.name = data.name;
     t.store = new Map();
     map.set(t.id, t);
   }

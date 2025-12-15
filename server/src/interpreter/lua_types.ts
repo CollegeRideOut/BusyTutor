@@ -102,6 +102,7 @@ export type Lua_Builtin = {
   id: string;
   hidden?: true;
   kind: 'builtin';
+  name?: string;
   fn?: Lua_Builtin_Function;
 };
 
@@ -123,6 +124,7 @@ export type Lua_Return = {
   kind: 'return';
   value: Lua_Object[];
   hidden?: true;
+  name?: string;
 };
 
 export type Lua_Identifier = { id: string; kind: 'identifier'; name: string };
@@ -134,6 +136,7 @@ export type Lua_Error = {
   message?: string;
   value?: Lua_Object;
   hidden?: true;
+  name?: string;
 };
 
 export type Lua_Number = {
@@ -141,6 +144,7 @@ export type Lua_Number = {
   kind: 'number';
   value: number;
   hidden?: true;
+  name?: string;
 };
 
 export type Lua_Boolean = {
@@ -148,6 +152,7 @@ export type Lua_Boolean = {
   kind: 'boolean';
   value: boolean;
   hidden?: true;
+  name?: string;
 };
 
 export type Lua_String = {
@@ -155,13 +160,30 @@ export type Lua_String = {
   kind: 'string';
   value: string;
   hidden?: true;
+  name?: string;
 };
 
-export type Lua_Null = { id: string; kind: 'null'; value: null; hidden?: true };
+export type Lua_Null = {
+  id: string;
+  kind: 'null';
+  value: null;
+  hidden?: true;
+  name?: string;
+};
 
-export type Lua_Break = { id: string; kind: 'break'; hidden?: true };
+export type Lua_Break = {
+  id: string;
+  kind: 'break';
+  hidden?: true;
+  name?: string;
+};
 
-export type Lua_Vargs = { id: string; kind: 'varg'; hidden?: true };
+export type Lua_Vargs = {
+  id: string;
+  kind: 'varg';
+  hidden?: true;
+  name?: string;
+};
 
 // constants
 export const Lua_True: Lua_Boolean = {
@@ -200,6 +222,7 @@ export class Lua_Console {
 export class Lua_Table {
   id: string;
   hidden?: true;
+  name?: string;
   kind: 'table' = 'table';
   store: Map<Lua_Object | string | number, Lua_Object>;
   __index: Lua_Object = Lua_Null;
@@ -363,6 +386,7 @@ export class Lua_Table {
       // use value
       case 'string':
       case 'number': {
+        val.name = String(key.value);
         if (delete_key) this.store.delete(key.value);
         else this.store.set(key.value, val);
         return Lua_Null;
@@ -377,7 +401,6 @@ export class Lua_Table {
         else this.store.set(key, val);
         return Lua_Null;
       }
-
       // should not happen
       case 'return':
       case 'error':
@@ -474,6 +497,17 @@ export type indexingVisual = {
 };
 
 export type Lua_Visualzer = {
+  nestedLoopCount?: number;
+  statement?: luaparser.Statement['type'];
+  visualStatement?: {
+    return?: {
+      vals: string[];
+    };
+    assigment?: {
+      variables: string[];
+      valsId: string[];
+    };
+  };
   indexingVisual?: indexingVisual[];
   clearIndexingVisuals?: true;
   loc?: {
@@ -494,6 +528,19 @@ export type Lua_Visualzer = {
       valId?: string;
       idxId?: string;
     };
+
+    unaryExpression?: {
+      operation: { op: string };
+      val: { id: string };
+      arg: { id: string };
+    };
+    binaryExpression?: {
+      left: { id: string };
+      operation: { op: string };
+      val: { id: string };
+      right: { id: string };
+    };
+    assigmentIdentifier?: { name: string; valId: string };
   };
   identifierExpressionValue?: {
     name?: string;

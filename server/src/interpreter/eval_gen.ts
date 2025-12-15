@@ -18,6 +18,7 @@ import type {
   Lua_Function,
   Lua_String,
   Lua_Builtin,
+  indexingVisual,
 } from './lua_types';
 
 import {
@@ -34,40 +35,55 @@ import {
 export function selfContainedEvalGenerator() {
   let Lua_Global_Environment: Lua_Table = new Lua_Table();
   let Lua_GLobal_Console: Lua_Console = new Lua_Console();
+  let Lua_Global_Value_Registry: Map<string, Lua_Object> = new Map();
   let Lua_Current_Environment = Lua_Global_Environment;
   let Lua_Heap: Map<string, Lua_Table> = new Map();
+  let Global_Partial_Visuals: Lua_Visualzer[] = [];
+  let Global_Nest_Loop_Count = 0;
+  let Current_Compelte_Visual: Lua_Visualzer | null = null;
   Lua_Current_Environment.set(
     Lua_Current_Environment.id,
     Lua_Current_Environment
   );
 
-  function evalChunkTestHelper(node: luaparser.Chunk, environment: Lua_Table) {
-    const g = evalChunkGenerator(node, environment);
+  function evalChunkTestHelper(
+    node: luaparser.Chunk,
+    environment: Lua_Table,
+    valueRegistry: Map<string, Lua_Object>
+  ) {
+    Lua_Global_Value_Registry = valueRegistry;
+    const g = evalChunkGenerator(node, environment, valueRegistry);
     let v: ReturnType<typeof g.next> = { done: true, value: Lua_Null };
+
     do {
       v = g.next();
     } while (!v.done);
+
+    Global_Partial_Visuals = [];
     return v.value;
   }
 
   function setGlobalTables(environment: Lua_Table) {
+    Lua_Global_Value_Registry.set(Lua_True.id, Lua_True);
+    Lua_Global_Value_Registry.set(Lua_False.id, Lua_False);
+    Lua_Global_Value_Registry.set(Lua_Null.id, Lua_Null);
     environment.set(
-      {
-        id: crypto.randomUUID(),
+      createLuaObject({
         kind: 'string',
         value: '_VERSION',
         hidden: true,
-      } satisfies Lua_String,
+        registry: Lua_Global_Value_Registry,
+      }),
       _VERSION
     );
 
     environment.set(
-      {
-        id: crypto.randomUUID(),
+      createLuaObject({
         kind: 'string',
         value: '_G',
+        registry: Lua_Global_Value_Registry,
         hidden: true,
-      } satisfies Lua_String,
+      }),
       environment
     );
 
@@ -78,12 +94,12 @@ export function selfContainedEvalGenerator() {
     }
 
     environment.set(
-      {
-        id: crypto.randomUUID(),
+      createLuaObject({
+        registry: Lua_Global_Value_Registry,
         kind: 'string',
         value: 'math',
         hidden: true,
-      } satisfies Lua_String,
+      }),
       math_table
     );
   }
@@ -91,9 +107,11 @@ export function selfContainedEvalGenerator() {
   let Hidden_Environment: Lua_Table | null = null;
   function* evalChunkGenerator(
     node: luaparser.Chunk,
-    environment?: Lua_Table
+    environment: Lua_Table,
+    valueRegistry: Map<string, Lua_Object>
   ): Generator<Lua_Visualzer, Lua_Object> {
     //TODO
+    Lua_Global_Value_Registry = valueRegistry;
     Lua_Global_Environment = environment || new Lua_Table();
     Lua_Current_Environment = Lua_Global_Environment;
     setGlobalTables(Lua_Global_Environment);
@@ -150,10 +168,11 @@ end
     node: luaparser.Statement,
     environment: Lua_Table
   ): Generator<Lua_Visualzer, Lua_Object> {
-    yield { loc: node.loc };
+    yield { statement: node.type, loc: node.loc };
     switch (node.type) {
       case 'ReturnStatement': {
         let vals: Lua_Object[] = [];
+        let valsId: string[] = [];
         for (let exp of node.arguments) {
           const obj = yield* evalExpression(exp, environment);
           if (obj.kind === 'error') return obj;
@@ -162,14 +181,19 @@ end
             for (let v of obj.value) {
               if (v.kind === 'error') return v;
               vals.push(v);
+              valsId.push(v.id);
             }
-          } else vals.push(obj);
+          } else {
+            vals.push(obj);
+            valsId.push(obj.id);
+          }
         }
+        yield { visualStatement: { return: { vals: valsId } } };
         return {
           id: crypto.randomUUID(),
           kind: 'return',
           value: vals,
-        } satisfies Lua_Return;
+        };
       }
       case 'IfStatement': {
         for (const clause of node.clauses) {
@@ -235,6 +259,23 @@ end
           );
           if (e.kind === 'error') return e;
         }
+        Current_Compelte_Visual = null;
+        Current_Compelte_Visual = {
+          visualStatement: { assigment: { variables: [], valsId: [] } },
+        };
+        for (let x of Global_Partial_Visuals) {
+          console.log(Global_Partial_Visuals);
+          if (x.expresion?.assigmentIdentifier) {
+            Current_Compelte_Visual.visualStatement!.assigment!.variables.push(
+              x.expresion.assigmentIdentifier.name
+            );
+            Current_Compelte_Visual.visualStatement!.assigment!.valsId.push(
+              x.expresion.assigmentIdentifier.valId
+            );
+          }
+        }
+        console.log(Current_Compelte_Visual);
+        yield Current_Compelte_Visual;
 
         return Lua_Null;
       }
@@ -259,76 +300,125 @@ end
         return Lua_Null;
       }
       case 'ForNumericStatement': {
-        let start = yield* evalExpression(node.start, environment);
-        if (start.kind === 'return') start = start.value[0] || Lua_Null;
-        if (start.kind === 'error') return start;
-        if (start.kind !== 'number')
-          return {
-            id: crypto.randomUUID(),
-            kind: 'error',
-            message: `${start.kind} cannot be used in a numeric for loop`,
-          } satisfies Lua_Error;
-
-        yield* evalAssignment(node.variable, start, environment, false);
-        let start_obj = environment.get(node.variable.name);
-        if (start_obj.kind === 'null')
-          return {
-            id: crypto.randomUUID(),
-            kind: 'error',
-            message: `${node.variable.name} does not exist interperter error`,
-          } satisfies Lua_Error;
-        if (start_obj.kind === 'error') return start_obj;
-        if (start_obj.kind !== 'number')
-          return {
-            id: crypto.randomUUID(),
-            kind: 'error',
-            message: `${start_obj.kind} shoudve been a number interpert error`,
-          } satisfies Lua_Error;
-
-        let end = yield* evalExpression(node.end, environment);
-        if (end.kind === 'return') end = end.value[0] || Lua_Null;
-        if (end.kind === 'error') return end;
-        if (end.kind !== 'number')
-          return {
-            id: crypto.randomUUID(),
-            kind: 'error',
-            message: `${end.kind} cannot be used in a numeric for loop`,
-          } satisfies Lua_Error;
-
-        let step = node.step
-          ? yield* evalExpression(node.step, environment)
-          : ({
+        try {
+          Global_Nest_Loop_Count++;
+          let start = yield* evalExpression(node.start, environment);
+          if (start.kind === 'return') start = start.value[0] || Lua_Null;
+          if (start.kind === 'error') return start;
+          if (start.kind !== 'number')
+            return {
               id: crypto.randomUUID(),
+              kind: 'error',
+              message: `${start.kind} cannot be used in a numeric for loop`,
+            } satisfies Lua_Error;
+
+          yield* evalAssignment(node.variable, start, environment, false);
+          let start_obj = environment.get(node.variable.name);
+          if (start_obj.kind === 'null')
+            return {
+              id: crypto.randomUUID(),
+              kind: 'error',
+              message: `${node.variable.name} does not exist interperter error`,
+            } satisfies Lua_Error;
+          if (start_obj.kind === 'error') return start_obj;
+          if (start_obj.kind !== 'number')
+            return {
+              id: crypto.randomUUID(),
+              kind: 'error',
+              message: `${start_obj.kind} shoudve been a number interpert error`,
+            } satisfies Lua_Error;
+
+          // VISUAL
+          yield {
+            visualStatement: {
+              assigment: {
+                variables: [node.variable.name],
+                valsId: [start.id],
+              },
+            },
+          };
+
+          let end = yield* evalExpression(node.end, environment);
+          if (end.kind === 'return') end = end.value[0] || Lua_Null;
+          if (end.kind === 'error') return end;
+          if (end.kind !== 'number')
+            return {
+              id: crypto.randomUUID(),
+              kind: 'error',
+              message: `${end.kind} cannot be used in a numeric for loop`,
+            } satisfies Lua_Error;
+
+          let step = node.step
+            ? yield* evalExpression(node.step, environment)
+            : createLuaObject({
+                registry: Lua_Global_Value_Registry,
+                kind: 'number',
+                value: 1,
+              });
+
+          if (step.kind === 'return') step = step.value[0] || Lua_Null;
+          if (step.kind === 'error') return step;
+          if (step.kind !== 'number')
+            return {
+              id: crypto.randomUUID(),
+              kind: 'error',
+              message: `${end.kind} cannot be used in a numeric for loop`,
+            } satisfies Lua_Error;
+
+          let i = start.value;
+
+          while (
+            (step.value > 0 && i <= end.value) ||
+            (step.value < 0 && i >= end.value)
+          ) {
+            const body = yield* evalStatementsArray(node.body, environment);
+            if (body.kind === 'break') break;
+            if (body.kind === 'error' || body.kind === 'return') return body;
+
+            i += step.value;
+            let new_i = createLuaObject({
+              registry: Lua_Global_Value_Registry,
               kind: 'number',
-              value: 1,
-            } satisfies Lua_Number);
+              value: i,
+            });
+            environment.set(node.variable.name, new_i);
+            yield {
+              expresion: {
+                binaryExpression: {
+                  left: { id: start.id },
+                  operation: { op: step.value > 0 ? '+' : '-' },
+                  right: { id: step.id },
+                  val: { id: new_i.id },
+                },
+              },
+            };
 
-        if (step.kind === 'return') step = step.value[0] || Lua_Null;
-        if (step.kind === 'error') return step;
-        if (step.kind !== 'number')
-          return {
-            id: crypto.randomUUID(),
-            kind: 'error',
-            message: `${end.kind} cannot be used in a numeric for loop`,
-          } satisfies Lua_Error;
+            start = new_i;
 
-        let i = start.value;
-
-        while (
-          (step.value > 0 && i <= end.value) ||
-          (step.value < 0 && i >= end.value)
-        ) {
-          environment.set(node.variable.name, {
-            id: crypto.randomUUID(),
-            kind: 'number',
-            value: i,
-          } satisfies Lua_Number);
-          const body = yield* evalStatementsArray(node.body, environment);
-          if (body.kind === 'break') break;
-          if (body.kind === 'error' || body.kind === 'return') return body;
-          i += step.value;
+            yield {
+              expresion: {
+                binaryExpression: {
+                  left: { id: start.id },
+                  operation: { op: step.value > 0 ? '<' : '>' },
+                  right: { id: end.id },
+                  val: {
+                    id:
+                      step.value > 0
+                        ? (start as Lua_Number).value < end.value
+                          ? Lua_True.id
+                          : Lua_False.id
+                        : (start as Lua_Number).value > end.value
+                          ? Lua_True.id
+                          : Lua_False.id,
+                  },
+                },
+              },
+            };
+          }
+          return Lua_Null;
+        } finally {
+          Global_Nest_Loop_Count--;
         }
-        return Lua_Null;
       }
       //TODO
       case 'BreakStatement': {
@@ -374,8 +464,10 @@ end
           if (condition.kind === 'error') return condition;
           is_true = isThruthy(condition).value;
         } while (!is_true);
+
         return Lua_Null;
       }
+      // TODO TODO TODO
       case 'ForGenericStatement':
       case 'LabelStatement':
       case 'GotoStatement':
@@ -413,11 +505,13 @@ end
         // TOOD smell repeated
         //
         if (identifier.metatable.kind !== 'null') {
-          let __newindex = identifier.metatable.get({
-            id: crypto.randomUUID(),
-            kind: 'string',
-            value: '__newindex',
-          } satisfies Lua_String);
+          let __newindex = identifier.metatable.get(
+            createLuaObject({
+              registry: Lua_Global_Value_Registry,
+              kind: 'string',
+              value: '__newindex',
+            })
+          );
           if (__newindex.kind === 'function') {
             yield* applyFunction(
               __newindex,
@@ -456,32 +550,34 @@ end
             };
           val.parameters.unshift({ name: 'self', type: 'Identifier' });
           identifier.set(
-            {
-              id: crypto.randomUUID(),
+            createLuaObject({
+              registry: Lua_Global_Value_Registry,
               kind: 'string',
               value: exp.identifier.name,
-            } satisfies Lua_String,
+            }),
             val
           );
         } else {
           // check if metatable
           // TOOD smell repeated
           if (identifier.metatable.kind !== 'null') {
-            let __newindex = identifier.metatable.get({
-              id: crypto.randomUUID(),
-              kind: 'string',
-              value: '__newindex',
-            } satisfies Lua_String);
+            let __newindex = identifier.metatable.get(
+              createLuaObject({
+                registry: Lua_Global_Value_Registry,
+                kind: 'string',
+                value: '__newindex',
+              })
+            );
             if (__newindex.kind === 'function') {
               applyFunction(
                 __newindex,
                 [
                   identifier,
-                  {
-                    id: crypto.randomUUID(),
+                  createLuaObject({
+                    registry: Lua_Global_Value_Registry,
                     kind: 'string',
                     value: exp.identifier.name,
-                  },
+                  }),
                   val,
                 ],
                 environment
@@ -505,11 +601,11 @@ end
           }
 
           identifier.set(
-            {
-              id: crypto.randomUUID(),
+            createLuaObject({
+              registry: Lua_Global_Value_Registry,
               kind: 'string',
               value: exp.identifier.name,
-            } satisfies Lua_String,
+            }),
             val
           );
         }
@@ -529,8 +625,9 @@ end
     global: boolean
   ): Generator<Lua_Visualzer, Lua_Null | Lua_Error> {
     switch (exp.type) {
-      case 'Identifier':
+      case 'Identifier': {
         return evalIdentiferAssignment(exp, val, environment, global);
+      }
 
       case 'MemberExpression':
       case 'IndexExpression': {
@@ -546,6 +643,9 @@ end
             message: `${identifier.kind} cannot be indexed`,
           } satisfies Lua_Error;
 
+        Global_Partial_Visuals.push({
+          expresion: { assigmentIdentifier: { name: 'TODO', valId: val.id } },
+        });
         yield* handleTableIndexAssigment(exp, val, environment, identifier);
 
         return Lua_Null;
@@ -588,9 +688,16 @@ end
             environment.findEnvCotaining(id.name) || environment.findTopTable();
           //if (env == false) Lua_Global_Environment.set(id.name, val);
           env.set(id.name, val);
-
+          val.name = id.name;
           //console
-        } else environment.set(id.name, val);
+        } else {
+          environment.set(id.name, val);
+          val.name = id.name;
+        }
+
+        Global_Partial_Visuals.push({
+          expresion: { assigmentIdentifier: { name: id.name, valId: val.id } },
+        });
         return Lua_Null;
       }
     }
@@ -622,11 +729,11 @@ end
     switch (exp.type) {
       case 'NumericLiteral': {
         //yield {} satisfies Lua_Visualzer;
-        return {
-          id: crypto.randomUUID(),
+        return createLuaObject({
+          registry: Lua_Global_Value_Registry,
           kind: 'number',
           value: exp.value,
-        } satisfies Lua_Number;
+        });
       }
       case 'BooleanLiteral': {
         return exp.value ? Lua_True : Lua_False;
@@ -653,7 +760,20 @@ end
       case 'UnaryExpression': {
         const arg = yield* evalExpression(exp.argument, environment);
         if (arg.kind === 'error') return arg;
-        return yield* evalUnaryExpression(exp.operator, arg);
+        let val = yield* evalUnaryExpression(exp.operator, arg);
+
+        Current_Compelte_Visual = {
+          expresion: {
+            unaryExpression: {
+              arg: { id: arg.id },
+              val: { id: val.id },
+              operation: { op: exp.operator },
+            },
+          },
+        };
+
+        yield Current_Compelte_Visual;
+        return val;
       }
       case 'BinaryExpression': {
         let left = yield* evalExpression(exp.left, environment);
@@ -666,32 +786,44 @@ end
 
         let val = yield* evalBinaryExpression(exp.operator, left, right);
 
+        Current_Compelte_Visual = {
+          expresion: {
+            binaryExpression: {
+              left: { id: left.id },
+              right: { id: right.id },
+              val: { id: val.id },
+              operation: { op: exp.operator },
+            },
+          },
+        };
+        yield Current_Compelte_Visual;
+
         return val;
       }
       case 'Identifier': {
         let val = environment.get(exp.name);
 
         if (val.kind !== 'null') {
-          yield {
+          Global_Partial_Visuals.push({
             expresion: { identifier: { name: exp.name, valId: val.id } },
-          };
+          });
           return val;
         }
 
         val = Lua_Global_Environment!.get(exp.name);
         if (val.kind !== 'null') {
-          yield {
+          Global_Partial_Visuals.push({
             expresion: { identifier: { name: exp.name, valId: val.id } },
-          };
+          });
           return val;
         }
 
         let val_builtin = builtin.get(exp.name);
         if (!val_builtin) return Lua_Null;
 
-        yield {
+        Global_Partial_Visuals.push({
           expresion: { identifier: { name: exp.name, valId: val_builtin.id } },
-        };
+        });
 
         return val_builtin;
       }
@@ -717,11 +849,13 @@ end
               message: `table has no metabtable`,
             } satisfies Lua_Error;
           }
-          let f = func.metatable.get({
-            id: crypto.randomUUID(),
-            kind: 'string',
-            value: '__call',
-          } satisfies Lua_String);
+          let f = func.metatable.get(
+            createLuaObject({
+              registry: Lua_Global_Value_Registry,
+              kind: 'string',
+              value: '__call',
+            })
+          );
 
           if (f.kind !== 'function')
             return {
@@ -783,8 +917,11 @@ end
         return t;
       }
       case 'IndexExpression': {
-        yield { expresion: { indexExpresssion: { status: 'start' } } };
-        yield { expresion: { indexExpresssion: { status: 'identifier' } } };
+        // visualzer
+        Global_Partial_Visuals.push(
+          { expresion: { indexExpresssion: { status: 'start' } } },
+          { expresion: { indexExpresssion: { status: 'identifier' } } }
+        );
         let identifier = yield* evalExpression(exp.base, environment);
 
         if (identifier.kind === 'return') {
@@ -792,7 +929,6 @@ end
         }
         if (identifier.kind === 'error') return identifier;
         if (identifier.kind !== 'table') {
-          yield { expresion: { indexExpresssion: { status: 'end' } } };
           return {
             id: crypto.randomUUID(),
             kind: 'error',
@@ -800,38 +936,29 @@ end
           } satisfies Lua_Error;
         }
 
-        yield {
-          expresion: {
-            indexExpresssion: {
-              status: 'identifier',
-              identifierId: identifier.id,
+        Global_Partial_Visuals.push(
+          {
+            expresion: {
+              indexExpresssion: {
+                status: 'identifier',
+                identifierId: identifier.id,
+              },
             },
           },
-        };
-
-        yield {
-          expresion: {
-            indexExpresssion: { status: 'idx' },
-          },
-        };
+          {
+            expresion: {
+              indexExpresssion: { status: 'idx' },
+            },
+          }
+        );
 
         let idx = yield* evalExpression(exp.index, environment);
 
         if (idx.kind === 'return') idx = idx.value[0] || Lua_Null;
         if (idx.kind === 'error') {
-          yield {
-            expresion: {
-              indexExpresssion: { status: 'end' },
-            },
-          };
           return idx;
         }
         if (idx.kind === 'null') {
-          yield {
-            expresion: {
-              indexExpresssion: { status: 'end' },
-            },
-          };
           return {
             id: crypto.randomUUID(),
             kind: 'error',
@@ -839,25 +966,32 @@ end
           } satisfies Lua_Error;
         }
 
-        yield {
+        Global_Partial_Visuals.push({
           expresion: {
             indexExpresssion: { status: 'idx', idxId: idx.id },
           },
-        };
+        });
 
         const val = identifier.get(idx);
 
-        yield {
-          expresion: {
-            indexExpresssion: { status: 'val', valId: val.id },
+        Global_Partial_Visuals.push(
+          {
+            expresion: {
+              indexExpresssion: { status: 'val', valId: val.id },
+            },
           },
-        };
+          {
+            expresion: {
+              indexExpresssion: { status: 'end' },
+            },
+          }
+        );
 
-        yield {
-          expresion: {
-            indexExpresssion: { status: 'end' },
-          },
+        Current_Compelte_Visual = {
+          indexingVisual: [BuildVisualIndexing(Global_Partial_Visuals)],
         };
+        Global_Partial_Visuals = [];
+        yield Current_Compelte_Visual;
 
         return val;
       }
@@ -876,19 +1010,11 @@ end
           } satisfies Lua_Error;
 
         if (exp.indexer === '.') {
-          const val = identifier.get({
-            id: crypto.randomUUID(),
-            kind: 'string',
-            value: exp.identifier.name,
-          } satisfies Lua_String);
+          const val = identifier.get(exp.identifier.name);
           if (val.kind !== 'null') return val;
           if (identifier.metatable.kind !== 'table') return val;
 
-          const __index = identifier.metatable.get({
-            id: crypto.randomUUID(),
-            kind: 'string',
-            value: '__index',
-          } satisfies Lua_String);
+          const __index = identifier.metatable.get('__index');
 
           // all of this should be uncesary i think
           if (__index.kind === 'null') return Lua_Null;
@@ -898,11 +1024,11 @@ end
               __index,
               [
                 identifier,
-                {
-                  id: crypto.randomUUID(),
+                createLuaObject({
+                  registry: Lua_Global_Value_Registry,
                   kind: 'string',
                   value: exp.identifier.name,
-                } satisfies Lua_String,
+                }),
               ],
               environment
             );
@@ -914,17 +1040,9 @@ end
               message: '__index should be table',
             } satisfies Lua_Error;
 
-          return __index.get({
-            id: crypto.randomUUID(),
-            kind: 'string',
-            value: exp.identifier.name,
-          } satisfies Lua_String);
+          return __index.get(exp.identifier.name);
         } else {
-          const val = identifier.get({
-            id: crypto.randomUUID(),
-            kind: 'string',
-            value: exp.identifier.name,
-          } satisfies Lua_String);
+          const val = identifier.get(exp.identifier.name);
 
           if (val.kind !== 'function' && val.kind !== 'null') {
             return {
@@ -939,11 +1057,7 @@ end
           }
 
           if (identifier.metatable.kind !== 'table') return val;
-          const __index = identifier.metatable.get({
-            id: crypto.randomUUID(),
-            kind: 'string',
-            value: '__index',
-          } satisfies Lua_String);
+          const __index = identifier.metatable.get('__index');
 
           if (__index.kind === 'null') return Lua_Null;
           if (__index.kind === 'function') {
@@ -958,11 +1072,7 @@ end
               message: '__index should be table or function',
             } satisfies Lua_Error;
 
-          let func = __index.get({
-            id: crypto.randomUUID(),
-            kind: 'string',
-            value: exp.identifier.name,
-          } satisfies Lua_String);
+          let func = __index.get(exp.identifier.name);
 
           if (func.kind !== 'function' && func.kind !== 'null') {
             return {
@@ -1078,11 +1188,11 @@ end
       case 'TableKeyString': {
         const val = yield* evalExpression(field.value, environment);
         return [
-          {
-            id: crypto.randomUUID(),
+          createLuaObject({
+            registry: Lua_Global_Value_Registry,
             kind: 'string',
             value: field.key.name,
-          } satisfies Lua_String,
+          }),
           val,
         ];
       }
@@ -1111,7 +1221,7 @@ end
         Lua_Current_Environment = extendedEnv;
 
         Lua_Heap.set(extendedEnv.id, extendedEnv);
-        yield { type: 'NEW', name: func.id };
+        yield { type: 'NEW', name: func.name || 'anonymous' };
         const evaulated = yield* evalStatementsArray(func.body, extendedEnv);
         Lua_Current_Environment = prevEnv;
         Lua_Heap.delete(extendedEnv.id);
@@ -1289,11 +1399,11 @@ end
             if (func.kind !== 'function')
               throw Error('interperter error iparis_aux should be a function');
 
-            let idx = {
-              id: crypto.randomUUID(),
+            let idx = createLuaObject({
+              registry: Lua_Global_Value_Registry,
               kind: 'number',
               value: 0,
-            } satisfies Lua_Number;
+            });
             return {
               id: crypto.randomUUID(),
               kind: 'return',
@@ -1336,14 +1446,7 @@ end
     partial_env.hidden = true;
 
     // TODO figure out a way to delete it fater we are done with it
-    partial_env.set(
-      {
-        id: crypto.randomUUID(),
-        kind: 'string',
-        value: '__index',
-      } satisfies Lua_String,
-      environment
-    );
+    partial_env.set('__index', environment);
     let partial_helper = new Lua_Table();
     partial_helper.hidden = true;
     let returned_env = setmetatable.fn!(partial_helper, partial_env);
@@ -1450,11 +1553,7 @@ end
               operator as keyof typeof MetatableOperationsLookup
             ];
           if (left.metatable.kind !== 'null') {
-            let func = left.metatable.get({
-              id: crypto.randomUUID(),
-              kind: 'string',
-              value: op,
-            } satisfies Lua_String);
+            let func = left.metatable.get(op);
             if (func.kind !== 'null' && func.kind !== 'function')
               return {
                 id: crypto.randomUUID(),
@@ -1465,11 +1564,7 @@ end
               return yield* applyFunction(func, [left, right]);
             }
           } else if (right.metatable.kind !== 'null') {
-            let func = right.metatable.get({
-              id: crypto.randomUUID(),
-              kind: 'string',
-              value: op,
-            } satisfies Lua_String);
+            let func = right.metatable.get(op);
             if (func.kind !== 'null' && func.kind !== 'function')
               return {
                 id: crypto.randomUUID(),
@@ -1498,11 +1593,7 @@ end
             left.metatable.kind !== 'null' &&
             left.metatable === right.metatable
           ) {
-            let func = left.metatable.get({
-              id: crypto.randomUUID(),
-              kind: 'string',
-              value: op,
-            } satisfies Lua_String);
+            let func = left.metatable.get(op);
             if (func.kind !== 'null' && func.kind !== 'function')
               return {
                 id: crypto.randomUUID(),
@@ -1528,11 +1619,7 @@ end
       case operator === ConcatenationOperation: {
         if (left.kind === 'table' && right.kind === 'table') {
           if (left.metatable.kind !== 'null') {
-            let func = left.metatable.get({
-              id: crypto.randomUUID(),
-              kind: 'string',
-              value: '__concat',
-            } satisfies Lua_String);
+            let func = left.metatable.get('__concat');
             if (func.kind !== 'null' && func.kind !== 'function')
               return {
                 id: crypto.randomUUID(),
@@ -1543,11 +1630,7 @@ end
               return yield* applyFunction(func, [left, right]);
             }
           } else if (right.metatable.kind !== 'null') {
-            let func = right.metatable.get({
-              id: crypto.randomUUID(),
-              kind: 'string',
-              value: '__concat',
-            } satisfies Lua_String);
+            let func = right.metatable.get('__concat');
             if (func.kind !== 'null' && func.kind !== 'function')
               return {
                 id: crypto.randomUUID(),
@@ -1564,11 +1647,11 @@ end
         if (nleft.kind === 'error') return nleft;
         let nright = coerceString(right);
         if (nright.kind === 'error') return nright;
-        return {
-          id: crypto.randomUUID(),
+        return createLuaObject({
+          registry: Lua_Global_Value_Registry,
           kind: 'string',
           value: nleft.value + nright.value,
-        } satisfies Lua_String;
+        });
       }
       case isBitwiseOperator(operator):
 
@@ -1588,11 +1671,12 @@ end
     switch (obj.kind) {
       case 'string':
       case 'number': {
-        return {
-          id: crypto.randomUUID(),
+        //TODO
+        return createLuaObject({
+          registry: Lua_Global_Value_Registry,
           kind: 'string',
           value: String(obj.value),
-        } satisfies Lua_String;
+        }) as Lua_String;
       }
       case 'table': {
         throw Error('TODO coerce to string');
@@ -1621,11 +1705,12 @@ end
             kind: 'error',
             message: 'failed numeric coerciong on type string',
           } satisfies Lua_Error;
-        return {
-          id: crypto.randomUUID(),
+        //TODO
+        return createLuaObject({
+          registry: Lua_Global_Value_Registry,
           kind: 'number',
           value: val,
-        } satisfies Lua_Number;
+        }) as Lua_Number;
       }
       default: {
         return {
@@ -1651,68 +1736,68 @@ end
     switch (operator) {
       // arimethic
       case '+': {
-        return {
-          id: crypto.randomUUID(),
+        return createLuaObject({
+          registry: Lua_Global_Value_Registry,
           kind: 'number',
           value: nleft.value + nright.value,
-        } satisfies Lua_Number;
+        });
       }
       case '-': {
-        return {
-          id: crypto.randomUUID(),
+        return createLuaObject({
+          registry: Lua_Global_Value_Registry,
           kind: 'number',
           value: nleft.value - nright.value,
-        } satisfies Lua_Number;
+        });
       }
       case '*': {
-        return {
-          id: crypto.randomUUID(),
+        return createLuaObject({
+          registry: Lua_Global_Value_Registry,
           kind: 'number',
           value: nleft.value * nright.value,
-        } satisfies Lua_Number;
+        });
       }
       case '/': {
-        return {
-          id: crypto.randomUUID(),
+        return createLuaObject({
+          registry: Lua_Global_Value_Registry,
           kind: 'number',
           value: nleft.value / nright.value,
-        } satisfies Lua_Number;
+        });
       }
       case '%': {
-        return {
-          id: crypto.randomUUID(),
+        return createLuaObject({
+          registry: Lua_Global_Value_Registry,
           kind: 'number',
           value:
             nleft.value - Math.floor(nleft.value / nright.value) * nright.value,
-        } satisfies Lua_Number;
+        });
       }
       case '//': {
-        return {
-          id: crypto.randomUUID(),
+        return createLuaObject({
+          registry: Lua_Global_Value_Registry,
           kind: 'number',
           value: Math.floor(nleft.value / nright.value),
-        } satisfies Lua_Number;
+        });
       }
       //TODO javascript and its god dammed percision freaking points
       case '^': {
-        return {
-          id: crypto.randomUUID(),
+        return createLuaObject({
+          registry: Lua_Global_Value_Registry,
           kind: 'number',
           value: Math.pow(nleft.value, nright.value),
-        } satisfies Lua_Number;
+        });
       }
     }
   }
 
-  function evalBitwiseOperations(
-    operator: (typeof BitwiseOperators)[number],
-    left: Lua_Object,
-    right: Lua_Object
-  ) {
-    void operator;
-    void left;
-    void right;
-  }
+  // function evalBitwiseOperations(
+  //  operator: (typeof BitwiseOperators)[number],
+  //  left: Lua_Object,
+  //  right: Lua_Object
+  //) {
+  //  void operator;
+  //  void left;
+  //  void right;
+  //}
   function evalRelationalOperations(
     operator: (typeof RelationalOperators)[number],
     left: Lua_Object,
@@ -1837,11 +1922,11 @@ end
   ): Generator<Lua_Visualzer, Lua_Object> {
     switch (arg.kind) {
       case 'string':
-        return {
-          id: crypto.randomUUID(),
+        return createLuaObject({
           kind: 'number',
           value: arg.value.length,
-        } satisfies Lua_Number;
+          registry: Lua_Global_Value_Registry,
+        });
       case 'table': {
         if (arg.metatable.kind !== 'null') {
           let fun = arg.metatable.get({
@@ -1853,11 +1938,11 @@ end
             return yield* applyFunction(fun, [arg]);
           }
         }
-        return {
-          id: crypto.randomUUID(),
+        return createLuaObject({
           kind: 'number',
           value: arg.idx,
-        } satisfies Lua_Number;
+          registry: Lua_Global_Value_Registry,
+        });
       }
       default: {
         return {
@@ -1874,11 +1959,11 @@ end
   ): Generator<Lua_Visualzer, Lua_Object> {
     switch (arg.kind) {
       case 'number': {
-        return {
-          id: crypto.randomUUID(),
+        return createLuaObject({
           kind: 'number',
           value: -arg.value,
-        } satisfies Lua_Number;
+          registry: Lua_Global_Value_Registry,
+        });
       }
       case 'table': {
         if (arg.metatable.kind !== 'null') {
@@ -1937,13 +2022,16 @@ end
   }
   return {
     evalChunkGenerator,
-    evalChunkTestHelper: evalChunkTestHelper,
+    evalChunkTestHelper,
+    applyFunction,
     getGlobal: () => {
       return {
         Lua_Global_Environment,
         Lua_Current_Environment,
         Lua_Heap,
         Lua_GLobal_Console,
+        Lua_Global_Value_Registry,
+        Global_Nest_Loop_Count,
       };
     },
   };
@@ -1968,3 +2056,100 @@ function parseLongString(input: string): string {
   return content;
 }
 
+export function createLuaObject({
+  kind,
+  value,
+  hidden,
+  registry,
+}: {
+  kind: Lua_Object['kind'];
+  value: unknown;
+  hidden?: true;
+  registry: Map<string, Lua_Object>;
+}): Lua_Object {
+  let helper: {
+    id: Lua_Object['id'];
+    hidden: typeof hidden;
+  } = { id: crypto.randomUUID(), hidden: hidden };
+  let obj: Lua_Object;
+  switch (kind) {
+    case 'string': {
+      if (typeof value !== 'string') {
+        throw new Error('should be the same type');
+      }
+      obj = { ...helper, kind, value: value } satisfies Lua_String;
+      break;
+    }
+    case 'number': {
+      if (typeof value !== 'number') {
+        throw new Error('should be the same type');
+      }
+      obj = { ...helper, kind, value: value } satisfies Lua_Number;
+      break;
+    }
+    case 'boolean': {
+      if (typeof value !== 'boolean') {
+        throw new Error('should be the same type');
+      }
+      if (value == true) obj = Lua_True;
+      else obj = Lua_False;
+
+      break;
+    }
+    case 'return': {
+      if (typeof value !== 'object') throw new Error('should be the same type');
+      if (!Array.isArray(value)) throw new Error('should be the same type');
+
+      obj = { ...helper, kind, value };
+      break;
+    }
+    default: {
+      throw new Error('not handled');
+    }
+  }
+
+  // mutator
+  registry.set(obj.id, obj);
+
+  return obj;
+}
+
+function BuildVisualIndexing(
+  partialVisals: Lua_Visualzer[] | null
+): indexingVisual {
+  //TODO throw an error
+  if (partialVisals === null) return {};
+
+  let v: indexingVisual = {};
+  let status: 'start' | 'end' | 'identifier' | 'idx' | 'val' | null = null;
+  for (let x of partialVisals) {
+    status = x.expresion?.indexExpresssion?.status || status;
+    if (status === 'identifier') {
+      let identifier = x.expresion?.identifier;
+      if (identifier) {
+        v!.identifier = {
+          name: identifier.name,
+          valId: identifier.valId,
+        };
+      }
+    }
+    if (status === 'idx') {
+      let idx = x.expresion?.identifier;
+      if (idx) {
+        v!.idexer = {
+          name: idx.name,
+          valId: idx.valId,
+        };
+      }
+    }
+    if (status === 'val') {
+      let val = x.expresion?.indexExpresssion?.valId;
+      if (val) {
+        v!.val = { valId: val };
+      }
+    }
+    if (status === 'end') break;
+  }
+
+  return v;
+}

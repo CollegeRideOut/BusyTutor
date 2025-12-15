@@ -62,6 +62,7 @@ export function serialize_heap(heapMap: Map<string, Lua_Table>) {
       idx: tbl.idx,
       kind: tbl.kind,
       hidden: tbl.hidden,
+      name: tbl.name,
       metatable: tbl.metatable instanceof Lua_Table ? tbl.metatable.id : null,
       __index: tbl.__index instanceof Lua_Table ? tbl.__index.id : null,
       store: Array.from(tbl.store.entries()).map(([k, v]) => [

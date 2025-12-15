@@ -4,14 +4,17 @@ import { NotFoundError } from '../../utils/errors';
 
 export async function startExecution(input: {
   problemId: string;
-  inputs: string;
+  test: string;
   code: string;
-}): Promise<Result<{ id: string; userLuaRun: string }>> {
-  const userLuaRun = `${input.inputs} \n${input.code}\n return solution(nums)`;
+}): Promise<Result<{ id: string }>> {
   const entry = createWorker();
-  entry.worker.postMessage({ type: 'start', code: userLuaRun });
+  entry.worker.postMessage({
+    type: 'start',
+    code: input.code,
+    test: input.test,
+  });
   entry.status = 'RUNNING';
-  return { ok: true, value: { id: entry.id, userLuaRun } };
+  return { ok: true, value: { id: entry.id } };
 }
 
 export async function getExecutionProgress(input: {
@@ -24,6 +27,7 @@ export async function getExecutionProgress(input: {
     nextCursor: number | null;
     hasMore: boolean;
     total: number;
+    didSolutionPass?: boolean;
   }>
 > {
   const entry = workers.get(input.id);
@@ -35,6 +39,7 @@ export async function getExecutionProgress(input: {
   return {
     ok: true,
     value: {
+      didSolutionPass: entry.didSolutionPass,
       items,
       nextCursor: hasMore ? end : null,
       hasMore,

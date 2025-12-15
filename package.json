@@ -9,7 +9,9 @@
   "description": "- Layout & spacing: Wrap environment elements using flex + flex-wrap with proper spacing. - Box highlighting: When indexing a variable, highlight the source box and the target box. - Arrow / visual link: Draw an arrow from the source to the target for chain indexing. - Path finding scaffold",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "npm run start -w @busytutor/server",
+    "build": "npm run build -w @busytutor/server && npm run build -w @busytutor/client"
   },
   "repository": {
     "type": "git",

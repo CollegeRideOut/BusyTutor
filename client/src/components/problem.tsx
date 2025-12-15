@@ -1,11 +1,5 @@
 import { useMemo, useState } from 'react';
-import {
-  ArrowLeft,
-  Play,
-  RotateCcw,
-  ChevronDown,
-  ChevronRight,
-} from 'lucide-react';
+import { ArrowLeft, RotateCcw, ChevronDown, ChevronRight } from 'lucide-react';
 import luarparser from 'luaparse';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -139,7 +133,7 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
 
   return (
     <div
-      className='max-h-screen flex flex-col flex-1 bg-background relative'
+      className='max-h-screen flex flex-col flex-1 bg-background relative min-h-0'
       style={{
         //TODO why tailwind not working?
         maxHeight: '100vh',
@@ -172,21 +166,80 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
       {/* Main Content - With top padding for fixed header */}
       <ResizablePanelGroup
         direction='horizontal'
-        className='flex-1 flex overflow-hidden'
+        className='flex-1 flex overflow-hidden min-h-0'
       >
         {/* Left Panel - Problem Description (Scrollable) */}
 
         <ResizablePanel className='w-1/2 bg-card flex flex-col min-h-0 '>
           {/* TODO visualizer  des*/}
-          {!isVisual || idToUse === null ? (
-            <ProblemDescription problem={problem} />
-          ) : (
-            <LuaVisualizer
-              id={idToUse}
-              didSolutionPass={didSolutionPass}
-              setDidSolutionPass={setDidSolutionPass}
-            />
-          )}
+
+          <Tabs
+            defaultValue='question'
+            className=' flex flex-col flex-1  overflow-y-auto w-full h-full'
+          >
+            <div className='px-4 py-2 border-b border-border'>
+              <TabsList className=' w-full bg-muted/30 grid grid-cols-2'>
+                <TabsTrigger key={`question-tab`} value={'question'}>
+                  Question
+                </TabsTrigger>
+
+                <TabsTrigger key={`visual`} value={'visual'}>
+                  Visualizer
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value={'question'} className='flex-col'>
+              <ProblemDescription problem={problem} />
+            </TabsContent>
+
+            <TabsContent value={'visual'} className='flex-col'>
+              {!isVisual || idToUse === null ? (
+                <div className='flex flex-col items-center justify-center h-64 text-center'>
+                  <h3 className='text-lg font-medium mb-2'>Code Visualizer</h3>
+                  <p className='text-sm text-muted-foreground mb-4'>
+                    Run your code to see a step-by-step execution visualization
+                  </p>
+                  <div className='flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground'>
+                    <div className='flex items-center gap-1'>
+                      <div
+                        className='w-3 h-3 rounded border-2'
+                        style={{ borderColor: '#ef4444' }}
+                      ></div>
+                      <span>Numbers</span>
+                    </div>
+                    <div className='flex items-center gap-1'>
+                      <div
+                        className='w-3 h-3 rounded border-2'
+                        style={{ borderColor: '#10b981' }}
+                      ></div>
+                      <span>Strings</span>
+                    </div>
+                    <div className='flex items-center gap-1'>
+                      <div
+                        className='w-3 h-3 rounded border-2'
+                        style={{ borderColor: '#92400e' }}
+                      ></div>
+                      <span>Booleans</span>
+                    </div>
+                    <div className='flex items-center gap-1'>
+                      <div
+                        className='w-3 h-3 rounded border-2'
+                        style={{ borderColor: '#f97316' }}
+                      ></div>
+                      <span>Arrays</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <LuaVisualizer
+                  id={idToUse}
+                  didSolutionPass={didSolutionPass}
+                  setDidSolutionPass={setDidSolutionPass}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
         </ResizablePanel>
 
         {/* Slight Separator */}
@@ -235,12 +288,17 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
                     onChange={(e) => setCode(e.target.value)}
                     placeholder='Write your solution here...'
                     className='w-full h-full font-mono text-sm bg-muted/30 border border-border/30 resize-none focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-colors'
-                    style={{ minHeight: '100%' }}
                   />
                 ) : (
                   visual &&
                   ast && (
-                    <EvalChunkFront theme={theme} visual={visual} node={ast} />
+                    <div className='flex flex-col flex-1 min-h-0 font-mono text-sm overflow-y-auto w-full h-full bg-muted/30 border border-border/30 resize-none focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-colors  px-3 py-2 rounded-md'>
+                      <EvalChunkFront
+                        theme={theme}
+                        visual={visual}
+                        node={ast}
+                      />
+                    </div>
                   )
                 )}
               </div>
@@ -248,8 +306,11 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
 
             <ResizableHandle />
 
-            <ResizablePanel className='bg-card'>
-              <Tabs defaultValue='0' className='p-4'>
+            <ResizablePanel className='bg-card min-h-0 flex flex-col flex-1  overflow-y-auto w-full h-full'>
+              <Tabs
+                defaultValue='0'
+                className='p-4 flex flex-col flex-1  overflow-y-auto w-full h-full'
+              >
                 <TabsList className='flex justify-between'>
                   {problem.tests.map((_t, idx) => {
                     return (
@@ -329,7 +390,7 @@ function ProblemDescription({ problem }: { problem: any }) {
 
         {/* Examples */}
         <div>
-          {problem.examples.map((example, index) => (
+          {problem.examples.map((example: any, index: any) => (
             <div key={index} className='mb-6'>
               <h3 className='text-base font-medium mb-3'>
                 Example {index + 1}:

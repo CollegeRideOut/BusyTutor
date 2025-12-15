@@ -1,3 +1,4 @@
 import { startServer } from './server/bootstrap';
 
-startServer();
+let server = startServer();
+(globalThis as any).__server = server

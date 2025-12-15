@@ -1,7 +1,4 @@
-import type {
-  Lua_Object,
-  Lua_Table,
-} from '@busytutor/server/src/interpreter';
+import type { Lua_Object, Lua_Table } from '@busytutor/server/src/interpreter';
 import { useState, useEffect, useMemo } from 'react';
 
 interface PixelArtProps {
@@ -193,15 +190,53 @@ export function FloatingPixelArt({ className = '' }: { className?: string }) {
   );
 }
 
+export const PixelValue = ({ value }: { value: Lua_Object }) => {
+  const typeColor = getTypeColor(value);
+  const stringVal = useMemo(() => {
+    switch (value.kind) {
+      case 'null': {
+        return 'null';
+      }
+      case 'string':
+      case 'number':
+      case 'boolean': {
+        return String(value.value);
+      }
+      case 'function':
+      case 'return':
+      case 'error':
+      case 'builtin':
+      case 'table':
+      case 'break':
+      case 'varg': {
+        return value.id;
+      }
+    }
+  }, [value]);
+  return (
+    <div className='w-fit' id={`var-${name}`}>
+      <PixelBox isHighlighted={false} borderColor={typeColor}>
+        <span>{stringVal}</span>
+      </PixelBox>
+    </div>
+  );
+};
+
 export const PixelVariable = ({
   name,
   value,
+  opaque = false,
+  equalSign = true,
   skipObj = false,
+  skipName = false,
   isHighlighted = false,
 }: {
   name: string;
   value: Lua_Object;
+  equalSign?: boolean;
+  opaque?: boolean;
   skipObj?: boolean;
+  skipName?: boolean;
   isHighlighted?: boolean;
 }) => {
   const typeColor = getTypeColor(value);
@@ -231,25 +266,29 @@ export const PixelVariable = ({
       <PixelBox
         isHighlighted={isHighlighted}
         borderColor={typeColor}
+        opaque={opaque}
         id={`var-${name}`}
       >
         <span>
-          {name} {!skipObj ? ' = ' + stringVal : null}
+          {!skipName ? name : null} {equalSign ? '=' : null}{' '}
+          {!skipObj ? stringVal : null}
         </span>
       </PixelBox>
     </div>
   );
 };
 
-const PixelBox = ({
+export const PixelBox = ({
   children,
   isHighlighted = false,
   borderColor,
+  opaque,
   id,
 }: {
   children: React.ReactNode;
   isHighlighted?: boolean;
   borderColor?: string;
+  opaque?: boolean;
   id?: string;
 }) => {
   const style: React.CSSProperties = {
@@ -258,7 +297,7 @@ const PixelBox = ({
     ...(borderColor && !isHighlighted
       ? {
           borderColor: borderColor,
-          backgroundColor: `${borderColor}15`,
+          backgroundColor: !opaque ? `${borderColor}15` : `black`,
         }
       : {}),
   };
@@ -332,7 +371,12 @@ export const PixelTable = ({
             el && ref.current.set(table.id, el);
           }}
         >
-          <PixelVariable name={''} value={table} skipObj={true} />
+          <PixelVariable
+            name={''}
+            equalSign={false}
+            value={table}
+            skipObj={true}
+          />
         </div>
         {entries
           .map(([identifier, item], index) => {
@@ -381,6 +425,7 @@ export const PixelTable = ({
                   <PixelVariable
                     name={stringIdentifier}
                     value={item}
+                    equalSign={false}
                     skipObj={true}
                     isHighlighted={highlighted.has(
                       `${table.id}-${stringIdentifier}`,
@@ -408,6 +453,180 @@ export const PixelTable = ({
             );
           })
           .filter((i) => i !== null)}
+      </div>
+    </PixelBox>
+  );
+};
+
+export const PixelAssigment = ({
+  names,
+  values,
+}: {
+  names: string[];
+  values: Lua_Object[];
+}) => {
+  let typeColor = '#c0c0c0';
+  return (
+    <PixelBox
+      isHighlighted={false}
+      borderColor={typeColor}
+      id={`operation-current`}
+      opaque={true}
+    >
+      <div className='flex gap-2 flex-wrap w-fit items-center p-8 '>
+        <div
+          //ref={(el) => {
+          //  el && ref.current.set(table.id, el);
+          //}}
+          className='flex items-center justify-center gap-8'
+        >
+          {names.map((name, idx) => {
+            return (
+              <div className='flex flex-row justify-between items-center'>
+                <div>{name} = </div>
+                <PixelVariable
+                  key={`return-${idx}-${values[idx].id}`}
+                  name=''
+                  skipName={true}
+                  skipObj={values[idx].kind === 'table'}
+                  equalSign={false}
+                  value={values[idx]}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </PixelBox>
+  );
+};
+
+export const PixelReturn = ({ values }: { values: Lua_Object[] }) => {
+  let typeColor = '#c0c0c0';
+  return (
+    <PixelBox
+      isHighlighted={false}
+      borderColor={typeColor}
+      id={`operation-current`}
+      opaque={true}
+    >
+      <div className='flex gap-2 flex-wrap w-fit items-center p-8 '>
+        <div
+          //ref={(el) => {
+          //  el && ref.current.set(table.id, el);
+          //}}
+          className='flex items-center justify-center gap-8'
+        >
+          {values.map((obj, idx) => {
+            return (
+              <PixelVariable
+                key={`return-${idx}-${obj.id}`}
+                name=''
+                skipName={true}
+                skipObj={obj.kind === 'table'}
+                equalSign={false}
+                value={obj}
+              />
+            );
+          })}
+        </div>
+      </div>
+    </PixelBox>
+  );
+};
+
+export const PixelUnaryOperation = ({
+  operation,
+  arg,
+  value,
+}: {
+  operation: string;
+  arg: Lua_Object;
+  value: Lua_Object;
+}) => {
+  let typeColor = '#c0c0c0';
+  return (
+    <PixelBox
+      isHighlighted={false}
+      borderColor={typeColor}
+      id={`operation-current`}
+      opaque={true}
+    >
+      <div className='flex gap-2 flex-wrap w-fit items-center p-8 '>
+        <div
+          //ref={(el) => {
+          //  el && ref.current.set(table.id, el);
+          //}}
+          className='flex items-center justify-center gap-8'
+        >
+          <div>{operation}</div>
+          <PixelVariable
+            name={arg.name || ''}
+            skipName={false}
+            skipObj={true}
+            equalSign={false}
+            value={arg}
+          />
+          <div>{'-->'}</div>
+          <PixelVariable
+            name={''}
+            skipName={true}
+            equalSign={false}
+            value={value}
+          />
+        </div>
+      </div>
+    </PixelBox>
+  );
+};
+
+export const PixelOperation = ({
+  left,
+  operation,
+  right,
+  value,
+}: {
+  left: Lua_Object;
+  operation: string;
+  right: Lua_Object;
+  value: Lua_Object;
+}) => {
+  let typeColor = '#c0c0c0';
+  return (
+    <PixelBox
+      isHighlighted={false}
+      borderColor={typeColor}
+      id={`operation-current`}
+      opaque={true}
+    >
+      <div className='flex gap-2 flex-wrap w-fit items-center p-8 '>
+        <div
+          //ref={(el) => {
+          //  el && ref.current.set(table.id, el);
+          //}}
+          className='flex items-center justify-center gap-8'
+        >
+          <PixelVariable
+            name={''}
+            skipName={true}
+            equalSign={false}
+            value={left}
+          />
+          <div>{operation}</div>
+          <PixelVariable
+            name={''}
+            skipName={true}
+            equalSign={false}
+            value={right}
+          />
+          <div>{'-->'}</div>
+          <PixelVariable
+            name={''}
+            skipName={true}
+            equalSign={false}
+            value={value}
+          />
+        </div>
       </div>
     </PixelBox>
   );

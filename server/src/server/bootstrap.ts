@@ -1,25 +1,29 @@
-import { createHTTPServer } from '@trpc/server/adapters/standalone';
+import express from 'express';
+import cors from 'cors';
+import { createExpressMiddleware } from '@trpc/server/adapters/express';
 import { appRouter } from '../trpc/routers';
 import { createContext } from '../trpc/context';
 import { PORT, ALLOWED_ORIGINS } from '../config';
 
 export function startServer() {
-  const server = createHTTPServer({
-    router: appRouter,
-    createContext,
-    middleware: (req, res, next) => {
-      res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS.join(','));
-      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-      if (req.method === 'OPTIONS') {
-        res.writeHead(204).end();
-        return;
-      }
-      next();
-    },
+  const app = express();
+  app.use(
+    cors({
+      origin: ALLOWED_ORIGINS,
+      credentials: true,
+    })
+  );
+  app.get('/api/health', (_req, res) => res.send('OK'));
+  app.use(
+    '/api',
+    createExpressMiddleware({
+      router: appRouter,
+      createContext,
+    })
+  );
+  let listen = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`tRPC server running on http://0.0.0.0:${PORT}/api`);
   });
 
-  server.listen(PORT);
-  console.log(`tRPC server listening on http://localhost:${PORT}`);
-  return server;
+  return listen;
 }

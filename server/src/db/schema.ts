@@ -1,6 +1,15 @@
 import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
+export const difficulty_enum = {
+  EASY: 'easy',
+  MEDIUM: 'medium',
+  HARD: 'hard',
+} as const;
+
+export type difficulty_enum_type =
+  (typeof difficulty_enum)[keyof typeof difficulty_enum];
+
 // users
 export const users = sqliteTable('users', {
   id: text('id')
@@ -19,8 +28,13 @@ export const problems = sqliteTable('problems', {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   title: text('title').notNull(),
-  description: text('description'),
-  difficulty: text('difficulty').default('easy'),
+  description: text('description').notNull(),
+  constraints: text('constraints').notNull(),
+  examples: text('examples').notNull(),
+  hints: text('hints').notNull(),
+  starterCode: text('starterCode').notNull(),
+  tests: text('tests').notNull(),
+  difficulty: text('difficulty').notNull().default(difficulty_enum.EASY),
   createdAt: integer('created_at', { mode: 'timestamp' })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),

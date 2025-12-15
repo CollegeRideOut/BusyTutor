@@ -4,10 +4,20 @@ import { trpc } from '../lib/trpc';
 import { Button } from './ui/button';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Lua_Table } from '@busytutor/server/src/interpreter';
-import type { Lua_Visualzer } from '@busytutor/server/src/interpreter';
+import type {
+  Lua_Object,
+  Lua_Visualzer,
+} from '@busytutor/server/src/interpreter';
 import { Heap } from 'mnemonist';
 import { reviver, revive_heap } from '../utils/jsonParser';
-import { PixelTable, PixelVariable } from './PixelArt';
+import {
+  PixelAssigment,
+  PixelOperation,
+  PixelReturn,
+  PixelTable,
+  PixelUnaryOperation,
+  PixelVariable,
+} from './PixelArt';
 
 //const VIUAL_PARENT_ID = '.%!@#PARENT';
 //const ArrowHead = {
@@ -26,7 +36,6 @@ const Lines = {
   pointer: {
     color: 'rgba(76, 110, 245, 0.3)',
     strokeDasharray: '10 20',
-
     colorHover: '#14b8a6',
   },
 };
@@ -72,13 +81,20 @@ export function LuaVisualizer({
   const timeline = useMemo(() => {
     let flatData = data?.pages.flatMap((page) => page.items) ?? [];
     let lastOne = data?.pages[data.pages.length - 1].didSolutionPass;
-    console.log(lastOne)
     if (didSolutionPass !== lastOne) {
       setDidSolutionPass(lastOne);
     }
     return flatData.map((d) => {
       let refs = JSON.parse(d.currEnv, reviver) as { refid: string };
       let heap = revive_heap(JSON.parse(d.heap) as Record<string, any>);
+      let valueRegistry = JSON.parse(d.valueRegistry, reviver) as Map<
+        string,
+        Lua_Object
+      >;
+      // console.log('string verion', valueRegistry);
+
+      //console.log(valueRegistry);
+
       let currEnv = heap.get(refs.refid);
       if (!currEnv) {
         throw new Error('Lua_Table should exist');
@@ -87,6 +103,7 @@ export function LuaVisualizer({
       return {
         visual: JSON.parse(d.visual) as Lua_Visualzer,
         currEnv,
+        valueRegistry,
         heap,
       };
     });
@@ -135,6 +152,7 @@ export function LuaVisualizer({
             <VisualizeExecution
               env={timeline[currentOnStack].currEnv}
               heap={timeline[currentOnStack].heap}
+              registry={timeline[currentOnStack].valueRegistry}
               visual={timeline[currentOnStack].visual}
               currentIdx={currentOnStack}
             />
@@ -202,7 +220,7 @@ function Timeline({
   }, [currentIdx, visualStack]);
 
   return (
-    <div>
+    <div className='h-80 overflow-auto'>
       {timeline.map((i, idx) => {
         return <div key={`timeline-${i}-${idx}`}>{i}</div>;
       })}
@@ -227,10 +245,12 @@ function VisualizeExecution({
   heap,
   currentIdx,
   visual,
+  registry,
 }: {
   env: Lua_Table;
   currentIdx: number;
   heap: Map<string, Lua_Table>;
+  registry: Map<string, Lua_Object>;
   visual: Lua_Visualzer;
 }) {
   const visualEnvironmentRef = useRef<Map<string, HTMLElement>>(new Map());
@@ -322,6 +342,7 @@ function VisualizeExecution({
     //drawCellsSVG(newlayout, svgRef.current);
     //console.log('layout', newlayout);
     //    layoutRef.current = newlayout;
+
     let i = 0;
     for (let [[rect1, rect2], [rect1Id, rect2Id]] of pairedRects) {
       let linetype: keyof typeof Lines = 'primary';
@@ -348,31 +369,31 @@ function VisualizeExecution({
   }, [env, heap, currentIdx, visual, lineRef.current, currentHover]);
 
   return (
-    <div
-      className='w-full flex flex-row justify-between relative'
-      ref={parentRef}
-    >
-      <VisulizeEnvironment
-        env={env}
-        ref={visualEnvironmentRef}
-        pointerRef={visualPointersRef}
-        highlighted={highlighted}
-        setHovered={(val: [string, string]) => {
-          currentHover.current = val;
-          updateVIsuals();
-        }}
-      />
-      <VisulizeHeap
-        heap={heap}
-        env={env}
-        ref={visualEnvironmentRef}
-        pointerRef={visualPointersRef}
-        setHovered={(val: [string, string]) => {
-          currentHover.current = val;
-          updateVIsuals();
-        }}
-        highlighted={highlighted}
-      />
+    <div className='w-full flex flex-col relative' ref={parentRef}>
+      <div>{visual.nestedLoopCount}⚙</div>
+      <div className='w-full flex flex-row justify-between relative'>
+        <VisulizeEnvironment
+          env={env}
+          ref={visualEnvironmentRef}
+          pointerRef={visualPointersRef}
+          highlighted={highlighted}
+          setHovered={(val: [string, string]) => {
+            currentHover.current = val;
+            updateVIsuals();
+          }}
+        />
+        <VisulizeHeap
+          heap={heap}
+          env={env}
+          ref={visualEnvironmentRef}
+          pointerRef={visualPointersRef}
+          setHovered={(val: [string, string]) => {
+            currentHover.current = val;
+            updateVIsuals();
+          }}
+          highlighted={highlighted}
+        />
+      </div>
 
       <svg
         id='line-layer'
@@ -382,8 +403,80 @@ function VisualizeExecution({
         preserveAspectRatio='none'
         className='absolute top-0 left-0 w-full h-full pointer-events-none'
       />
+
+      <VisualizeMoment registry={registry} visual={visual} heap={heap} />
     </div>
   );
+}
+
+function VisualizeMoment({
+  heap,
+  registry,
+  visual,
+}: {
+  heap: Map<string, Lua_Table>;
+  registry: Map<string, Lua_Object>;
+  visual: Lua_Visualzer;
+}) {
+  if (
+    visual.expresion !== undefined &&
+    visual.expresion.binaryExpression !== undefined
+  ) {
+    return (
+      <div className='absolute w-[100%] h-[100%] flex items-center justify-center'>
+        <PixelOperation
+          left={registry.get(visual.expresion.binaryExpression.left.id)!}
+          operation={visual.expresion.binaryExpression.operation.op}
+          right={registry.get(visual.expresion.binaryExpression.right.id)!}
+          value={registry.get(visual.expresion.binaryExpression.val.id)!}
+        />
+      </div>
+    );
+  } else if (
+    visual.expresion !== undefined &&
+    visual.expresion.unaryExpression !== undefined
+  ) {
+    let currArg = registry.get(visual.expresion.unaryExpression.arg.id)!;
+    if ((currArg as any).refId) {
+      currArg = heap.get((currArg as any).refId)!;
+    }
+    let currValue = registry.get(visual.expresion.unaryExpression.val.id)!;
+
+    console.log('unaryExpression arg val', currArg);
+    console.log('unaryExpression val val', currValue);
+    return (
+      <div className='absolute w-[100%] h-[100%] flex items-center justify-center'>
+        <PixelUnaryOperation
+          arg={currArg}
+          operation={visual.expresion.unaryExpression.operation.op}
+          value={currValue}
+        />
+      </div>
+    );
+  } else if (visual.visualStatement?.return) {
+    let values: Lua_Object[] = visual.visualStatement.return.vals.map(
+      (id) => registry.get(id)!,
+    );
+    return (
+      <div className='absolute w-[100%] h-[100%] flex items-center justify-center'>
+        <PixelReturn values={values} />
+      </div>
+    );
+  } else if (visual.visualStatement?.assigment) {
+    let values: Lua_Object[] = visual.visualStatement.assigment.valsId.map(
+      (id) => registry.get(id)!,
+    );
+    let names: string[] = visual.visualStatement.assigment.variables;
+
+    console.log(values);
+    return (
+      <div className='absolute w-[100%] h-[100%] flex items-center justify-center'>
+        <PixelAssigment names={names} values={values} />
+      </div>
+    );
+  } else {
+    return null;
+  }
 }
 function VisulizeHeap({
   heap,
@@ -510,6 +603,7 @@ function VisulizeEnvironment({
             <PixelVariable
               name={identiferString}
               value={obj}
+              equalSign={false}
               skipObj={true}
               isHighlighted={highlighted.has(obj.id)}
             />
