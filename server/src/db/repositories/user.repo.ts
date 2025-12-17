@@ -6,11 +6,10 @@ import { AppError, NotFoundError, ValidationError } from '../../utils/errors';
 import { Result } from '../../utils/someTypes';
 const SALT_ROUNDS = 10;
 
+export type UserRecord = typeof users.$inferSelect;
+
 export const userRepo = {
-  async create(data: {
-    email: string;
-    password: string;
-  }): Promise<Result<typeof users.$inferSelect>> {
+  async create(data: UserRecord): Promise<Result<typeof users.$inferSelect>> {
     try {
       let exist = await this.existByEmail(data.email);
       if (!exist.ok) return exist;
@@ -21,10 +20,9 @@ export const userRepo = {
         };
       }
       // create
-      const hashed = await bcrypt.hash(data.password, SALT_ROUNDS);
       const [user] = await db
         .insert(users)
-        .values({ email: data.email, password: hashed })
+        .values({ ...data, createdAt: new Date() })
         .returning();
 
       return { ok: true, value: user };
@@ -62,47 +60,47 @@ export const userRepo = {
     return { ok: true, value: !!result.value };
   },
 
-  async verifyUser(data: {
-    email: string;
-    password: string;
-  }): Promise<Result<typeof users.$inferSelect>> {
-    try {
-      const result = await this.findByEmail(data.email);
-      if (!result.ok) return result;
-      let user = result.value;
-      if (user === undefined) {
-        console.log('here user was undefined');
-        return {
-          ok: false,
-          error: new ValidationError('Invalid credentials'),
-        };
-      }
-
-      let match = await bcrypt.compare(data.password, user.password);
-      if (!match) {
-        console.log(
-          'password did not match',
-          data.password,
-          ' |---| ',
-          user.password,
-          ' el jodio email',
-          user.email
-        );
-        return {
-          ok: false,
-          error: new NotFoundError('Invalid credentials'),
-        };
-      }
-
-      return { ok: result.ok, value: user };
-    } catch (err) {
-      console.error('[DB ERROR]', err);
-      return {
-        ok: false,
-        error: new AppError('INTERNAL_ERROR', 'Database error', 500),
-      };
-    }
-  },
+  //async verifyUser(data: {
+  //  email: string;
+  //  password: string;
+  //}): Promise<Result<typeof users.$inferSelect>> {
+  //  try {
+  //    const result = await this.findByEmail(data.email);
+  //    if (!result.ok) return result;
+  //    let user = result.value;
+  //    if (user === undefined) {
+  //      console.log('here user was undefined');
+  //      return {
+  //        ok: false,
+  //        error: new ValidationError('Invalid credentials'),
+  //      };
+  //    }
+  //
+  //    let match = await bcrypt.compare(data.password, user.password);
+  //    if (!match) {
+  //      console.log(
+  //        'password did not match',
+  //        data.password,
+  //        ' |---| ',
+  //        user.password,
+  //        ' el jodio email',
+  //        user.email
+  //      );
+  //      return {
+  //        ok: false,
+  //        error: new NotFoundError('Invalid credentials'),
+  //      };
+  //    }
+  //
+  //    return { ok: result.ok, value: user };
+  //  } catch (err) {
+  //    console.error('[DB ERROR]', err);
+  //    return {
+  //      ok: false,
+  //      error: new AppError('INTERNAL_ERROR', 'Database error', 500),
+  //    };
+  //  }
+  //},
 
   async findByEmail(
     email: string

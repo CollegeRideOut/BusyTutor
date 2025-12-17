@@ -9,7 +9,7 @@ export const luaRouter = router({
     .input(
       z.object({ problemId: z.string(), testIdx: z.number(), code: z.string() })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const problemResult = await problemService.getProblemById({
         id: input.problemId,
       });
@@ -19,11 +19,20 @@ export const luaRouter = router({
         JSON.parse(problemResult.value.problem.tests)[input.testIdx]
       );
 
+      console.log('Start Execution new stuff', {
+        problemId: input.problemId,
+        testIdx: input.testIdx,
+        userId: ctx.userTokenInfo.id,
+      });
+
       const result = await luaService.startExecution({
+        test,
         problemId: input.problemId,
         code: input.code,
-        test,
+        testIdx: input.testIdx,
+        userId: ctx.userTokenInfo.id,
       });
+
       if (!result.ok) throw result.error;
 
       return { sucess: true, ...result.value };
@@ -40,7 +49,7 @@ export const luaRouter = router({
     .query(async ({ input }) => {
       let result = await luaService.getExecutionProgress(input);
       if (!result.ok) throw toTRPCError(result.error);
-      console.log('did solution pass result', result.value.didSolutionPass);
+
       return {
         sucess: true,
         ...result.value,

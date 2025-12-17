@@ -1,25 +1,17 @@
-import type { CreateHTTPContextOptions } from '@trpc/server/adapters/standalone';
+import * as trpcExpress from '@trpc/server/adapters/express';
 import { verifyToken } from '../utils/auth/jwt';
 
 export type Context = {
   userTokenInfo: {
     id: string;
-    email: string;
   } | null;
 };
 
-export const createContext = async ({ req }: CreateHTTPContextOptions): Promise<Context> => {
-  const authHeader = req.headers['authorization'];
-  const token =
-    typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
-      ? authHeader.slice(7)
-      : null;
-
-  const payload = token ? verifyToken(token) : null;
-
+export const createContext = async ({
+  req,
+}: trpcExpress.CreateExpressContextOptions): Promise<Context> => {
+  console.log('context user request', req.user);
   return {
-    userTokenInfo: payload
-      ? { id: payload.userId, email: payload.email }
-      : null,
+    userTokenInfo: req.user ? { id: ((req.user as any).user as any).id } : null,
   };
 };

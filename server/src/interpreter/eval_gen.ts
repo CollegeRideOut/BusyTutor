@@ -111,6 +111,7 @@ export function selfContainedEvalGenerator() {
     valueRegistry: Map<string, Lua_Object>
   ): Generator<Lua_Visualzer, Lua_Object> {
     //TODO
+    const y = createYielder(node.loc);
     Lua_Global_Value_Registry = valueRegistry;
     Lua_Global_Environment = environment || new Lua_Table();
     Lua_Current_Environment = Lua_Global_Environment;
@@ -120,9 +121,11 @@ export function selfContainedEvalGenerator() {
     Lua_Heap.set(Lua_Global_Environment.id, Lua_Global_Environment);
     Hidden_Environment = new Lua_Table();
     setUp(Hidden_Environment);
-    yield { type: 'NEW', name: 'main' };
+
+    yield* y({ type: 'NEW', name: 'main' });
     let val = yield* evalStatementsArray(node.body, Lua_Global_Environment);
-    yield { type: 'EXIT', name: 'main' };
+
+    yield* y({ type: 'EXIT', name: 'main' });
     return val;
   }
   const ipairs_aux = 'ipairs_aux';
@@ -150,9 +153,10 @@ end
     environment: Lua_Table
   ): Generator<Lua_Visualzer, Lua_Object> {
     //TODO multiple statements now lets just assume one
+    //
+
     for (let statement of node) {
       let lua = yield* evalStatements(statement, environment);
-      yield { clearIndexingVisuals: true };
       if (
         lua.kind === 'return' ||
         lua.kind === 'error' ||
@@ -168,7 +172,8 @@ end
     node: luaparser.Statement,
     environment: Lua_Table
   ): Generator<Lua_Visualzer, Lua_Object> {
-    yield { statement: node.type, loc: node.loc };
+    const y = createYielder(node.loc);
+
     switch (node.type) {
       case 'ReturnStatement': {
         let vals: Lua_Object[] = [];
@@ -188,7 +193,7 @@ end
             valsId.push(obj.id);
           }
         }
-        yield { visualStatement: { return: { vals: valsId } } };
+        yield* y({ visualStatement: { return: { vals: valsId } } });
         return {
           id: crypto.randomUUID(),
           kind: 'return',
@@ -275,7 +280,7 @@ end
           }
         }
         console.log(Current_Compelte_Visual);
-        yield Current_Compelte_Visual;
+        yield* y(Current_Compelte_Visual);
 
         return Lua_Null;
       }
@@ -329,14 +334,14 @@ end
             } satisfies Lua_Error;
 
           // VISUAL
-          yield {
+          yield* y({
             visualStatement: {
               assigment: {
                 variables: [node.variable.name],
                 valsId: [start.id],
               },
             },
-          };
+          });
 
           let end = yield* evalExpression(node.end, environment);
           if (end.kind === 'return') end = end.value[0] || Lua_Null;
@@ -367,6 +372,26 @@ end
 
           let i = start.value;
 
+          yield* y({
+            expresion: {
+              binaryExpression: {
+                left: { id: start.id },
+                operation: { op: step.value > 0 ? '<' : '>' },
+                right: { id: end.id },
+                val: {
+                  id:
+                    step.value > 0
+                      ? (start as Lua_Number).value < end.value
+                        ? Lua_True.id
+                        : Lua_False.id
+                      : (start as Lua_Number).value > end.value
+                        ? Lua_True.id
+                        : Lua_False.id,
+                },
+              },
+            },
+          });
+
           while (
             (step.value > 0 && i <= end.value) ||
             (step.value < 0 && i >= end.value)
@@ -382,7 +407,7 @@ end
               value: i,
             });
             environment.set(node.variable.name, new_i);
-            yield {
+            yield* y({
               expresion: {
                 binaryExpression: {
                   left: { id: start.id },
@@ -391,11 +416,19 @@ end
                   val: { id: new_i.id },
                 },
               },
-            };
+            });
 
             start = new_i;
+            yield* y({
+              visualStatement: {
+                assigment: {
+                  variables: [node.variable.name],
+                  valsId: [start.id],
+                },
+              },
+            });
 
-            yield {
+            yield* y({
               expresion: {
                 binaryExpression: {
                   left: { id: start.id },
@@ -413,7 +446,7 @@ end
                   },
                 },
               },
-            };
+            });
           }
           return Lua_Null;
         } finally {
@@ -725,7 +758,8 @@ end
     exp: luaparser.Expression,
     environment: Lua_Table
   ): Generator<Lua_Visualzer, Lua_Object> {
-    yield { loc: exp.loc };
+    const y = createYielder(exp.loc);
+
     switch (exp.type) {
       case 'NumericLiteral': {
         //yield {} satisfies Lua_Visualzer;
@@ -772,7 +806,7 @@ end
           },
         };
 
-        yield Current_Compelte_Visual;
+        yield* y(Current_Compelte_Visual);
         return val;
       }
       case 'BinaryExpression': {
@@ -784,7 +818,7 @@ end
         if (right.kind === 'return') right = right.value[0] || Lua_Null;
         if (right.kind === 'error') return right;
 
-        let val = yield* evalBinaryExpression(exp.operator, left, right);
+        let val = yield* evalBinaryExpression(exp, left, right);
 
         Current_Compelte_Visual = {
           expresion: {
@@ -796,7 +830,7 @@ end
             },
           },
         };
-        yield Current_Compelte_Visual;
+        yield* y(Current_Compelte_Visual);
 
         return val;
       }
@@ -991,7 +1025,7 @@ end
           indexingVisual: [BuildVisualIndexing(Global_Partial_Visuals)],
         };
         Global_Partial_Visuals = [];
-        yield Current_Compelte_Visual;
+        yield* y(Current_Compelte_Visual);
 
         return val;
       }
@@ -1539,10 +1573,11 @@ end
   }
 
   function* evalBinaryExpression(
-    operator: BinaryOperators,
+    exp: luaparser.BinaryExpression,
     left: Lua_Object,
     right: Lua_Object
   ): Generator<Lua_Visualzer, Lua_Object> {
+    const operator = exp.operator;
     switch (true) {
       case isArithmeticOperators(operator): {
         // TODO take this out and code smells
@@ -2152,4 +2187,13 @@ function BuildVisualIndexing(
   }
 
   return v;
+}
+
+function createYielder(location: Lua_Visualzer['loc']) {
+  return function* (value: Lua_Visualzer) {
+    yield {
+      ...value,
+      location,
+    };
+  };
 }

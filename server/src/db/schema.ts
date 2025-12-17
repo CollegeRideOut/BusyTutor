@@ -16,7 +16,8 @@ export const users = sqliteTable('users', {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   email: text('email').unique().notNull(),
-  password: text('password').notNull(),
+  displayName: text('diplayName').notNull(),
+  profilePicUrl: text('profilePicUrl').notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
@@ -53,8 +54,8 @@ export const solutions = sqliteTable('solutions', {
     .references(() => problems.id),
   code: text('code').notNull(),
   language: text('language').default('lua'),
-  status: text('status').default('pending'),
-  runtimeMs: integer('runtime_ms'),
+  status: text('status').default('failed'),
+  testIdx: integer('testIdx'),
   createdAt: integer('created_at', { mode: 'timestamp' })
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),

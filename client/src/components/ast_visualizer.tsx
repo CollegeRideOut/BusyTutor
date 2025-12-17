@@ -5,9 +5,11 @@ import {
 } from '../components/ui/tooltip';
 //import { parseLongString } from '../utils/interperter/eval';
 import luaparser from 'luaparse';
-import type { Lua_Object_Visualizer } from '../utils/interperter_generator/generator_types';
 import type { ReactNode } from 'react';
-import { parseLongString } from '@busytutor/server/src/interpreter';
+import {
+  Lua_Visualzer,
+  parseLongString,
+} from '@busytutor/server/src/interpreter';
 
 type Theme = any;
 
@@ -17,7 +19,7 @@ export function EvalChunkFront({
   theme,
 }: {
   node: luaparser.Chunk;
-  visual: Lua_Object_Visualizer;
+  visual: Lua_Visualzer['loc'];
   theme: Theme;
 }) {
   return evalStatementsArray(node.body, visual, theme);
@@ -25,7 +27,7 @@ export function EvalChunkFront({
 
 export function evalChunkFront(
   node: luaparser.Chunk,
-  visual: Lua_Object_Visualizer,
+  visual: Lua_Visualzer['loc'],
   theme: Theme,
 ) {
   return evalStatementsArray(node.body, visual, theme);
@@ -33,7 +35,7 @@ export function evalChunkFront(
 
 export function evalStatementsArray(
   node: luaparser.Statement[],
-  visual: Lua_Object_Visualizer,
+  visual: Lua_Visualzer['loc'],
   theme: Theme,
 ) {
   const vals: ReactNode[] = [];
@@ -47,14 +49,14 @@ export function evalStatementsArray(
 
 export function evalStatements(
   node: luaparser.Statement,
-  visuals: Lua_Object_Visualizer,
+  visuals: Lua_Visualzer['loc'],
   theme: Theme,
 ) {
   let id = `${node.loc!.start.line}-${node.loc!.end.line} | ${node.loc!.start.column}-${node.loc!.end.column}`;
   let visualid =
-    visuals.loc === undefined
+    visuals === undefined
       ? ''
-      : `${visuals.loc.start.line}-${visuals.loc.end.line} | ${visuals.loc.start.column}-${visuals.loc.end.column}`;
+      : `${visuals.start.line}-${visuals.end.line} | ${visuals.start.column}-${visuals.end.column}`;
   let backgroundColor = visualid === id ? theme.colors.primary : '';
   switch (node.type) {
     case 'ReturnStatement': {
@@ -226,14 +228,14 @@ export function evalStatements(
 
 export function evalExpression(
   exp: luaparser.Expression,
-  visuals: Lua_Object_Visualizer,
+  visuals: Lua_Visualzer['loc'],
   theme: Theme,
 ): ReactNode {
   let id = `${exp.loc!.start.line}-${exp.loc!.end.line} | ${exp.loc!.start.column}-${exp.loc!.end.column}`;
   let visualid =
-    visuals.loc === undefined
+    visuals === undefined
       ? ''
-      : `${visuals.loc.start.line}-${visuals.loc.end.line} | ${visuals.loc.start.column}-${visuals.loc.end.column}`;
+      : `${visuals.start.line}-${visuals.end.line} | ${visuals.start.column}-${visuals.end.column}`;
   let backgroundColor = visualid === id ? theme.colors.primary : '';
   switch (exp.type) {
     case 'NumericLiteral': {
@@ -450,14 +452,14 @@ export function evalExpression(
 }
 export function evalClause(
   clause: luaparser.IfClause | luaparser.ElseifClause | luaparser.ElseClause,
-  visuals: Lua_Object_Visualizer,
+  visuals: Lua_Visualzer['loc'],
   theme: Theme,
 ) {
   let id = `${clause.loc!.start.line}-${clause.loc!.end.line} | ${clause.loc!.start.column}-${clause.loc!.end.column}`;
   let visualid =
-    visuals.loc === undefined
+    visuals === undefined
       ? ''
-      : `${visuals.loc.start.line}-${visuals.loc.end.line} | ${visuals.loc.start.column}-${visuals.loc.end.column}`;
+      : `${visuals.start.line}-${visuals.end.line} | ${visuals.start.column}-${visuals.end.column}`;
   let backgroundColor = visualid === id ? theme.colors.primary : '';
   switch (clause.type) {
     case 'ElseClause': {
@@ -501,15 +503,15 @@ export function evalAssignment(
     | luaparser.Identifier
     | luaparser.MemberExpression
     | luaparser.IndexExpression,
-  visuals: Lua_Object_Visualizer,
+  visuals: Lua_Visualzer['loc'],
   theme: Theme,
 ) {
   //TODO add viuals. Here we can do an animation
   let id = `${exp.loc!.start.line}-${exp.loc!.end.line} | ${exp.loc!.start.column}-${exp.loc!.end.column}`;
   let visualid =
-    visuals.loc === undefined
+    visuals === undefined
       ? ''
-      : `${visuals.loc.start.line}-${visuals.loc.end.line} | ${visuals.loc.start.column}-${visuals.loc.end.column}`;
+      : `${visuals.start.line}-${visuals.end.line} | ${visuals.start.column}-${visuals.end.column}`;
   let backgroundColor = visualid === id ? theme.colors.primary : '';
   switch (exp.type) {
     case 'Identifier':
@@ -563,14 +565,14 @@ export function evalAssignment(
 
 export function evalTableField(
   field: luaparser.TableKey | luaparser.TableKeyString | luaparser.TableValue,
-  visuals: Lua_Object_Visualizer,
+  visuals: Lua_Visualzer['loc'],
   theme: Theme,
 ) {
   let id = `${field.loc!.start.line}-${field.loc!.end.line} | ${field.loc!.start.column}-${field.loc!.end.column}`;
   let visualid =
-    visuals.loc === undefined
+    visuals === undefined
       ? ''
-      : `${visuals.loc.start.line}-${visuals.loc.end.line} | ${visuals.loc.start.column}-${visuals.loc.end.column}`;
+      : `${visuals.start.line}-${visuals.end.line} | ${visuals.start.column}-${visuals.end.column}`;
 
   let backgroundColor = visualid === id ? theme.colors.primary : '';
   let render: ReactNode = null;

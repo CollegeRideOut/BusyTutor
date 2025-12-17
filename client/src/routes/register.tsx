@@ -1,12 +1,12 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useContext, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card } from '../components/ui/card';
 import { PixelArt, pixelPatterns } from '../components/PixelArt';
-import {  useAuth } from './__root';
+import { useAuth } from './__root';
 
 export const Route = createFileRoute('/register')({
   component: RegisterPage,

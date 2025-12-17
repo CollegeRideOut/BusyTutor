@@ -78,6 +78,10 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
     loc: { start: { line: 0, column: 0 }, end: { line: 0, column: 0 } },
   });
   const [ast, setAst] = useState<luarparser.Chunk | null>(null);
+  const [currLoc, setCurrLoc] = useState<Lua_Visualzer['loc']>();
+  const [testIdx, setTestIdx] = useState(0);
+  const [questionTab, setQuestionTab] = useState('question');
+  const [testTab, setTestTab] = useState('0');
 
   let luaRunner = trpc.lua.runLua.useMutation();
 
@@ -115,7 +119,10 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
   }
 
   const handleReset = () => {
+    // TODO set a requesto to delte curruent code visualize in the backend
     setCode(problem.starterCode);
+    _setIsVisual(false);
+    setAst(null);
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -174,17 +181,40 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
           {/* TODO visualizer  des*/}
 
           <Tabs
-            defaultValue='question'
+            value={questionTab}
+            onValueChange={(t) => setQuestionTab(t)}
             className=' flex flex-col flex-1  overflow-y-auto w-full h-full'
           >
             <div className='px-4 py-2 border-b border-border'>
-              <TabsList className=' w-full bg-muted/30 grid grid-cols-2'>
-                <TabsTrigger key={`question-tab`} value={'question'}>
+              <TabsList className='w-full bg-muted grid grid-cols-3'>
+                <TabsTrigger
+                  key={`question-tab`}
+                  value={'question'}
+                  className={
+                    (questionTab === 'question' && `bg-background`) || ''
+                  }
+                >
                   Question
                 </TabsTrigger>
 
-                <TabsTrigger key={`visual`} value={'visual'}>
+                <TabsTrigger
+                  key={`visual`}
+                  value={'visual'}
+                  className={
+                    (questionTab === 'visual' && `bg-background`) || ''
+                  }
+                >
                   Visualizer
+                </TabsTrigger>
+
+                <TabsTrigger
+                  key={`attemps`}
+                  value={'attemps'}
+                  className={
+                    (questionTab === 'attemps' && `bg-background`) || ''
+                  }
+                >
+                  Attemps
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -193,49 +223,19 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
               <ProblemDescription problem={problem} />
             </TabsContent>
 
+            <TabsContent value={'attemps'} className='flex-col'>
+              <AttempsList problemId={problemId} />
+            </TabsContent>
+
             <TabsContent value={'visual'} className='flex-col'>
               {!isVisual || idToUse === null ? (
-                <div className='flex flex-col items-center justify-center h-64 text-center'>
-                  <h3 className='text-lg font-medium mb-2'>Code Visualizer</h3>
-                  <p className='text-sm text-muted-foreground mb-4'>
-                    Run your code to see a step-by-step execution visualization
-                  </p>
-                  <div className='flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground'>
-                    <div className='flex items-center gap-1'>
-                      <div
-                        className='w-3 h-3 rounded border-2'
-                        style={{ borderColor: '#ef4444' }}
-                      ></div>
-                      <span>Numbers</span>
-                    </div>
-                    <div className='flex items-center gap-1'>
-                      <div
-                        className='w-3 h-3 rounded border-2'
-                        style={{ borderColor: '#10b981' }}
-                      ></div>
-                      <span>Strings</span>
-                    </div>
-                    <div className='flex items-center gap-1'>
-                      <div
-                        className='w-3 h-3 rounded border-2'
-                        style={{ borderColor: '#92400e' }}
-                      ></div>
-                      <span>Booleans</span>
-                    </div>
-                    <div className='flex items-center gap-1'>
-                      <div
-                        className='w-3 h-3 rounded border-2'
-                        style={{ borderColor: '#f97316' }}
-                      ></div>
-                      <span>Arrays</span>
-                    </div>
-                  </div>
-                </div>
+                <VisualizerReferences />
               ) : (
                 <LuaVisualizer
                   id={idToUse}
                   didSolutionPass={didSolutionPass}
                   setDidSolutionPass={setDidSolutionPass}
+                  setCurrLoc={setCurrLoc}
                 />
               )}
             </TabsContent>
@@ -264,10 +264,12 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
                   </select>
                 </div>
                 <div className='flex items-center gap-2'>
-                  Grade:{' '}
-                  {didSolutionPass === undefined
-                    ? 'IDK'
-                    : String(didSolutionPass)}
+                  {didSolutionPass &&
+                    (didSolutionPass ? (
+                      <div className='text-green-500 font-bold'>Accepted</div>
+                    ) : (
+                      <div className='text-red-500 font-bold'>Failed</div>
+                    ))}
                   <Button
                     variant='outline'
                     size='sm'
@@ -295,7 +297,7 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
                     <div className='flex flex-col flex-1 min-h-0 font-mono text-sm overflow-y-auto w-full h-full bg-muted/30 border border-border/30 resize-none focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-colors  px-3 py-2 rounded-md'>
                       <EvalChunkFront
                         theme={theme}
-                        visual={visual}
+                        visual={currLoc}
                         node={ast}
                       />
                     </div>
@@ -308,53 +310,74 @@ export function ProblemPage({ problemId }: ProblemPageProps) {
 
             <ResizablePanel className='bg-card min-h-0 flex flex-col flex-1  overflow-y-auto w-full h-full'>
               <Tabs
-                defaultValue='0'
-                className='p-4 flex flex-col flex-1  overflow-y-auto w-full h-full'
+                value={testTab}
+                onValueChange={(t) => setTestTab(t)}
+                className='p-4 flex flex-col flex-1  overflow-y-auto w-full h-full '
               >
-                <TabsList className='flex justify-between'>
-                  {problem.tests.map((_t, idx) => {
-                    return (
-                      <TabsTrigger
-                        key={`test-trigger${idx}`}
-                        value={String(idx)}
-                      >
-                        Test {String(idx + 1)}
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
+                <div className='flex gap-x-4'>
+                  <TabsList className='flex justify-between gap-x-4'>
+                    {problem.tests.map((_t, idx) => {
+                      return (
+                        <TabsTrigger
+                          className={
+                            (testTab === String(idx) && `bg-background`) || ''
+                          }
+                          key={`test-trigger${idx}`}
+                          value={String(idx)}
+                          onClick={() => {
+                            setTestIdx(idx);
+                          }}
+                        >
+                          Test {String(idx + 1)}
+                        </TabsTrigger>
+                      );
+                    })}
+                  </TabsList>
 
-                {problem.tests.map((t, idx) => {
+                  <Button
+                    onClick={async () => {
+                      let result = await luaRunner.mutateAsync({
+                        code: code,
+                        testIdx: testIdx,
+                        problemId: problemId,
+                      });
+                      //
+                      if (result.sucess) {
+                        let ast = luarparser.parse(code, {
+                          locations: true,
+                        });
+
+                        setAst(ast);
+                        setIdToUse(result.id!);
+                        _setIsVisual(true);
+                      }
+                      //
+                      //console.log('start visualier');
+                    }}
+                  >
+                    Run
+                  </Button>
+                </div>
+                {problem.tests.map((t: Record<string, string>, idx) => {
                   return (
                     <TabsContent
                       key={`test-content${idx}`}
                       value={String(idx)}
-                      className='flex-col'
+                      className='flex flex-col gap-y-4'
                     >
-                      <Button
-                        onClick={async () => {
-                          let result = await luaRunner.mutateAsync({
-                            code: code,
-                            testIdx: 0,
-                            problemId: '217',
-                          });
-                          //
-                          if (result.sucess) {
-                            let ast = luarparser.parse(code, {
-                              locations: true,
-                            });
-
-                            setAst(ast);
-                            setIdToUse(result.id!);
-                            _setIsVisual(true);
-                          }
-                          //
-                          //console.log('start visualier');
-                        }}
-                      >
-                        Run
-                      </Button>
-                      <div>{JSON.stringify(t)}</div>
+                      {Object.entries(t).map(([key, val], inputIdx) => {
+                        return (
+                          <div
+                            key={`test-${idx}-${inputIdx}`}
+                            className='flex flex-col gap-y-2 p-2'
+                          >
+                            <div>{key} =</div>
+                            <div className='bg-muted text-muted-foreground inline-flex h-9  items-center  rounded-lg p-4 w-full '>
+                              {val}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </TabsContent>
                   );
                 })}
@@ -425,7 +448,7 @@ function ProblemDescription({ problem }: { problem: any }) {
         <div>
           <h3 className='text-base font-medium mb-3'>Constraints:</h3>
           <ul className='space-y-1'>
-            {problem.constraints.map((constraint, index) => (
+            {problem.constraints.map((constraint: any, index: any) => (
               <li
                 key={index}
                 className='text-sm font-mono text-muted-foreground flex items-start'
@@ -441,7 +464,7 @@ function ProblemDescription({ problem }: { problem: any }) {
         <div>
           <h3 className='text-base font-medium mb-3'>Hints:</h3>
           <div className='space-y-2'>
-            {problem.hints.map((hint, index) => (
+            {problem.hints.map((hint: any, index: any) => (
               <Collapsible
                 key={index}
                 open={openHints.includes(index)}
@@ -474,6 +497,163 @@ function ProblemDescription({ problem }: { problem: any }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function VisualizerReferences() {
+  return (
+    <div className='flex flex-col items-center justify-center h-64 text-center'>
+      <h3 className='text-lg font-medium mb-2'>Code Visualizer</h3>
+      <p className='text-sm text-muted-foreground mb-4'>
+        Run your code to see a step-by-step execution visualization
+      </p>
+      <div className='flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground'>
+        <div className='flex items-center gap-1'>
+          <div
+            className='w-3 h-3 rounded border-2'
+            style={{ borderColor: '#ef4444' }}
+          ></div>
+          <span>Numbers</span>
+        </div>
+        <div className='flex items-center gap-1'>
+          <div
+            className='w-3 h-3 rounded border-2'
+            style={{ borderColor: '#10b981' }}
+          ></div>
+          <span>Strings</span>
+        </div>
+        <div className='flex items-center gap-1'>
+          <div
+            className='w-3 h-3 rounded border-2'
+            style={{ borderColor: '#92400e' }}
+          ></div>
+          <span>Booleans</span>
+        </div>
+        <div className='flex items-center gap-1'>
+          <div
+            className='w-3 h-3 rounded border-2'
+            style={{ borderColor: '#f97316' }}
+          ></div>
+          <span>Arrays</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AttempsList({ problemId }: { problemId: string }) {
+  let { data, hasNextPage, fetchNextPage } =
+    trpc.solution.getSolutions.useInfiniteQuery(
+      { problemId, limit: 10 },
+      {
+        initialCursor: 0,
+        getNextPageParam: (lastPage) => lastPage.nextCursor,
+      },
+    );
+
+  let attemps = useMemo(() => {
+    return (
+      data?.pages.flatMap((d) => {
+        return d.solutions;
+      }) || []
+    );
+  }, [data]);
+  let [viewingOne, setViewingOne] = useState<number | undefined>();
+
+  return (
+    <div className='px-4 py-2 flex flex-col gap-y-4'>
+      {viewingOne === undefined &&
+        attemps.map((d, idx) => {
+          let pass = d.status === 'accepted';
+
+          return (
+            <div key={'attemp-' + idx} className='bg-card'>
+              <div className='bg-background p-4 rounded-lg border border-border/30 grid-rows-2 grid'>
+                <div className='space-y-2 font-mono text-sm grid-cols-4 grid'>
+                  <div>Submission</div>
+                  <div>Language </div>
+                  <div>Date</div>
+                  <div>Code</div>
+                </div>
+                <div className='space-y-2 font-mono text-sm grid-cols-4 grid'>
+                  <div>
+                    {pass && (
+                      <div className='text-green-500 font-bold'>Accepted</div>
+                    )}
+                    {!pass && (
+                      <div className='text-red-500 font-bold'>Failed</div>
+                    )}
+                  </div>
+                  <div>
+                    <div>{d.language}</div>
+                  </div>
+                  <div>
+                    <Button
+                      variant='link'
+                      className='p-0'
+                      onClick={() => {
+                        setViewingOne(idx);
+                      }}
+                    >
+                      View
+                    </Button>
+                  </div>
+                  <div>
+                    <div>{d.createdAt.toISOString()}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+      {viewingOne === undefined && hasNextPage && (
+        <Button
+          onClick={() => {
+            fetchNextPage();
+          }}
+        >
+          fecthMore
+        </Button>
+      )}
+
+      {viewingOne !== undefined &&
+        (() => {
+          let d = attemps[viewingOne];
+          let pass = d.status === 'accepted';
+
+          return (
+            <div className='bg-background p-4 rounded-lg border border-border/30 flex-col flex gap-y-4'>
+              <Button onClick={() => setViewingOne(undefined)} variant='ghost'>
+                <ArrowLeft className='h-4 w-4' />
+                All Submissions
+              </Button>
+
+              <div className='flex flex-col gap-y-4'>
+                <div className='flex justify-between'>
+                  {pass && (
+                    <div className='text-green-500 font-bold'>Accepted</div>
+                  )}
+                  {!pass && (
+                    <div className='text-red-500 font-bold'>Failed</div>
+                  )}
+                  <Button onClick={() => setViewingOne(undefined)}>
+                    Upload
+                  </Button>
+                </div>
+                <div>
+                  <Textarea
+                    value={d.code}
+                    readOnly={true}
+                    placeholder='Write your solution here...'
+                    className='w-full h-full p-8 font-mono text-sm bg-muted/30 border border-border/30 resize-none focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-colors'
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })()}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "e13bad72-2104-4b06-8198-9a425b08d3c5",
+  "id": "896bad29-aea3-40a7-a99d-43d12d1e9212",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "problems": {
@@ -25,14 +25,49 @@
           "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "constraints": {
+          "name": "constraints",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "examples": {
+          "name": "examples",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "hints": {
+          "name": "hints",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "starterCode": {
+          "name": "starterCode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tests": {
+          "name": "tests",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
           "autoincrement": false
         },
         "difficulty": {
           "name": "difficulty",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false,
           "default": "'easy'"
         },
@@ -96,10 +131,10 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false,
-          "default": "'pending'"
+          "default": "'failed'"
         },
-        "runtime_ms": {
-          "name": "runtime_ms",
+        "testIdx": {
+          "name": "testIdx",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -159,6 +194,20 @@
         },
         "email": {
           "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "diplayName": {
+          "name": "diplayName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "profilePicUrl": {
+          "name": "profilePicUrl",
           "type": "text",
           "primaryKey": false,
           "notNull": true,

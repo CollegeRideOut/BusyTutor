@@ -45,10 +45,26 @@ export function LuaVisualizer({
   id,
   didSolutionPass,
   setDidSolutionPass,
+  setCurrLoc,
 }: {
   id: string;
   didSolutionPass?: boolean;
   setDidSolutionPass: Dispatch<SetStateAction<boolean | undefined>>;
+  setCurrLoc: Dispatch<
+    SetStateAction<
+      | {
+          start: {
+            line: number;
+            column: number;
+          };
+          end: {
+            line: number;
+            column: number;
+          };
+        }
+      | undefined
+    >
+  >;
 }) {
   const [enabled, setEnabled] = useState(false);
   const [isTree, setIsTree] = useState(true);
@@ -116,7 +132,10 @@ export function LuaVisualizer({
         <div className='w-full justify-center flex flex-row  gap-x-2'>
           <Button
             variant='outline'
-            onClick={() => setCurrentOnStack(Math.max(currentOnStack - 1, 0))}
+            onClick={() => {
+              setCurrentOnStack(Math.max(currentOnStack - 1, 0));
+              setCurrLoc(timeline[currentOnStack].visual.loc);
+            }}
           >
             <ArrowLeft />
           </Button>
@@ -126,6 +145,7 @@ export function LuaVisualizer({
               setCurrentOnStack(
                 Math.min(currentOnStack + 1, timeline.length - 1),
               );
+              setCurrLoc(timeline[currentOnStack].visual.loc);
               //console.log(timeline[currentOnStack].heap);
               //console.log(timeline[currentOnStack].currEnv);
               //console.log(timeline.map((t) => t.visual));
@@ -442,8 +462,6 @@ function VisualizeMoment({
     }
     let currValue = registry.get(visual.expresion.unaryExpression.val.id)!;
 
-    console.log('unaryExpression arg val', currArg);
-    console.log('unaryExpression val val', currValue);
     return (
       <div className='absolute w-[100%] h-[100%] flex items-center justify-center'>
         <PixelUnaryOperation

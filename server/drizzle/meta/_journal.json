@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1760291975118,
-      "tag": "0000_hot_dragon_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1762428264241,
-      "tag": "0001_icy_true_believers",
+      "when": 1766002794455,
+      "tag": "0000_wandering_rhino",
       "breakpoints": true
     }
   ]

@@ -9,11 +9,11 @@ export const Route = createFileRoute('/practice')({
 
 function RouteComponent() {
   useNavigate();
-  useAuth();
+  let { user } = useAuth();
 
   return (
     <div className='flex h-full'>
-      <PracticeSidebar />
+      <PracticeSidebar user={user}/>
       <ProblemList />
     </div>
   );

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useContext, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { PixelArt, pixelPatterns } from '../components/PixelArt';
 import { Button } from '../components/ui/button';
 import { ArrowLeft, Eye, EyeOff, Lock, Mail } from 'lucide-react';

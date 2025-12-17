@@ -11,5 +11,5 @@ function RouteComponent() {
   useAuth();
 
   //TODO possible error
-  return <ProblemPage problemId={parseInt(id)} />;
+  return <ProblemPage problemId={id} />;
 }

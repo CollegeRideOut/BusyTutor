@@ -3,15 +3,29 @@ import { createWorker, workers } from '../../utils/worker';
 import { NotFoundError } from '../../utils/errors';
 
 export async function startExecution(input: {
+  userId: string;
+  testIdx: number;
   problemId: string;
   test: string;
   code: string;
 }): Promise<Result<{ id: string }>> {
   const entry = createWorker();
+  console.log(
+    'here start execution',
+    {
+      userId: input.userId,
+      testIdx: input.testIdx,
+      problemId: input.problemId,
+    },
+    'the new stuff'
+  );
   entry.worker.postMessage({
     type: 'start',
     code: input.code,
     test: input.test,
+    userId: input.userId,
+    testIdx: input.testIdx,
+    problemId: input.problemId,
   });
   entry.status = 'RUNNING';
   return { ok: true, value: { id: entry.id } };

@@ -1,4 +1,4 @@
-import { procedure, protectedUserProcedure, router } from '../trpc';
+import { procedure, router } from '../trpc';
 import { z } from 'zod';
 import { toTRPCError } from '../../utils/errors';
 import * as problemService from '../../modules/problem/service';
@@ -56,7 +56,6 @@ export const problemRouter = router({
         limit: input.limit,
         offset: input.limit * input.cursor,
       });
-      console.log('getting problems');
       if (!result.ok) throw toTRPCError(result.error);
 
       return { success: true, ...result.value, cursor: input.cursor + 1 };

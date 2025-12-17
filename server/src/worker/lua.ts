@@ -9,6 +9,7 @@ import { evalChunk, applyFunction } from '../interpreter/eval';
 import { indexingVisual, Lua_Table, Lua_Visualzer } from '../interpreter';
 import { make_replacer, serialize_heap } from '../utils/stringify';
 import { createLuaObject } from '../interpreter/eval_gen';
+import * as solutionService from '../modules/solution/service';
 
 function postAndWait(msg: any): Promise<void> {
   return new Promise((resolve) => {
@@ -70,7 +71,18 @@ function generalHelper(code: string, args: Lua_Object[]) {
 
 parentPort!.once(
   'message',
-  async (msg: { type: string; test: string; code: string }) => {
+  async (msg: {
+    type: string;
+    test: string;
+    code: string;
+    userId: string;
+    testIdx: number;
+    problemId: string;
+  }) => {
+    console.log(
+      { userId: msg.userId, testIdx: msg.testIdx, problemId: msg.problemId },
+      'worker/lua new stuff'
+    );
     if (msg.type !== 'start')
       throw new Error('first message should be the start one');
 
@@ -109,6 +121,22 @@ parentPort!.once(
     // passing nums to fnction
     let gen = applyFunction(userSolution, [nums], global);
     let didSolutionPass = helpProblem217(msg.code, nums);
+
+    let result = await solutionService.create({
+      id: crypto.randomUUID(),
+      status: didSolutionPass ? 'accepted' : 'failed',
+      createdAt: new Date(),
+      userId: msg.userId,
+      problemId: msg.problemId,
+      code: msg.code,
+      language: 'lua',
+      testIdx: msg.testIdx,
+    });
+    if (!result.ok) {
+      throw new Error('solution was not created', result.error);
+    } else {
+      console.log('solution was created');
+    }
 
     //let gen = evalChunkGenerator(ast, global);
     let val: ReturnType<typeof gen.next> = { done: false, value: {} };

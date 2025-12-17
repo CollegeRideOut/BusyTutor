@@ -1,4 +1,4 @@
-import { CheckCircle, Circle, Clock } from 'lucide-react';
+//import { CheckCircle, Circle, Clock } from 'lucide-react';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { useNavigate } from '@tanstack/react-router';
@@ -8,7 +8,7 @@ import { trpc } from '../lib/trpc';
 interface Problem {
   id: number;
   title: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
+  difficulty: 'easy' | 'medium' | 'hard';
   status: 'solved' | 'attempted' | 'not-started';
   acceptance: string;
   category: string;
@@ -28,22 +28,22 @@ export function ProblemList() {
   }, [problemsQuery.data]);
 
   const navigation = useNavigate();
-  const getStatusIcon = (status: Problem['status']) => {
-    switch (status) {
-      case 'solved':
-        return <CheckCircle className='h-4 w-4 text-green-500' />;
-      case 'attempted':
-        return <Clock className='h-4 w-4 text-yellow-500' />;
-      default:
-        return <Circle className='h-4 w-4 text-muted-foreground' />;
-    }
-  };
+  //const getStatusIcon = (status: Problem['status']) => {
+  //  switch (status) {
+  //    case 'solved':
+  //      return <CheckCircle className='h-4 w-4 text-green-500' />;
+  //    case 'attempted':
+  //      return <Clock className='h-4 w-4 text-yellow-500' />;
+  //    default:
+  //      return <Circle className='h-4 w-4 text-muted-foreground' />;
+  //  }
+  //};
 
   const getDifficultyBadge = (difficulty: Problem['difficulty']) => {
     const colors = {
-      Easy: 'bg-green-100 text-green-800 border-green-200',
-      Medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      Hard: 'bg-red-100 text-red-800 border-red-200',
+      easy: 'bg-green-100 text-green-800 border-green-200',
+      medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      hard: 'bg-red-100 text-red-800 border-red-200',
     };
 
     return (

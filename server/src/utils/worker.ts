@@ -1,5 +1,6 @@
-import path from 'path';
 import { Worker } from 'node:worker_threads';
+
+import path from 'path';
 
 interface ManagedWorker {
   id: string;
@@ -19,8 +20,7 @@ export const workers = new Map<string, ManagedWorker>();
 export function createWorker(): ManagedWorker {
   const id = crypto.randomUUID();
   const worker = new Worker(
-    path.resolve(__dirname, './../worker/lua.ts'), // built JS path!
-    { type: 'module' } as any
+    path.join(process.cwd(), 'dist', 'worker', 'lua.js') // built JS path!
   );
 
   worker.on(
