@@ -1,10 +1,6 @@
 import { UserRecord, userRepo } from '../../db/repositories/user.repo';
-import { users } from '../../db/schema';
-import { signToken } from '../../utils/auth/jwt';
 import { Result } from '../../utils/someTypes';
 
-const sanitize = (user: UserRecord) => ({ ...user, password: undefined });
-type SanitizedUser = ReturnType<typeof sanitize>;
 
 export async function findOrRegisterUser(
   input: UserRecord

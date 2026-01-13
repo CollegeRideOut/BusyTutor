@@ -6,7 +6,6 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card } from '../components/ui/card';
 import { PixelArt, pixelPatterns } from '../components/PixelArt';
-import { useAuth } from './__root';
 
 export const Route = createFileRoute('/register')({
   component: RegisterPage,
@@ -14,58 +13,16 @@ export const Route = createFileRoute('/register')({
 
 export function RegisterPage() {
   const navigate = useNavigate();
-  const auth = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [errors, setErrors] = useState<{
+  const [errors] = useState<{
     email?: string;
     password?: string;
     confirmPassword?: string;
   }>({});
-
-  const validateForm = () => {
-    const newErrors: typeof errors = {};
-
-    // Email validation
-    if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    // Password validation
-    if (!password) {
-      newErrors.password = 'Password is required';
-    } else if (password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters long';
-    }
-
-    // Confirm password validation
-    if (!confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      // Here you would typically handle the registration logic
-      let valid = await auth.register({ email, password });
-      if (valid) navigate({ to: '/practice' });
-      else console.log('registragion failed');
-
-      // Navigate to practice page after successful registration
-      //onNavigate('practice');
-    }
-  };
 
   return (
     <div className={'w-screen flex flex-col items-center'}>
@@ -117,7 +74,7 @@ export function RegisterPage() {
             </div>
 
             {/* Registration Form */}
-            <form onSubmit={handleSubmit} className='space-y-6'>
+            <form onSubmit={()=>{}} className='space-y-6'>
               {/* Username Field */}
 
               {/* Email Field */}

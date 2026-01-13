@@ -282,6 +282,10 @@ function VisualizeExecution({
 
   const highlighted = useMemo(() => {
     let HighlightedSet: Set<string> = new Set();
+    if (visual.clearIndexingVisuals) {
+      console.log('clear');
+      HighlightedSet.clear();
+    }
     if (visual.indexingVisual && visual.indexingVisual.length > 0) {
       for (let indexedVisual of visual.indexingVisual) {
         let s = HighlightedSet;

@@ -1,10 +1,8 @@
 import { db } from '../client';
-import bcrypt from 'bcrypt';
 import { users } from '../schema';
 import { eq } from 'drizzle-orm';
 import { AppError, NotFoundError, ValidationError } from '../../utils/errors';
 import { Result } from '../../utils/someTypes';
-const SALT_ROUNDS = 10;
 
 export type UserRecord = typeof users.$inferSelect;
 

@@ -1,5 +1,4 @@
 import * as trpcExpress from '@trpc/server/adapters/express';
-import { verifyToken } from '../utils/auth/jwt';
 
 export type Context = {
   userTokenInfo: {

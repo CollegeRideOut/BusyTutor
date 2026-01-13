@@ -32,7 +32,7 @@ export type AuthContextType = {
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
-const API_URL = 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_APP_URL;
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   //const navigate = useNavigate();
@@ -178,7 +178,7 @@ export function Header({ currentPage }: { currentPage: string }) {
                     <>
                       <DropdownMenuItem
                         onClick={() => {
-                          window.location.href = `http://localhost:3000/api/auth/google`;
+                          window.location.href = `${API_URL}/api/auth/google`;
                         }}
                       >
                         <FaGoogle /> Google

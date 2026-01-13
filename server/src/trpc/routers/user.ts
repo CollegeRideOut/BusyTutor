@@ -1,5 +1,4 @@
-import { procedure, protectedUserProcedure, router } from '../trpc';
-import { z } from 'zod';
+import {  protectedUserProcedure, router } from '../trpc';
 import { toTRPCError } from '../../utils/errors';
 import * as userService from '../../modules/user/service';
 

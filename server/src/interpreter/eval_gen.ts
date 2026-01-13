@@ -111,7 +111,7 @@ export function selfContainedEvalGenerator() {
     valueRegistry: Map<string, Lua_Object>
   ): Generator<Lua_Visualzer, Lua_Object> {
     //TODO
-    const y = createYielder(node.loc);
+    const y = createYielder({ loc: node.loc });
     Lua_Global_Value_Registry = valueRegistry;
     Lua_Global_Environment = environment || new Lua_Table();
     Lua_Current_Environment = Lua_Global_Environment;
@@ -157,6 +157,7 @@ end
 
     for (let statement of node) {
       let lua = yield* evalStatements(statement, environment);
+      yield { clearIndexingVisuals: true };
       if (
         lua.kind === 'return' ||
         lua.kind === 'error' ||
@@ -172,7 +173,8 @@ end
     node: luaparser.Statement,
     environment: Lua_Table
   ): Generator<Lua_Visualzer, Lua_Object> {
-    const y = createYielder(node.loc);
+    yield { clearIndexingVisuals: true };
+    const y = createYielder({ loc: node.loc });
 
     switch (node.type) {
       case 'ReturnStatement': {
@@ -758,7 +760,7 @@ end
     exp: luaparser.Expression,
     environment: Lua_Table
   ): Generator<Lua_Visualzer, Lua_Object> {
-    const y = createYielder(exp.loc);
+    const y = createYielder({ loc: exp.loc });
 
     switch (exp.type) {
       case 'NumericLiteral': {
@@ -2189,7 +2191,7 @@ function BuildVisualIndexing(
   return v;
 }
 
-function createYielder(location: Lua_Visualzer['loc']) {
+function createYielder(location: Lua_Visualzer) {
   return function* (value: Lua_Visualzer) {
     yield {
       ...value,

@@ -6,52 +6,20 @@ import { ArrowLeft, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { Card } from '../components/ui/card';
 import { Label } from '../components/ui/label';
 import { Input } from '../components/ui/input';
-import { useAuth } from './__root';
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
 });
 
 export function LoginPage() {
-  let auth = useAuth();
-
   const navigate = useNavigate();
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{
+  const [errors] = useState<{
     emailOrUsername?: string;
     password?: string;
   }>({});
-
-  const validateForm = () => {
-    const newErrors: typeof errors = {};
-
-    // Email or username validation
-    if (!emailOrUsername) {
-      newErrors.emailOrUsername = 'Email or username is required';
-    }
-
-    // Password validation
-    if (!password) {
-      newErrors.password = 'Password is required';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      let valid = await auth.login({ email: emailOrUsername, password });
-      if (valid) {
-        navigate({ to: '/practice' });
-      } else {
-        throw new Error('handle loging failed ');
-      }
-    }
-  };
 
   return (
     <div className='w-screen flex flex-col items-center'>
@@ -102,7 +70,7 @@ export function LoginPage() {
             </div>
 
             {/* Login Form */}
-            <form onSubmit={handleSubmit} className='space-y-6'>
+            <form onSubmit={() => {}} className='space-y-6'>
               {/* Email or Username Field */}
               <div className='space-y-2'>
                 <Label

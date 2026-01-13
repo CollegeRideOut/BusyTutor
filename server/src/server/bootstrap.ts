@@ -7,9 +7,8 @@ import { PORT, ALLOWED_ORIGINS } from '../config';
 import passport from 'passport';
 import session from 'express-session';
 
-const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
-
 export function startServer() {
+  const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
   if (process.env.SESSION_SECRET === undefined)
     throw new Error('no session secret');
 

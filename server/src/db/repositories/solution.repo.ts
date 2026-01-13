@@ -1,6 +1,6 @@
 import { db } from '../client';
 import { solutions } from '../schema';
-import { AppError, NotFoundError, ValidationError } from '../../utils/errors';
+import { AppError, NotFoundError, } from '../../utils/errors';
 import { Result } from '../../utils/someTypes';
 import { eq, and } from 'drizzle-orm';
 
