@@ -274,6 +274,7 @@ function VisualizeExecution({
   visual: Lua_Visualzer;
 }) {
   const visualEnvironmentRef = useRef<Map<string, HTMLElement>>(new Map());
+  const scrollRefs = useRef<Map<string, HTMLElement>>(new Map());
   const visualPointersRef = useRef<Map<string, string>>(new Map());
   const parentRef = useRef<HTMLDivElement | null>(null);
   //const layoutRef = useRef<ReturnType<typeof rasterize> | null>(null);
@@ -283,7 +284,7 @@ function VisualizeExecution({
   const highlighted = useMemo(() => {
     let HighlightedSet: Set<string> = new Set();
     if (visual.clearIndexingVisuals) {
-      console.log('clear');
+      //console.log('clear');
       HighlightedSet.clear();
     }
     if (visual.indexingVisual && visual.indexingVisual.length > 0) {
@@ -371,7 +372,21 @@ function VisualizeExecution({
     for (let [[rect1, rect2], [rect1Id, rect2Id]] of pairedRects) {
       let linetype: keyof typeof Lines = 'primary';
       if (i > 0) linetype = 'secondary';
-      if (visualPointersRef.current.has(rect1Id)) linetype = 'pointer';
+      if (visualPointersRef.current.has(rect1Id)) {
+        linetype = 'pointer';
+      }
+      const scrollRef = scrollRefs.current.get(`scroll-${rect2Id}`);
+      if (scrollRef !== undefined) {
+        console.log('scrollref?');
+        const scrollRect = scrollRef.getBoundingClientRect();
+        if (!isHorizontallyVisible(scrollRect, rect2)) {
+          continue;
+        }
+
+        if (linetype === 'pointer') {
+          console.log('this one is a pointer');
+        }
+      }
 
       pathFind(
         newlayout,
@@ -409,6 +424,7 @@ function VisualizeExecution({
         <VisulizeHeap
           heap={heap}
           env={env}
+          scrollRefs={scrollRefs}
           ref={visualEnvironmentRef}
           pointerRef={visualPointersRef}
           setHovered={(val: [string, string]) => {
@@ -507,11 +523,13 @@ function VisulizeHeap({
   highlighted,
   setHovered,
   pointerRef,
+  scrollRefs,
 }: {
   heap: Map<string, Lua_Table>;
   highlighted: Set<string>;
   env: Lua_Table;
   ref: React.RefObject<Map<string, HTMLElement>>;
+  scrollRefs: React.RefObject<Map<string, HTMLElement>>;
   setHovered: (val: [string, string]) => void;
   pointerRef: React.RefObject<Map<string, string>>;
 }) {
@@ -525,6 +543,7 @@ function VisulizeHeap({
           <PixelTable
             table={table}
             ref={ref}
+            scrollRefs={scrollRefs}
             highlighted={highlighted}
             pointerRef={pointerRef}
             setHovered={setHovered}
@@ -1442,4 +1461,21 @@ export function drawCellsSVG(grid: cell[][], parent: SVGSVGElement) {
       parent.appendChild(rect);
     }
   }
+}
+function isHorizontallyVisible(
+  containerRect: DOMRect,
+  itemRect: DOMRect,
+  fullyVisible = false,
+) {
+  if (fullyVisible) {
+    return (
+      itemRect.left >= containerRect.left &&
+      itemRect.right <= containerRect.right
+    );
+  }
+
+  // partially visible
+  return (
+    itemRect.right > containerRect.left && itemRect.left < containerRect.right
+  );
 }

@@ -1,5 +1,6 @@
 import type { Lua_Object, Lua_Table } from '@busytutor/server/src/interpreter';
 import { useState, useEffect, useMemo } from 'react';
+import { ScrollArea, ScrollBar } from './ui/scroll-area';
 
 interface PixelArtProps {
   pattern: number[][];
@@ -348,8 +349,10 @@ export const PixelTable = ({
   highlighted,
   setHovered,
   pointerRef,
+  scrollRefs,
 }: {
   ref: React.RefObject<Map<string, HTMLElement>>;
+  scrollRefs: React.RefObject<Map<string, HTMLElement>>;
   table: Lua_Table;
   highlighted: Set<string>;
   setHovered: (val: [string, string]) => void;
@@ -359,101 +362,120 @@ export const PixelTable = ({
   let entries = useMemo(() => {
     return [...table.store.entries()];
   }, [table]);
+  let ids = useMemo(() => {
+    return entries.map(([_identifier, item], _index) => {
+      return item.id;
+    });
+  }, [entries]);
   return (
     <PixelBox
       isHighlighted={highlighted.has(table.id)}
       borderColor={typeColor}
       id={`variable-${table.id}`}
     >
-      <div className='flex gap-2 flex-wrap w-fit items-center'>
-        <div
-          ref={(el) => {
-            el && ref.current.set(table.id, el);
-          }}
-        >
-          <PixelVariable
-            name={''}
-            equalSign={false}
-            value={table}
-            skipObj={true}
-          />
-        </div>
-        {entries
-          .map(([identifier, item], index) => {
-            // TODO special thing for circular  dpendency / pointing to itself
+      <ScrollArea
+        className='w-fit max-w-48 overflow-x-auto'
+        ref={(el) => {
+          if (!el) return;
+          for (let id of ids) {
+            if (table.id === id) continue;
+            scrollRefs.current.set(`scroll-${id}`, el);
+          }
+          scrollRefs.current.set(`scroll-${table.id}`, el);
+        }}
+      >
+        <div className='flex gap-2 flex-wrap w-max items-center overflow-x-auto'>
+          <div
+            ref={(el) => {
+              el && ref.current.set(table.id, el);
+            }}
+          >
+            <PixelVariable
+              name={''}
+              equalSign={false}
+              value={table}
+              skipObj={true}
+            />
+          </div>
+          {entries
+            .map(([identifier, item], index) => {
+              // TODO special thing for circular  dpendency / pointing to itself
 
-            let stringIdentifier = '';
-            if (typeof identifier === 'object') {
-              if ('value' in identifier) {
-                stringIdentifier = String(identifier.value);
+              let stringIdentifier = '';
+              if (typeof identifier === 'object') {
+                if ('value' in identifier) {
+                  stringIdentifier = String(identifier.value);
+                } else {
+                  stringIdentifier = identifier.id;
+                }
               } else {
-                stringIdentifier = identifier.id;
+                stringIdentifier = String(identifier);
               }
-            } else {
-              stringIdentifier = String(identifier);
-            }
 
-            if (item.hidden) return null;
-            if (item.id === table.id) return null;
-            if (
-              item.kind === 'table' ||
-              item.kind === 'function' ||
-              item.kind === 'builtin'
-            ) {
               if (item.hidden) return null;
               if (item.id === table.id) return null;
-              if (item.kind === 'table' && item.metatable.kind !== 'null')
-                return null;
+              if (
+                item.kind === 'table' ||
+                item.kind === 'function' ||
+                item.kind === 'builtin'
+              ) {
+                if (item.hidden) return null;
+                if (item.id === table.id) return null;
+                if (item.kind === 'table' && item.metatable.kind !== 'null')
+                  return null;
+                return (
+                  <div
+                    key={`${table.id}-${stringIdentifier}-${index}-${item.id}`}
+                    onMouseEnter={() => {
+                      setHovered([`${table.id}-${stringIdentifier}`, item.id]);
+                    }}
+                    onMouseLeave={() => {
+                      setHovered(['', '']);
+                    }}
+                    ref={(el) => {
+                      el &&
+                        ref.current.set(`${table.id}-${stringIdentifier}`, el);
+                      pointerRef.current.set(
+                        `${table.id}-${stringIdentifier}`,
+                        item.id,
+                      );
+                    }}
+                  >
+                    <PixelVariable
+                      name={stringIdentifier}
+                      value={item}
+                      equalSign={false}
+                      skipObj={true}
+                      isHighlighted={highlighted.has(
+                        `${table.id}-${stringIdentifier}`,
+                      )}
+                    />
+                  </div>
+                );
+              }
+
               return (
                 <div
                   key={`${table.id}-${stringIdentifier}-${index}-${item.id}`}
-                  onMouseEnter={() => {
-                    setHovered([`${table.id}-${stringIdentifier}`, item.id]);
-                  }}
-                  onMouseLeave={() => {
-                    setHovered(['', '']);
-                  }}
                   ref={(el) => {
-                    el &&
-                      ref.current.set(`${table.id}-${stringIdentifier}`, el);
-                    pointerRef.current.set(
-                      `${table.id}-${stringIdentifier}`,
-                      item.id,
-                    );
+                    //console.log(item.id, item.kind === 'number' && item.value);
+                    el && ref.current.set(item.id, el);
                   }}
                 >
                   <PixelVariable
                     name={stringIdentifier}
                     value={item}
-                    equalSign={false}
-                    skipObj={true}
-                    isHighlighted={highlighted.has(
-                      `${table.id}-${stringIdentifier}`,
-                    )}
+                    skipObj={false}
+                    isHighlighted={highlighted.has(item.id)}
                   />
                 </div>
               );
-            }
+            })
+            .filter((i) => i !== null)}
+        </div>
 
-            return (
-              <div
-                key={`${table.id}-${stringIdentifier}-${index}-${item.id}`}
-                ref={(el) => {
-                  //console.log(item.id, item.kind === 'number' && item.value);
-                  el && ref.current.set(item.id, el);
-                }}
-              >
-                <PixelVariable
-                  name={stringIdentifier}
-                  value={item}
-                  skipObj={false}
-                  isHighlighted={highlighted.has(item.id)}
-                />
-              </div>
-            );
-          })
-          .filter((i) => i !== null)}
-      </div>
+        <ScrollBar orientation='horizontal' />
+      </ScrollArea>
     </PixelBox>
   );
 };
