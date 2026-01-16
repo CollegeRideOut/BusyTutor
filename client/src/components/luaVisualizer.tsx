@@ -255,6 +255,8 @@ type cell = {
   top: number;
   bottom: number;
   occupied: boolean;
+  isArrow?: boolean;
+  softOccupied: number;
   start: boolean;
   end: boolean;
 };
@@ -845,6 +847,7 @@ export function rasterize({
       occupied: true,
       start: false,
       end: false,
+      softOccupied: 0,
     };
     return rect;
   });
@@ -861,6 +864,7 @@ export function rasterize({
         top: r * PIXEL_WIDTH,
         bottom: (r + 1) * PIXEL_WIDTH,
         occupied: false,
+        softOccupied: 0,
         start: false,
         end: false,
       };
@@ -977,6 +981,8 @@ export function old_rasterize({
     for (let i = 0; i < xSorted.length - 1; i++) {
       const cell: cell = {
         left: xSorted[i],
+
+        softOccupied: 0,
         right: xSorted[i + 1],
         top: ySorted[j],
         bottom: ySorted[j + 1],
@@ -1050,6 +1056,7 @@ function pathFind(
   const makeCellToAcell = (c: cell, p: Point): Acell => {
     return {
       h: 0,
+      softOccupied: c.softOccupied,
       parent: null,
       g: 0,
       f: 0,
@@ -1108,12 +1115,52 @@ function pathFind(
     h: number;
     f: number;
     occupied: boolean;
+    softOccupied: number;
     id?: string;
   };
 
   //
-  // -------- A*   <--- clerance based
-  //
+  // -------- A*   <--- clerance based THISI IS NOT TRUE I THINK
+
+  // adding more radious to softOccupied
+
+  function isValid(c: Acell | Point) {
+    if (c.i < 0 || c.j < 0 || c.i >= grid.length || c.j >= grid[0].length)
+      return false;
+    if (grid[c.i][c.j].occupied) return false;
+    return true;
+  }
+
+  function radiateSoftOccupied(i: number, j: number) {
+    const radius = 2;
+
+    grid[i][j].softOccupied += radius;
+    const directions = [
+      { i: 1, j: 0 },
+      { i: -1, j: 0 },
+      { i: 0, j: 1 },
+      { i: 0, j: -1 },
+    ];
+    for (let dir of directions) {
+      let x = { i: i + dir.i, j: j + dir.j };
+      for (let i = radius; i > 0; i--) {
+        if (isValid(x)) {
+          grid[x.i][x.j].softOccupied += i;
+        }
+        x.i += dir.i;
+        x.j += dir.j;
+      }
+    }
+    isValid({ i: i, j: j });
+  }
+
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[0].length; j++) {
+      if (grid[i][j].isArrow) {
+        radiateSoftOccupied(i, j);
+      }
+    }
+  }
 
   if (startingNodes.length === 0 || endNodes.length === 0) {
     console.log('IS NO STARTING NODES');
@@ -1128,13 +1175,6 @@ function pathFind(
 
   let openDict: Map<string, Acell> = new Map();
   let closedSet: Set<string> = new Set();
-
-  function isValid(c: Acell | Point) {
-    if (c.i < 0 || c.j < 0 || c.i >= grid.length || c.j >= grid[0].length)
-      return false;
-    if (grid[c.i][c.j].occupied) return false;
-    return true;
-  }
 
   let directions: Point[] = [
     { i: 1, j: 0 },
@@ -1190,8 +1230,10 @@ function pathFind(
       ) {
         directionPenalty = 2;
       }
+      let softOccupiedPenalty = n.softOccupied * 2;
 
-      const tentativeG = currNode.g + 1 + directionPenalty;
+      const tentativeG =
+        currNode.g + 1 + directionPenalty + softOccupiedPenalty;
       n.h = calculateHeuristicMultipleEnd(n, endNodes);
       n.f = n.g + n.h;
 
@@ -1224,9 +1266,9 @@ function pathFind(
 
       if (idx === 0) return `M${x} ${y}`;
 
-      curr_cell.occupied = true;
+      curr_cell.isArrow = true;
       if (path.length - idx <= 10) {
-        curr_cell.occupied = false;
+        //curr_cell.occupied = false;
       }
       if (idx === path.length - 2) {
         blastXY = { x, y };
@@ -1316,21 +1358,24 @@ function drawArrow(
   path.setAttribute('stroke-width', '4');
   path.setAttribute('stroke-dasharray', Lines[lineType].strokeDasharray || '');
 
+  const size = 20; // size of the triangle
+
   const sy = lastOnes[0].y;
   const ex = lastOnes[1].x;
-  const ey = lastOnes[1].y;
+  let ey = lastOnes[1].y;
 
   const dy = ey - sy;
   let direction: 'up' | 'down' | 'left' | 'right';
   direction = dy > 0 ? 'down' : 'up';
 
-  const size = 20; // size of the triangle
   let d = '';
   switch (direction) {
     case 'up':
+      ey += size;
       d = `M${ex} ${ey - size} L${ex - size / 2} ${ey + size / 2} L${ex + size / 2} ${ey + size / 2} Z`;
       break;
     case 'down':
+      ey -= size;
       d = `M${ex} ${ey + size} L${ex - size / 2} ${ey - size / 2} L${ex + size / 2} ${ey - size / 2} Z`;
       break;
   }
