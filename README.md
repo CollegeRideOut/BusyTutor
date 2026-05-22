@@ -1,274 +1,152 @@
-# Busy Tutor
+# BusyTutor
+
+A visual Lua runtime for learning programming. Write Lua code, watch every variable, table, and stack operation update in real time. Step forward and backward through execution history. See exactly how your code transforms data.
+
+---
+
+## What It Does
+
+Most code visualizers show you a simplified animation. BusyTutor runs a real Lua interpreter under the hood and visualizes every internal state change — environments, tables, the heap, pointer relationships, and execution flow — using SVG graphics with A\* pathfinding for clean arrow routing.
+
+| Feature | What You See |
+|---------|-------------|
+| **Real interpreter** | Full Lua 5.1 runtime — metatables, `pcall`, `error`, `ipairs`, `next`, built-in libraries |
+| **Environment tree** | Every scope visualized as a collapsible card with variables and their values |
+| **Heap visualization** | Tables live on a heap; variables and other tables point to them with SVG arrows |
+| **Execution timeline** | Step forward and backward through every operation — not just breakpoints |
+| **Code highlighting** | The currently executing line is highlighted in sync with the visual state |
+| **A\* pathfinding** | SVG arrows automatically route around boxes to avoid overlap |
+| **AST visualizer** | Side-by-side Lua source and its parsed AST |
+| **Practice problems** | Built-in problem system with test verification |
+| **Pixel-art UI** | Custom pixel-border components and retro aesthetic |
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   BusyTutor Monorepo                     │
+│                                                         │
+│  ┌──────────────────┐      ┌─────────────────────────┐ │
+│  │  @busytutor/server  │      │   @busytutor/client    │ │
+│  │                     │      │                        │ │
+│  │  ┌─────────────┐   │      │  ┌──────────────────┐  │ │
+│  │  │ Interpreter  │   │◄─tRPC─►│  Visualizer      │  │ │
+│  │  │ ─ eval_gen  │   │      │  │ ─ luaVisualizer │  │ │
+│  │  │ ─ lua_types │   │      │  │ ─ ast_visualizer│  │ │
+│  │  │ ─ builtin   │   │      │  │ ─ PixelArt      │  │ │
+│  │  │ ─ modules   │   │      │  └──────────────────┘  │ │
+│  │  └─────────────┘   │      │                        │ │
+│  │  ┌─────────────┐   │      │  ┌──────────────────┐  │ │
+│  │  │ Server      │   │      │  │ Routes & Auth    │  │ │
+│  │  │ ─ Express   │   │      │  │ ─ Landing        │  │ │
+│  │  │ ─ tRPC      │   │      │  │ ─ Practice       │  │ │
+│  │  │ ─ WebSocket │   │      │  │ ─ Problems       │  │ │
+│  │  │ ─ SQLite    │   │      │  └──────────────────┘  │ │
+│  │  └─────────────┘   │      │                        │ │
+│  │  ┌─────────────┐   │      │  ┌──────────────────┐  │ │
+│  │  │ Worker      │   │      │  │ Heap & Pathfind  │  │ │
+│  │  │ ─ Web Worker│   │      │  │ ─ A* routing     │  │ │
+│  │  │ ─ Sends     │   │      │  │ ─ Rasterizer     │  │ │
+│  │  │   state     │   │      │  │ ─ SVG arrows     │  │ │
+│  │  └─────────────┘   │      │  └──────────────────┘  │ │
+│  └──────────────────┘      └─────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Packages
+
+| Package | Tech | Purpose |
+|---------|------|---------|
+| `@busytutor/server` | TypeScript, Express, tRPC, SQLite, luaparse | Interpreter, auth, API, WebSocket worker |
+| `@busytutor/client` | TypeScript, React 19, Vite, Tailwind, TanStack Router | Visualizer UI, practice platform, pixel-art components |
+
+### Key Modules (Server)
+
+| Module | What It Does |
+|--------|-------------|
+| `interpreter/eval_gen.ts` | Core Lua evaluator — handles expressions, statements, control flow |
+| `interpreter/lua_types.ts` | All Lua runtime types (number, string, table, function, etc.) |
+| `interpreter/builtin.ts` | Built-in functions (`tostring`, `type`, `pcall`, `setmetatable`, etc.) |
+| `interpreter/eval.ts` | Initial evaluator implementation (pre-refactor) |
+| `modules/lua/` | Lua standard library modules (`math`, `string`, `table`, etc.) |
+| `worker/lua.ts` | Web Worker for offloaded interpretation |
+| `server/` | Express server, tRPC router, auth (session + JWT + Google OAuth) |
+| `db/` | Drizzle ORM schema and migrations |
+
+### Key Components (Client)
+
+| Component | What It Does |
+|-----------|-------------|
+| `luaVisualizer.tsx` | Main environment visualization — tables, variables, arrows |
+| `ast_visualizer.tsx` | Side-by-side Lua source and AST tree |
+| `PixelArt.tsx` | Custom pixel-border components for visual elements |
+| `visualizerTool.tsx` | Toolbar and controls for the visualizer |
+| `tree.ts` | Tree layout and rendering utilities |
+| `problem.tsx` | Practice problem interface with test runner |
+| `test.tsx` | Test output and verification display |
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 20+
+
+### Setup
+
+```bash
+git clone https://github.com/CollegeRideOut/BusyTutor
+cd BusyTutor
 
-### Aug 7
+# Install dependencies (npm workspaces)
+npm install
 
-- Layout & spacing: Wrap environment elements using flex + flex-wrap with proper spacing.
-- Box highlighting: When indexing a variable, highlight the source box and the target box.
-- Arrow / visual link: Draw an arrow from the source to the target for chain indexing.
-- Path finding scaffold
+# Start the server (builds worker, starts Express on :3000)
+npm run start
 
-### Aug 13
+# In another terminal, start the client dev server
+npm run dev -w @busytutor/client
+```
 
-- Highlight current code line – show Lua line triggering access
-- gotta look into rasterizng
+The client proxies `/api` requests to `localhost:3000`.
 
-### Aug 14
+---
 
-- rasterizing
-- Basic pathfinding: Ensure arrows avoid overlapping other boxes for clarity.
+## Built With
 
-### Aug 15
+- **Runtime**: TypeScript, luaparse (Lua AST parser)
+- **Frontend**: React 19, Vite, Tailwind CSS 4, TanStack Router + Query
+- **Backend**: Express, tRPC 11, WebSocket, Passport (Google OAuth)
+- **Database**: SQLite, Drizzle ORM
+- **Visualization**: SVG, A\* pathfinding (mnemonist heap), custom rasterizer
+- **Monorepo**: npm workspaces
 
-- Can support multiple paths simultaneously (for statements like a[1] === b[1])
-- supportin left hand assigment
+---
 
-### Aug 18
+## Why This Matters
 
-- take front ast visualizer out
-- Collapsible Make tables/nested objects collapsible to handle large data.
+Building a Lua interpreter from scratch requires:
 
-### Aug 20
+- Implementing a full dynamic type system (numbers, strings, booleans, tables, functions)
+- Handling metatables, `__index`, `__newindex`, `__call`, arithmetic metamethods
+- Correct semantics for `pcall`/`xpcall`, `error`, tail calls
+- Environment chains and lexical scoping
+- Standard library functions (`math`, `string`, `table`)
 
-- Scrollable Make tables/nested objects scrollable to handle large data. maybe have a maximum size
-- extendable table
-- movable table
-- layered environemnts
-- collapsible environment
-- scrollable environment
+The visualization layer adds:
 
-### Sep 2
+- Real-time state synchronization between interpreter and renderer
+- A\* pathfinding for clean SVG arrow routing between nodes
+- Custom pixel-art rendering engine
+- Timeline-based history stepping with full state snapshots
 
-- N-arry tree
+This is a systems-level project that demonstrates deep understanding of language runtimes, data visualization, and full-stack engineering.
 
-### Sep 3
+---
 
-- stack "history" no going back yet
-- Tree display (gpt the great)
-- change "mode" tree view to current environment
-- can only click the current environment
-- when exiting goes to parent
-- button to change between Tree and Env mode
+## License
 
-### Sep 7
-
-- Break statement
-- Using Global env as the frist env. cause it makes sense... for now
-- While Statement
-- Repeat Statement
-- TableCallExpression
-- StringCallExpression
-- Fixing Environment issuue
-  - When assigning we look for the enviroment up the stack and return if found set the value in that environment
-- LogicalExpressions
-- VarsLieteral
-
-### Sep 9
-
-- History init
-- Controller
-- Modify front end to use Controler type
-- allow to click into any node and check the given
-- Basic visalization of curr_node stack hisotry
-- allow to click on stack history and present environment
-- Allow user to move through foward history but (Button timeline.next) not program .next
-- Allow user to move through backword history but (Button timeline.prev)
-
-### Sep 10
-
-- Refacotring not operator
-- Refactor eval Binary Expression
-- metabales functions
-- **lt, **le, etc
-- meta table \_\_newIndex
-- meta table \_\_call
-- meta table \_\_newIndex
-
-### Sep 12
-
-- table visualization (put table in "heap" variables always point to it
-- added "heap" to interperte gnerator side.
-
-### Sep 14
-
-- on scroll recalculate svg
-- trying to do pointers from variables to heap;
-
-### Sep 15
-
-- version 1 of variables poiting to table
-- version 1 of table value poiting to other tables
-
-### Sep 16
-
-- allow mergin table inside of table property removing the pointer its sooooo bad but is what i wanted.... for now
-
-### Sep 17
-
-- new landing page
-- new practice page
-
-### Sep 21
-
-- Refactorign problem page
-- Pulled out 'pure' visulizer
-- wrap tree nodes elements in pxilated border
-- fix height problem
-
-### Sep 22
-
-- wrap identifiers and tables with the "pixel" border
-- allow for visual code
-
-### Sep 23
-
-- pcall()
-- error()
-
-### Sep 24
-
-- pcall()
-- error()
-- next()
-- ipairs()
-
-### Sep 30
-
-- bunch of stuff i forgot
-- refactored enviroment into Lua-Tables
-- most built in function complete
-- math global table almost complete
-
-### Oct 7
-
-- string global table started
-- table global table started
-
-### Oct 12
-
-- login
-- register
-- basics of server
-
-### Oct 17
-
-- Ast Vislizer
-
-### Oct 19
-
-- worker
-- server sends stringified data back to user
-
-### Oct 21
-
-- fixed pathfinding (relly dumb erros)
-- eval_gen idexing
-- rastertizing
-- Bad arrows
-- a lot
-
-### Oct 21
-
-- Switch to A\* path finding
-- fixed box not showing the cool way
-- SVG arrows always on top of lines
-
-### Oct 23
-
-- pointer arrows
-
-### Oct 24
-
-- New Rasterizing
-- new pathfinding
-- User service layer
-
-### Up Next
-
-- optomoze
-- clerance base a\*
-- using clerance based A\* algorithim
-- optimize layout
-- optimize serialization (send table divs? not full tables? cachinf also)
-- io, os, package, coroutine TODO and test all global tables
-- taqle (TODO)
-- table.sort
-- string (TODO)
-- string.dump — implement real function serialization
-- string.find — add full Lua pattern matching
-- string.format — add C-style formatting (%d, %f, %s, etc.)
-- string.gmatch — pattern iterator
-- string.gsub — pattern substitution
-- string.match — pattern captures
-- string.sub — handle pattern captures + finalize negative index logic
-- math.randomseed — proper seedable RNG
-- math.frexp — split float into mantissa & exponent
-- math.ldexp — mantissa \* 2^exp reconstruction
-
-- importnat nothing should return and error is more like a throw that takes over
-- move to server
-- indexing for the member expresions
-- pretify visulzer
-- refactor visualizer
-- or it has a special type of our data structures
-- basic implementations and visualization of Data Structures
-- 2d array
-- Stack
-- queue
-- linked list
-- double linked list
-- binary tree / binary search tree
-- heap <- just a array represented as tree
-- finish interpert
-- tanslate intperter to generator
-- reafactor how to pass the problem
-- refactor how to pass test
-- test builder allow user to create heir own test
-- be able to show when time lmit/stack limit excee , passed, failed
-- Waiting on desing
-- Environment visuals: polish node cards, spacing, and shadows
-- Movable layout: allow dragging nodes/groups
-- Collapsible nodes: toggle children open/closed with indicator
-- Connector fix: reroute SVG links if target is off-screen/hidden
-- Scroll & collapse logic: links attach to visible ancestor or viewport edge
-- End-state indicator: show banner + color ring for correct/incorrect runs
-- Demo capture: quick screen recording of expand/collapse, drag, reroute, and end badge
-- Improved arrow styling – rounded corners, subtle animation, glow
-- branching
-- Mini tooltips – show variable info (type, value, key) on hover
-- Operation-aware visual feedback – color/effect depending on operation (+, -, \*, assignment)
-- extenable environment
-- Simple animations for assignments – animate variables/tables when updated or accessed
-- Add all tables to a heap with unique IDs for clean visualization, leaving cycle handling and arrow layout as a later enhancement.
-- chaing indexing
-- cache layout
-- Time Complexity calculator?
-- do vidoe
-- move interperter to the server
-- optimizations
-
-## Features to Include in MVP
-
-- [ ] Collapsible Tables / Nested Structures
-  - [ ] Support deep nested objects without overwhelming the UI
-  - [ ] Collapsed boxes show summary (e.g., size, keys)
-
-- [ ] Chain Indexing Visualization
-  - [ ] Support nested access like a.b.c or table[1][2]
-  - [ ] Highlight the current part of the chain being accessed
-
-- [ ] Code-Aware Indexing
-  - [ ] Show line of code currently executing for the operation
-  - [ ] Highlight the corresponding element(s) in the environment
-
-- [ ] Multiple Simultaneous Indexing
-  - [ ] Show multiple accesses happening at the same time
-  - [ ] Example: a[1] === b[1] → both elements visually highlighted concurrently
-  - [ ] Provides binary-level understanding of comparisons/assignments
-
-- [ ] Code Animations
-  - [ ] Animate elements when assigned or updated
-  - [ ] Smoothly highlight changes to variables/tables
-
-- [ ] Operation Awareness (Optional for MVP)
-  - [ ] Visual effect based on operation type (e.g., +, -, \*)
-  - [ ] Simple animation or highlight can indicate the action being performed
+MIT
