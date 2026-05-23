@@ -24,6 +24,9 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    allowedHosts: ['.railway.app'],
+  },
   resolve: {
     dedupe: ['react', 'react-dom'],
     alias: {
