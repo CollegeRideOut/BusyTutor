@@ -25,7 +25,7 @@ export default defineConfig({
     },
   },
   preview: {
-    allowedHosts: ['.railway.app'],
+    allowedHosts: ['.railway.app', '.collegerideout.dev'],
   },
   resolve: {
     dedupe: ['react', 'react-dom'],
