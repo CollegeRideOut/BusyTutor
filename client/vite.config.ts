@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   // 🟢 Fallback to localhost if the variable isn't defined yet
-  const backendTarget = env.VITE_API_URL || 'http://localhost:3000';
+  const backendTarget = env.VITE_APP_URL || 'http://localhost:3000';
 
   return {
     plugins: [
