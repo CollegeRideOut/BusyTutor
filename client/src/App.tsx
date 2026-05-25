@@ -11,12 +11,12 @@ import { routeTree } from './routeTree.gen';
 export function trpcHelper() {
   // Vite reads the environment variable dynamically. 
   // We append '/api' to ensure it routes correctly to your backend endpoints.
-  const backendUrl = `${import.meta.env.VITE_API_URL}`;
+  //const backendUrl = `${import.meta.env.VITE_API_URL}`;
 
   return trpc.createClient({
     links: [
       httpBatchLink({
-        url: backendUrl,
+        url: "/api",
         transformer: SuperJSON,
 
         fetch(url, options) {
