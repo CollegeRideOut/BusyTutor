@@ -9,21 +9,24 @@ import session from 'express-session';
 
 export function startServer() {
   const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+  const isProduction = process.env.NODE_ENV === 'production';
+
   if (process.env.SESSION_SECRET === undefined)
     throw new Error('no session secret');
 
   const app = express();
+  app.set('trust proxy', 1);
 
   app.use(
     session({
       secret: process.env.SESSION_SECRET,
       resave: false,
-      saveUninitialized: true,
+      saveUninitialized: false, // Changed to false (good practice for login sessions)
 
       cookie: {
         httpOnly: true,
-        secure: process.env.HTTPS ? true : false, // 🔴 REQUIRED (HTTPS only)
-        sameSite: process.env.HTTPS ? 'none' : 'lax',
+        secure: isProduction, // Evaluates to true on Railway production
+        sameSite: isProduction ? 'none' : 'lax', // Must be 'none' for cross-domain cookies
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
       },
     })

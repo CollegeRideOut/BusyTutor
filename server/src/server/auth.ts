@@ -20,6 +20,7 @@ export function setupAuth() {
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
         callbackURL: `${process.env.BASE_URL!}/api/google/callback`,
         passReqToCallback: true,
+        proxy: true, // 🟢 ADD THIS LINE RIGHT HERE
       },
       async function (req, accessToken, refreshToken, profile, cb) {
         if (profile.emails === undefined || profile.emails[0] === undefined) {
@@ -45,6 +46,7 @@ export function setupAuth() {
       }
     )
   );
+
   passport.serializeUser((user, done) => {
     done(null, user);
   });
