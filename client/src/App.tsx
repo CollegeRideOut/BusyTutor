@@ -8,14 +8,26 @@ import { RouterProvider, createRouter } from '@tanstack/react-router';
 // Import the generated route tree
 import { routeTree } from './routeTree.gen';
 
-function trpcHelper() {
+export function trpcHelper() {
+  // Vite reads the environment variable dynamically. 
+  // We append '/api' to ensure it routes correctly to your backend endpoints.
+  const backendUrl = `${import.meta.env.VITE_API_URL}`;
+
   return trpc.createClient({
     links: [
       httpBatchLink({
-        url: '/api',
+        url: backendUrl,
         transformer: SuperJSON,
+
+        fetch(url, options) {
+          return fetch(url, {
+            ...options,
+            credentials: 'include',
+          });
+        },
+
         headers() {
-          const token = localStorage.getItem('authToken'); // Example: get from localStorage
+          const token = localStorage.getItem('authToken');
           return {
             Authorization: token ? `Bearer ${token}` : '',
           };
